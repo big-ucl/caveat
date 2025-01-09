@@ -19,6 +19,7 @@ from .sequence.cvae_sequence_lstm_after import CVAESeqLSTMAfter
 from .sequence.cvae_sequence_lstm_all import CVAESeqLSTMAll
 from .sequence.cvae_sequence_lstm_double_nudger import CVAESeqLSTMDoubleNudger
 from .sequence.cvae_sequence_lstm_feed import CVAESeqLSTMFeed
+from .sequence.cvae_sequence_lstm_latent_feed import CVAESeqLSTMLatentFeed
 from .sequence.cvae_sequence_lstm_nudger import CVAESeqLSTMNudger
 from .sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
@@ -37,6 +38,7 @@ library = {
     "VAEDiscTrans": VAEDiscTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
     "CVAESeqLSTMAdd": CVAESeqLSTMAdd,  # adds conditionals to latent layer
+    "CVAESeqLSTMLatentFeed": CVAESeqLSTMLatentFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMFeed": CVAESeqLSTMFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMAfter": CVAESeqLSTMAfter,  # conditionals concat after LSTM output
     "CVAESeqLSTMAll": CVAESeqLSTMAll,  # labels cat to latents and added to unit in/outs

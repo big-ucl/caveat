@@ -48,8 +48,7 @@ class CVAESeqLSTMFeed(Base):
         )
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_attributes = nn.Linear(self.conditionals_size, self.latent_dim)
-        self.fc_hidden = nn.Linear(2 * self.latent_dim, flat_size_encode)
+        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
         self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
 
         if config.get("share_embed", False):
@@ -75,35 +74,6 @@ class CVAESeqLSTMFeed(Base):
         log_prob_y = self.decode(z, conditionals=conditionals, target=target)
         return [log_prob_y, mu, log_var, z]
 
-    def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
-        """Encodes the input by passing through the encoder network.
-
-        Args:
-            input (tensor): Input sequence batch [N, steps, acts].
-
-        Returns:
-            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
-        """
-        h1, h2 = (
-            self.fc_conditionals(conditionals)
-            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-            .permute(1, 0, 2)
-            .split(
-                self.hidden_layers
-            )  # ([hidden, N, layers, [hidden, N, layers]])
-        )
-        h1 = h1.contiguous()
-        h2 = h2.contiguous()
-        # [N, L, C]
-        hidden = self.encoder(input, (h1, h2))
-        # [N, flatsize]
-
-        # Split the result into mu and var components
-        mu = self.fc_mu(hidden)
-        log_var = self.fc_var(hidden)
-
-        return [mu, log_var]
-
     def decode(
         self, z: Tensor, conditionals: Tensor, target=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
@@ -115,10 +85,6 @@ class CVAESeqLSTMFeed(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        # add conditionlity to z
-        z_conditionals = self.fc_attributes(conditionals)
-        z = torch.cat((z, z_conditionals), dim=-1)
-        # initialize hidden state as inputs
         h = self.fc_hidden(z)
         x = self.fc_x(conditionals).unsqueeze(-2)
 
@@ -251,6 +217,7 @@ class Decoder(nn.Module):
         )
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
+        self.duration_activation = nn.Sigmoid()
 
     def forward(self, hidden, x, **kwargs):
         hidden, cell = hidden
@@ -285,4 +252,3 @@ class Decoder(nn.Module):
         prediction = self.fc(output)
         # [N, 1, encodings+1]
         return prediction, hidden
-    

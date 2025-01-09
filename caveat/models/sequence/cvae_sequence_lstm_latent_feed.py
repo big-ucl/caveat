@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor, exp, nn
@@ -7,7 +7,7 @@ from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
 
 
-class CVAESeqLSTMAdd(Base):
+class CVAESeqLSTMLatentFeed(Base):
     def __init__(self, *args, **kwargs):
         """
         RNN based encoder and decoder with encoder embedding layer and conditionality.
@@ -49,39 +49,60 @@ class CVAESeqLSTMAdd(Base):
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_attributes = nn.Linear(self.conditionals_size, self.latent_dim)
-        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+        self.fc_hidden = nn.Linear(2 * self.latent_dim, flat_size_encode)
+        self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    # def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
-    #     """Encodes the input by passing through the encoder network.
+    def forward(
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target=None,
+        **kwargs,
+    ) -> List[Tensor]:
+        """Forward pass, also return latent parameterization.
 
-    #     Args:
-    #         input (tensor): Input sequence batch [N, steps, acts].
+        Args:
+            x (tensor): Input sequences [N, L, Cin].
 
-    #     Returns:
-    #         list[tensor]: Latent layer input (means and variances) [N, latent_dims].
-    #     """
-    #     h1, h2 = (
-    #         self.fc_conditionals(conditionals)
-    #         .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-    #         .permute(1, 0, 2)
-    #         .split(
-    #             self.hidden_layers
-    #         )  # ([hidden, N, layers, [hidden, N, layers]])
-    #     )
-    #     h1 = h1.contiguous()
-    #     h2 = h2.contiguous()
-    #     # [N, L, C]
-    #     hidden = self.encoder(input, (h1, h2))
-    #     # [N, flatsize]
+        Returns:
+            list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
+        """
+        mu, log_var = self.encode(x, conditionals)
+        z = self.reparameterize(mu, log_var)
+        log_prob_y = self.decode(z, conditionals=conditionals, target=target)
+        return [log_prob_y, mu, log_var, z]
 
-    #     # Split the result into mu and var components
-    #     mu = self.fc_mu(hidden)
-    #     log_var = self.fc_var(hidden)
+    def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
+        """Encodes the input by passing through the encoder network.
 
-    #     return [mu, log_var]
+        Args:
+            input (tensor): Input sequence batch [N, steps, acts].
+
+        Returns:
+            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
+        """
+        h1, h2 = (
+            self.fc_conditionals(conditionals)
+            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
+            .permute(1, 0, 2)
+            .split(
+                self.hidden_layers
+            )  # ([hidden, N, layers, [hidden, N, layers]])
+        )
+        h1 = h1.contiguous()
+        h2 = h2.contiguous()
+        # [N, L, C]
+        hidden = self.encoder(input, (h1, h2))
+        # [N, flatsize]
+
+        # Split the result into mu and var components
+        mu = self.fc_mu(hidden)
+        log_var = self.fc_var(hidden)
+
+        return [mu, log_var]
 
     def decode(
         self, z: Tensor, conditionals: Tensor, target=None, **kwargs
@@ -95,10 +116,11 @@ class CVAESeqLSTMAdd(Base):
             tensor: Output sequence batch [N, steps, acts].
         """
         # add conditionlity to z
-        conditionals = self.fc_attributes(conditionals)
-        z = z + conditionals
+        z_conditionals = self.fc_attributes(conditionals)
+        z = torch.cat((z, z_conditionals), dim=-1)
         # initialize hidden state as inputs
         h = self.fc_hidden(z)
+        x = self.fc_x(conditionals).unsqueeze(-2)
 
         # initialize hidden state
         hidden = h.unflatten(
@@ -109,17 +131,19 @@ class CVAESeqLSTMAdd(Base):
         hidden = hidden.split(
             self.hidden_layers
         )  # ([hidden, N, layers, [hidden, N, layers]])
-        batch_size = z.shape[0]
 
-        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
-            # use teacher forcing
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=target
-            )
-        else:
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=None
-            )
+        log_probs = self.decoder(hidden=hidden, x=x, target=None)
+
+        # TODO: add forcing back?
+        # if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
+        #     # use teacher forcing
+        #     log_probs, probs = self.decoder(
+        #         batch_size=batch_size, hidden=hidden, target=target
+        #     )
+        # else:
+        #     log_probs, probs = self.decoder(
+        #         batch_size=batch_size, hidden=hidden, target=None
+        #     )
 
         return log_probs
 
@@ -140,50 +164,6 @@ class CVAESeqLSTMAdd(Base):
             self.decode(z=z, conditionals=conditionals, **kwargs)
         )
         return prob_samples
-
-
-# class Encoder(nn.Module):
-#     def __init__(
-#         self,
-#         input_size: int,
-#         hidden_size: int,
-#         num_layers: int,
-#         dropout: float = 0.1,
-#     ):
-#         """LSTM Encoder.
-
-#         Args:
-#             input_size (int): lstm input size.
-#             hidden_size (int): lstm hidden size.
-#             num_layers (int): number of lstm layers.
-#             dropout (float): dropout. Defaults to 0.1.
-#         """
-#         super(Encoder, self).__init__()
-#         self.hidden_size = hidden_size
-#         self.num_layers = num_layers
-#         self.embedding = CustomDurationEmbedding(
-#             input_size, hidden_size, dropout=dropout
-#         )
-#         self.fc_hidden = nn.Linear(hidden_size, hidden_size)
-#         self.lstm = nn.LSTM(
-#             hidden_size,
-#             hidden_size,
-#             num_layers,
-#             batch_first=True,
-#             bidirectional=False,
-#         )
-#         self.norm = nn.LayerNorm(hidden_size)
-#         self.dropout = nn.Dropout(dropout)
-
-#     def forward(self, x, hidden):
-#         embedded = self.embedding(x)
-#         _, (h1, h2) = self.lstm(embedded, hidden)
-#         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
-#         h1 = self.norm(h1)
-#         h2 = self.norm(h2)
-#         hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
-#         # [N, flatsize]
-#         return hidden
 
 
 class Encoder(nn.Module):
@@ -208,6 +188,7 @@ class Encoder(nn.Module):
         self.embedding = CustomDurationEmbedding(
             input_size, hidden_size, dropout=dropout
         )
+        self.fc_hidden = nn.Linear(hidden_size, hidden_size)
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
@@ -218,9 +199,9 @@ class Encoder(nn.Module):
         self.norm = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, hidden):
         embedded = self.embedding(x)
-        _, (h1, h2) = self.lstm(embedded)
+        _, (h1, h2) = self.lstm(embedded, hidden)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
         h1 = self.norm(h1)
         h2 = self.norm(h2)
@@ -269,37 +250,23 @@ class Decoder(nn.Module):
             bidirectional=False,
         )
         self.fc = nn.Linear(hidden_size, output_size)
-        self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
-        if top_sampler:
-            print("Decoder using topk sampling")
-            self.sample = self.topk
-        else:
-            print("Decoder using multinomial sampling")
-            self.sample = self.multinomial
 
-    def forward(self, batch_size, hidden, target=None, **kwargs):
+    def forward(self, hidden, x, **kwargs):
         hidden, cell = hidden
-        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
-        decoder_input[:, :, 0] = self.sos  # set as SOS
+        # decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        # decoder_input[:, :, 0] = self.sos  # set as SOS
         hidden = hidden.contiguous()
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
         outputs = []
 
-        for i in range(self.max_length):
+        for _ in range(self.max_length):
             decoder_output, decoder_hidden = self.forward_step(
-                decoder_input, decoder_hidden
+                x, decoder_hidden
             )
             outputs.append(decoder_output.squeeze())
-
-            if target is not None:
-                # teacher forcing for next step
-                decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
-            else:
-                # no teacher forcing use decoder output
-                decoder_input = self.pack(decoder_output)
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
 
@@ -314,29 +281,8 @@ class Decoder(nn.Module):
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]
-        embedded = self.embedding(x)
-        output, hidden = self.lstm(embedded, hidden)
+        # embedded = self.embedding(x)
+        output, hidden = self.lstm(x, hidden)
         prediction = self.fc(output)
         # [N, 1, encodings+1]
         return prediction, hidden
-
-    def pack(self, x):
-        # [N, 1, encodings+1]
-        acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        act = self.sample(acts)
-        duration = self.duration_activation(duration)
-        outputs = torch.cat((act, duration), dim=-1)
-        # [N, 1, 2]
-        return outputs
-
-    def multinomial(self, x):
-        # [N, 1, encodings]
-        acts = torch.multinomial(self.activity_prob_activation(x.squeeze()), 1)
-        # DETACH?
-        return acts
-
-    def topk(self, x):
-        _, topi = x.topk(1)
-        act = topi.detach()  # detach from history as input
-        # DETACH?
-        return act
