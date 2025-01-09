@@ -71,10 +71,12 @@ class CVAESeqLSTMAll(Base):
         """
         mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y, mu, log_var, z]
+        # log_prob_y, prob_y = self.decode(
+        #     z, conditionals=conditionals, target=target
+        # )
+        # return [log_prob_y, prob_y, mu, log_var, z]
+        log_probs_x = self.decode(z, conditionals=conditionals, target=target)
+        return [log_probs_x, mu, log_var, z]
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.

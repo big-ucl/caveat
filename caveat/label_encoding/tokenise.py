@@ -79,7 +79,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
             raise UserWarning("No attribute encoding found.")
 
         return (
-            torch.stack(encoded, dim=-1).long(),
+            torch.stack(encoded, dim=-1).float(),
             torch.stack(weights, dim=-1).float(),
         )
 
