@@ -13,13 +13,19 @@ from .seq2score.lstm import Seq2ScoreLSTM
 from .seq2seq.lstm import Seq2SeqLSTM
 from .sequence.auto_sequence_lstm import AutoSeqLSTM
 from .sequence.cond_sequence_lstm import CondSeqLSTM
-from .sequence.cvae_sequence_lstm import CVAESeqLSTM
+from .sequence.cvae_sequence_lstm import CVAESeqLSTM, CVAESeqLSTMPre
 from .sequence.cvae_sequence_lstm_add import CVAESeqLSTMAdd
 from .sequence.cvae_sequence_lstm_after import CVAESeqLSTMAfter
 from .sequence.cvae_sequence_lstm_all import CVAESeqLSTMAll
 from .sequence.cvae_sequence_lstm_double_nudger import CVAESeqLSTMDoubleNudger
-from .sequence.cvae_sequence_lstm_feed import CVAESeqLSTMFeed
-from .sequence.cvae_sequence_lstm_latent_feed import CVAESeqLSTMLatentFeed
+from .sequence.cvae_sequence_lstm_feed import (
+    CVAESeqLSTMFeed,
+    CVAESeqLSTMFeedPre,
+)
+from .sequence.cvae_sequence_lstm_latent_feed import (
+    CVAESeqLSTMLatentFeed,
+    CVAESeqLSTMLatentFeedPre,
+)
 from .sequence.cvae_sequence_lstm_nudger import CVAESeqLSTMNudger
 from .sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
@@ -37,9 +43,12 @@ library = {
     "VAEDiscLSTM": VAEDiscLSTM,
     "VAEDiscTrans": VAEDiscTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
+    "CVAESeqLSTMPre": CVAESeqLSTMPre,  # attributes at encoder and decoder
     "CVAESeqLSTMAdd": CVAESeqLSTMAdd,  # adds conditionals to latent layer
-    "CVAESeqLSTMLatentFeed": CVAESeqLSTMLatentFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMFeed": CVAESeqLSTMFeed,  # passes conditionals to decoder units
+    "CVAESeqLSTMFeedPre": CVAESeqLSTMFeedPre,  # passes conditionals to decoder units
+    "CVAESeqLSTMLatentFeed": CVAESeqLSTMLatentFeed,  # passes conditionals to decoder units
+    "CVAESeqLSTMLatentFeedPre": CVAESeqLSTMLatentFeedPre,  # passes conditionals to decoder units
     "CVAESeqLSTMAfter": CVAESeqLSTMAfter,  # conditionals concat after LSTM output
     "CVAESeqLSTMAll": CVAESeqLSTMAll,  # labels cat to latents and added to unit in/outs
     "CVAESeqLSTMNudge": CVAESeqLSTMNudger,  # nudger model
