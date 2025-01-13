@@ -16,12 +16,12 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import label_encoding, cuda_available, data, encoding, models
-from caveat.label_encoding.base import BaseLabelEncoder
+from caveat import cuda_available, data, encoding, label_encoding, models
 from caveat.callbacks import LinearLossScheduler
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.evaluate import evaluate
+from caveat.label_encoding.base import BaseLabelEncoder
 
 
 def run_command(
