@@ -22,6 +22,7 @@ class SequenceEncoder(BaseEncoder):
         self.max_length = max_length
         self.norm_duration = norm_duration
         self.jitter = kwargs.get("jitter", 0)
+        self.fix_durations = kwargs.get("fix_durations", False)
         self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
 
     def encode(
@@ -146,18 +147,26 @@ class SequenceEncoder(BaseEncoder):
             schedules = schedules.argmax(dim=-1).numpy()
         else:
             schedules, durations = torch.split(schedules, [1, 1], dim=-1)
+
         decoded = []
 
         for pid in range(len(schedules)):
             act_start = 0
-            for act_idx, duration in zip(schedules[pid], durations[pid]):
+            pid_durations = durations[pid]
+            if self.fix_durations:
+                pid_durations = pid_durations / pid_durations.sum()
+
+            for act_idx, duration in zip(schedules[pid], pid_durations):
                 if int(act_idx) == self.sos:
                     continue
                 if int(act_idx) == self.eos:
                     if act_start == 0:
                         print(f"Failed to decode pid: {pid}")
-                        decoded.append([pid, "home", 0, 0])  # todo: hack
+                        decoded.append(
+                            [pid, "home", 0, 0]
+                        )  # todo: hack for empty plan
                     break
+                # denormalise incrementally preserves duration
                 duration = int(duration * self.norm_duration)
                 decoded.append(
                     [
@@ -170,6 +179,11 @@ class SequenceEncoder(BaseEncoder):
                 act_start += duration
 
         df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
+
+        if self.fix_durations:
+            # ensure last end time is norm duration
+            df = fix_end_durations(df, self.norm_duration)
+
         df["duration"] = df.end - df.start
         return df
 
@@ -262,3 +276,8 @@ def encode_sequence(
             # act weights are 0 for padding eos
 
     return encoding, weights
+
+
+def fix_end_durations(data: pd.DataFrame, end_duration: int) -> pd.DataFrame:
+    data.loc[data.groupby(data.pid).tail(1).index, "end"] = end_duration
+    return data

@@ -33,6 +33,7 @@ global:
     max_length: 12
     norm_duration: 1440
     jitter: 0.1
+    fix_durations: True
 
   experiment_params:
     LR: 0.001
@@ -41,75 +42,85 @@ global:
     kld_weight: 0.01
     label_loss_weight: 0.0001
 
-# Latent:
-#   model_params:
-#     name: "CVAESeqLSTM"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# LatentPre:
-#   model_params:
-#     name: "CVAESeqLSTMPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# Feed:
-#   model_params:
-#     name: "CVAESeqLSTMFeed"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# FeedPre:
-#   model_params:
-#     name: "CVAESeqLSTMFeedPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# LatentFeed:
-#   model_params:
-#     name: "CVAESeqLSTMLatentFeed"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# LatentAddFeed:
-#   model_params:
-#     name: "CVAESeqLSTMLatentFeedPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-LatentAddFeedPre:
+Latent:
   model_params:
-    name: "CVAESeqLSTMLatentAddFeedPre"
+    name: "CVAESeqLSTM"
     hidden_layers: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
     dropout: 0.1
     teacher_forcing_ratio: 0.5
+
+LatentPre:
+  model_params:
+    name: "CVAESeqLSTMPre"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+
+Feed:
+  model_params:
+    name: "CVAESeqLSTMFeed"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+
+FeedPre:
+  model_params:
+    name: "CVAESeqLSTMFeedPre"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+
+LatentFeed:
+  model_params:
+    name: "CVAESeqLSTMLatentFeed"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+
+LatentFeedPre:
+  model_params:
+    name: "CVAESeqLSTMLatentFeedPre"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+
+# LatentAddFeed:
+#   model_params:
+#     name: "CVAESeqLSTMLatentAddFeed"
+#     hidden_layers: 5
+#     hidden_size: 256
+#     labels_hidden_size: 32
+#     latent_dim: 6
+#     dropout: 0.1
+#     teacher_forcing_ratio: 0.5
+
+# LatentAddFeedPre:
+#   model_params:
+#     name: "CVAESeqLSTMLatentAddFeedPre"
+#     hidden_layers: 5
+#     hidden_size: 256
+#     labels_hidden_size: 32
+#     latent_dim: 6
+#     dropout: 0.1
+#     teacher_forcing_ratio: 0.5
 
 # After:
 #   model_params:

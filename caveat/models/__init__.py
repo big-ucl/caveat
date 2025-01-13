@@ -22,10 +22,11 @@ from .sequence.cvae_sequence_lstm_feed import (
     CVAESeqLSTMFeed,
     CVAESeqLSTMFeedPre,
 )
-from .sequence.cvae_sequence_lstm_latent_add_feed import (
-    CVAESeqLSTMLatentAddFeed,
-    CVAESeqLSTMLatentAddFeedPre,
-)
+
+# from .sequence.cvae_sequence_lstm_latent_add_feed import (
+#     CVAESeqLSTMLatentAddFeed,
+#     CVAESeqLSTMLatentAddFeedPre,
+# )
 from .sequence.cvae_sequence_lstm_latent_feed import (
     CVAESeqLSTMLatentFeed,
     CVAESeqLSTMLatentFeedPre,
@@ -53,8 +54,8 @@ library = {
     "CVAESeqLSTMFeedPre": CVAESeqLSTMFeedPre,  # passes conditionals to decoder units
     "CVAESeqLSTMLatentFeed": CVAESeqLSTMLatentFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMLatentFeedPre": CVAESeqLSTMLatentFeedPre,  # passes conditionals to decoder units
-    "CVAESeqLSTMLatentAddFeed": CVAESeqLSTMLatentAddFeed,  # adds conditionals to latent layer and passes to decoder units
-    "CVAESeqLSTMLatentAddFeedPre": CVAESeqLSTMLatentAddFeedPre,  # adds conditionals to latent layer and passes to decoder units
+    # "CVAESeqLSTMLatentAddFeed": CVAESeqLSTMLatentAddFeed,  # adds conditionals to latent layer and passes to decoder units
+    # "CVAESeqLSTMLatentAddFeedPre": CVAESeqLSTMLatentAddFeedPre,  # adds conditionals to latent layer and passes to decoder units
     "CVAESeqLSTMAfter": CVAESeqLSTMAfter,  # conditionals concat after LSTM output
     "CVAESeqLSTMAll": CVAESeqLSTMAll,  # labels cat to latents and added to unit in/outs
     "CVAESeqLSTMNudge": CVAESeqLSTMNudger,  # nudger model
