@@ -14,7 +14,8 @@ global:
     income: nominal
 
   evaluation_params:
-    split_on: [gender, age_group, car_access, work_status, income]
+    # split_on: [gender, age_group, car_access, work_status, income]
+    split_on: [work_status]
 
   attribute_encoder: "tokens"
 
@@ -27,22 +28,28 @@ global:
   loader_params:
     train_batch_size: 1024
     val_batch_size:  1024
-    num_workers: 8
+    num_workers: 4
 
-Feed:
-  seed: 11111
+# Feed:
+#   seed: 11111
 
-FeedPre:
-  seed: 22222
+# FeedPre:
+#   seed: 22222
 
-Latent:
-  seed: 33333
+# Latent:
+#   seed: 33333
 
-LatentPre:
-  seed: 44444
+# LatentPre:
+#   seed: 44444
 
-LatentFeed:
-  seed: 55555
+# LatentFeed:
+#   seed: 12345
 
 LatentFeedPre:
-  seed: 66666
+  seed: 12345
+
+# LatentAddFeed:
+#   seed: 12345
+
+LatentAddFeedPre:
+  seed: 12345
