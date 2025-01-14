@@ -152,11 +152,7 @@ class SequenceEncoder(BaseEncoder):
 
         for pid in range(len(schedules)):
             act_start = 0
-            pid_durations = durations[pid]
-            if self.fix_durations:
-                pid_durations = pid_durations / pid_durations.sum()
-
-            for act_idx, duration in zip(schedules[pid], pid_durations):
+            for act_idx, duration in zip(schedules[pid], durations[pid]):
                 if int(act_idx) == self.sos:
                     continue
                 if int(act_idx) == self.eos:
@@ -179,12 +175,15 @@ class SequenceEncoder(BaseEncoder):
                 act_start += duration
 
         df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
+        df["duration"] = df.end - df.start
 
         if self.fix_durations:
+            # ensure durations sum to norm duration
+            df = norm_durations(df, self.norm_duration)
             # ensure last end time is norm duration
             df = fix_end_durations(df, self.norm_duration)
+            df["duration"] = df.end - df.start
 
-        df["duration"] = df.end - df.start
         return df
 
 
@@ -280,4 +279,24 @@ def encode_sequence(
 
 def fix_end_durations(data: pd.DataFrame, end_duration: int) -> pd.DataFrame:
     data.loc[data.groupby(data.pid).tail(1).index, "end"] = end_duration
+    return data
+
+
+def norm_durations(data: pd.DataFrame, target_duration: int) -> pd.DataFrame:
+    def norm_plan_durations(plan: pd.DataFrame):
+        plan_duration = plan.duration.sum()
+        if plan_duration == 0:
+            print("Zero duration plan found, cannot normalise")
+            return plan
+        if plan_duration != target_duration:
+            r = target_duration / plan_duration
+            plan.duration = (plan.duration * r).astype(int)
+            accumulated = list(plan.duration.cumsum())
+            plan.start = [0] + accumulated[:-1]
+            plan.end = accumulated
+        return plan.reset_index(drop=True)
+
+    data = (
+        data.groupby(data.pid).apply(norm_plan_durations).reset_index(drop=True)
+    )
     return data
