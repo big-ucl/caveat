@@ -70,6 +70,33 @@ def test_encoder():
     assert torch.equal(labels_weights[0], torch.tensor([1, 2]))
 
 
+def test_norm_durations():
+    data = pd.DataFrame(
+        [
+            [0, 0, 0, 2, 2],
+            [0, 1, 2, 4, 2],
+            [0, 0, 4, 5, 1],
+            [1, 0, 0, 6, 6],
+            [1, 1, 6, 12, 6],
+            [1, 0, 12, 15, 3],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    expected = pd.DataFrame(
+        [
+            [0, 0, 0, 4, 4],
+            [0, 1, 4, 8, 4],
+            [0, 0, 8, 10, 2],
+            [1, 0, 0, 4, 4],
+            [1, 1, 4, 8, 4],
+            [1, 0, 8, 10, 2],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    result = seq.norm_durations(data, 10)
+    pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+
+
 def test_fix_end_durations():
     data = pd.DataFrame(
         [
