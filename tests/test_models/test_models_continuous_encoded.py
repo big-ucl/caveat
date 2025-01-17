@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from caveat.models.sequence.auto_sequence_lstm import AutoSeqLSTM
@@ -67,7 +68,28 @@ def test_conditional_lstm_forward():
     assert "loss" in losses
 
 
-def test_cvae_lstm_forward():
+testdata = [
+    ("none", "concat", "none"),
+    ("none", "add", "none"),
+    ("hidden", "concat", "none"),
+    ("hidden", "add", "none"),
+    ("inputs", "concat", "none"),
+    ("inputs", "add", "none"),
+    ("hidden_and_inputs", "concat", "none"),
+    ("hidden_and_inputs", "add", "none"),
+    ("none", "concat", "inputs"),
+    ("none", "add", "inputs"),
+    ("hidden", "concat", "inputs"),
+    ("hidden", "add", "inputs"),
+    ("inputs", "concat", "inputs"),
+    ("inputs", "add", "inputs"),
+    ("hidden_and_inputs", "concat", "inputs"),
+    ("hidden_and_inputs", "add", "inputs"),
+]
+
+
+@pytest.mark.parametrize("encoder,latent,decoder", testdata)
+def test_cvae_lstm_forward(encoder, latent, decoder):
     x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
     weights = torch.ones((3, 10))
     acts, durations = x.split([5, 1], dim=-1)
@@ -85,6 +107,9 @@ def test_cvae_lstm_forward():
             "hidden_size": 2,
             "latent_dim": 2,
             "dropout": 0.1,
+            "encoder_conditionality": encoder,
+            "latent_conditionality": latent,
+            "decoder_conditionality": decoder,
         },
     )
     log_prob_y, mu, log_var, z = model(x_encoded, conditionals=conditionals)
