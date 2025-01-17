@@ -3,7 +3,6 @@ from typing import List, Optional, Tuple
 import torch
 from torch import Tensor, exp, nn
 
-from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
 
 
@@ -27,68 +26,112 @@ class CVAESeqLSTM(Base):
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
 
         # encoder
-        if config.get("encoder_conditionality", False):
-            print("Encoder conditionality is True")
-
-            self.encoder = ConditionalEncoder(
-                input_size=self.encodings,
-                hidden_size=self.hidden_size,
-                num_layers=self.hidden_layers,
-                conditionals_size=self.conditionals_size,
-                flat_size_encode=flat_size_encode,
-                dropout=self.dropout,
-            )
-        else:
+        encoder_conditionality = config.get("encoder_conditionality", "none")
+        if encoder_conditionality == "none":
+            print("No encoder conditionality")
             self.encoder = Encoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
-                num_layers=self.hidden_layers,
+                hidden_layers=self.hidden_layers,
                 dropout=self.dropout,
+            )
+        elif encoder_conditionality == "hidden":
+            print("Using hidden state encoder conditionality")
+            self.encoder = HiddenConditionalEncoder(
+                input_size=self.encodings,
+                hidden_size=self.hidden_size,
+                hidden_layers=self.hidden_layers,
+                conditionals_size=self.conditionals_size,
+                dropout=self.dropout,
+            )
+        elif encoder_conditionality == "inputs":
+            print("Using inputs encoder conditionality")
+            self.encoder = InputsConditionalEncoder(
+                input_size=self.encodings,
+                hidden_size=self.hidden_size,
+                hidden_layers=self.hidden_layers,
+                conditionals_size=self.conditionals_size,
+                max_length=length,
+                dropout=self.dropout,
+            )
+        elif (
+            encoder_conditionality == "hidden_and_inputs"
+            or encoder_conditionality == "both"
+        ):
+            print("Using hidden and inputs encoder conditionality")
+            self.encoder = HiddenInputsConditionalEncoder(
+                input_size=self.encodings,
+                hidden_size=self.hidden_size,
+                hidden_layers=self.hidden_layers,
+                conditionals_size=self.conditionals_size,
+                max_length=length,
+                dropout=self.dropout,
+            )
+        else:
+            raise ValueError(
+                "encoder_conditionality must be either 'none', 'hidden', 'inputs', or 'hidden_and_inputs'"
             )
 
         # encoder to latent
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
 
-        # latent conditionality
+        # latent block (add or concat)
         latent_conditionality = config.get("label_conditionality", "concat")
         if latent_conditionality == "concat":
             print("Label conditionality is concat")
-            latent_size = self.latent_dim + self.conditionals_size
+            self.latent_block = ConcatLatent(
+                latent_dim=self.latent_dim,
+                conditionals_size=self.conditionals_size,
+                flat_size_encode=flat_size_encode,
+                hidden_layers=self.hidden_layers,
+                hidden_size=self.hidden_size,
+            )
         elif latent_conditionality == "add":
             print("Label conditionality is add")
-            latent_size = self.latent_dim
-            self.labels_fc = nn.Linear(self.conditionals_size, self.latent_dim)
+            self.latent_block = AddLatent(
+                conditionals_size=self.conditionals_size,
+                latent_dim=self.latent_dim,
+                flat_size_encode=flat_size_encode,
+                hidden_layers=self.hidden_layers,
+                hidden_size=self.hidden_size,
+            )
         else:
             raise ValueError(
                 "label_conditionality must be either 'concat' or 'add'"
             )
 
-        # latent to decoder hidden
-        self.latent_fc = nn.Linear(latent_size, flat_size_encode)
-
         # decoder conditionality
-        decoder_conditionality = config.get("decoder_conditionality", False)
-        if decoder_conditionality:
-            print("Decoder conditionality is True")
-            self.decoder_x_fc = nn.Linear(
-                self.conditionals_size, self.hidden_size
+        decoder_conditionality = config.get("decoder_conditionality", "none")
+        if decoder_conditionality == "none":
+            print("Decoder conditionality is 'none'")
+            self.decoder = Decoder(
+                input_size=self.encodings,
+                hidden_size=self.hidden_size,
+                output_size=self.encodings + 1,
+                num_layers=self.hidden_layers,
+                max_length=length,
+                dropout=self.dropout,
+                sos=self.sos,
             )
-
-        self.decoder = Decoder(
-            input_size=self.encodings,
-            hidden_size=self.hidden_size,
-            output_size=self.encodings + 1,
-            num_layers=self.hidden_layers,
-            max_length=length,
-            dropout=self.dropout,
-            sos=self.sos,
-            conditionality=decoder_conditionality,
-        )
+        elif decoder_conditionality == "inputs":
+            print("Decoder conditionality is 'inputs'")
+            self.decoder = InputsConditionalDecoder(
+                input_size=self.encodings,
+                hidden_size=self.hidden_size,
+                output_size=self.encodings + 1,
+                num_layers=self.hidden_layers,
+                max_length=length,
+                conditionals_size=self.conditionals_size,
+                dropout=self.dropout,
+                sos=self.sos,
+            )
+        else:
+            raise ValueError("Decoder conditionality must be 'none'")
 
         # share embedding
         if config.get("share_embed", False):
-            print("Embedding is shared")
+            print("Decoder and Encoder Embedding is shared")
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
     def forward(
@@ -108,7 +151,10 @@ class CVAESeqLSTM(Base):
         """
         mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y = self.decode(z, conditionals=conditionals, target=target)
+        conditioned_z = self.latent_block(z, conditionals)
+        log_prob_y = self.decode(
+            conditioned_z, conditionals=conditionals, target=target
+        )
         return [log_prob_y, mu, log_var, z]
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
@@ -120,61 +166,41 @@ class CVAESeqLSTM(Base):
         Returns:
             list[tensor]: Latent layer input (means and variances) [N, latent_dims].
         """
-        h1, h2 = (
-            self.fc_conditionals(conditionals)
-            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-            .permute(1, 0, 2)
-            .split(
-                self.hidden_layers
-            )  # ([hidden, N, layers, [hidden, N, layers]])
-        )
-        h1 = h1.contiguous()
-        h2 = h2.contiguous()
-        # [N, L, C]
-        hidden = self.encoder(input, (h1, h2))
-        # [N, flatsize]
-
-        # Split the result into mu and var components
+        hidden = self.encoder(input, conditionals)
         mu = self.fc_mu(hidden)
         log_var = self.fc_var(hidden)
 
         return [mu, log_var]
 
     def decode(
-        self, z: Tensor, conditionals: Tensor, target=None, **kwargs
+        self, hidden: Tensor, conditionals: Tensor, target=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
-            z (tensor): Latent space batch [N, latent_dims].
+            hidden (tensor): Latent space batch [N, latent_dims].
+            conditionals (tensor): Conditional labels [N, conditionals_size].
+            target (tensor): Target sequence batch [N, steps, acts].
 
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        # add conditionlity to z
-        z = torch.cat((z, conditionals), dim=-1)
-        # initialize hidden state as inputs
-        h = self.latent_fc(z)
-
-        # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
-        ).permute(
-            1, 0, 2
-        )  # ([2xhidden, N, layers])
-        hidden = hidden.split(
-            self.hidden_layers
-        )  # ([hidden, N, layers, [hidden, N, layers]])
-        batch_size = z.shape[0]
+        batch_size = conditionals.shape[0]
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
             log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=target
+                batch_size=batch_size,
+                hidden=hidden,
+                target=target,
+                conditionals=conditionals,
             )
         else:
             log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=None
+                batch_size=batch_size,
+                hidden=hidden,
+                target=None,
+                conditionals=conditionals,
             )
 
         return log_probs
@@ -192,65 +218,13 @@ class CVAESeqLSTM(Base):
         """
         z = z.to(device)
         conditionals = conditionals.to(device)
+        conditioned_z = self.latent_block(z, conditionals)
         prob_samples = exp(
-            self.decode(z=z, conditionals=conditionals, **kwargs)
+            self.decode(
+                hidden=conditioned_z, conditionals=conditionals, **kwargs
+            )
         )
         return prob_samples
-
-
-class CVAESeqLSTMPre(CVAESeqLSTM):
-
-    def build(self, **config):
-        self.latent_dim = config["latent_dim"]
-        self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
-        self.dropout = config["dropout"]
-        length, _ = self.in_shape
-        self.encoder = ConditionalEncoder(
-            input_size=self.encodings,
-            hidden_size=self.hidden_size,
-            num_layers=self.hidden_layers,
-            conditionals_size=self.conditionals_size,
-            max_length=length,
-            dropout=self.dropout,
-        )
-        self.decoder = Decoder(
-            input_size=self.encodings,
-            hidden_size=self.hidden_size,
-            output_size=self.encodings + 1,
-            num_layers=self.hidden_layers,
-            max_length=length,
-            dropout=self.dropout,
-            sos=self.sos,
-        )
-        self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size * 2
-        self.fc_conditionals = nn.Linear(
-            self.conditionals_size, flat_size_encode
-        )
-        self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_hidden = nn.Linear(
-            self.latent_dim + self.conditionals_size, flat_size_encode
-        )
-        self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
-
-        if config.get("share_embed", False):
-            self.decoder.embedding.weight = self.encoder.embedding.weight
-
-    def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
-        h1, h2 = (
-            self.fc_conditionals(conditionals)
-            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-            .permute(1, 0, 2)
-            .split(self.hidden_layers)
-        )
-        h1 = h1.contiguous()
-        h2 = h2.contiguous()
-        hidden = self.encoder(input, (h1, h2), conditionals)
-        mu = self.fc_mu(hidden)
-        log_var = self.fc_var(hidden)
-        return [mu, log_var]
 
 
 class Encoder(nn.Module):
@@ -258,34 +232,31 @@ class Encoder(nn.Module):
         self,
         input_size: int,
         hidden_size: int,
-        num_layers: int,
+        hidden_layers: int,
         dropout: float = 0.1,
     ):
-        """LSTM Encoder.
+        """LSTM Encoder without conditionality.
 
         Args:
             input_size (int): lstm input size.
             hidden_size (int): lstm hidden size.
-            num_layers (int): number of lstm layers.
+            hidden_layers (int): number of lstm layers.
             dropout (float): dropout. Defaults to 0.1.
         """
         super(Encoder, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
         self.embedding = CustomDurationEmbedding(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
-            num_layers,
+            hidden_layers,
             batch_first=True,
             bidirectional=False,
         )
         self.norm = nn.LayerNorm(hidden_size)
-        self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, conditionals):
         embedded = self.embedding(x)
         _, (h1, h2) = self.lstm(embedded)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
@@ -296,37 +267,41 @@ class Encoder(nn.Module):
         return hidden
 
 
-class ConditionalEncoder(nn.Module):
+class HiddenConditionalEncoder(nn.Module):
     def __init__(
         self,
         input_size: int,
         hidden_size: int,
-        num_layers: int,
+        hidden_layers: int,
         conditionals_size: int,
-        flat_size_encode: int,
         dropout: float = 0.1,
     ):
-        """LSTM Encoder with label conditionality added at input hidden state.
+        """LSTM Encoder with label conditionality added at RNN hidden state.
 
         Args:
             input_size (int): lstm input size.
             hidden_size (int): lstm hidden size.
-            num_layers (int): number of lstm layers.
+            hidden_layers (int): number of lstm layers.
+            conditionals_size (int): size of conditionals.
             dropout (float): dropout. Defaults to 0.1.
         """
-        super(Encoder, self).__init__()
-        # self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.flat_size_encode = flat_size_encode
+        super(HiddenConditionalEncoder, self).__init__()
+        self.hidden_size = hidden_size
+        self.hidden_layers = hidden_layers
+        flat_size = 2 * hidden_layers * hidden_size
 
-        self.conditionals_fc = nn.Linear(conditionals_size, hidden_size)
+        self.conditionals_ff = nn.Sequential(
+            nn.Linear(conditionals_size, flat_size),
+            nn.LeakyReLU(),
+            nn.Dropout(dropout),
+        )
         self.embedding = CustomDurationEmbedding(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
-            num_layers,
+            hidden_layers,
             batch_first=True,
             bidirectional=False,
         )
@@ -336,10 +311,10 @@ class ConditionalEncoder(nn.Module):
     def forward(self, x, conditionals):
         # label conditionality
         h1, h2 = (
-            self.fc_conditionals(conditionals)
-            .unflatten(1, self.flat_size_encode)
+            self.conditionals_ff(conditionals)
+            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
             .permute(1, 0, 2)
-            .split(self.num_layers)
+            .split(self.hidden_layers)
         )
         h1 = h1.contiguous()
         h2 = h2.contiguous()
@@ -355,58 +330,205 @@ class ConditionalEncoder(nn.Module):
         return hidden
 
 
-class ConditionalEncoder(nn.Module):
+class InputsConditionalEncoder(nn.Module):
     def __init__(
         self,
         input_size: int,
         hidden_size: int,
-        num_layers: int,
+        hidden_layers: int,
         conditionals_size: int,
         max_length: int,
         dropout: float = 0.1,
     ):
-        """LSTM Encoder.
+        """LSTM Conditional Encoder. Labels are introduced at the input by addition.
 
         Args:
             input_size (int): lstm input size.
             hidden_size (int): lstm hidden size.
-            num_layers (int): number of lstm layers.
+            hidden_layers (int): number of lstm layers.
+            conditionals_size (int): size of conditionals.
+            max_length (int): max length of sequences.
             dropout (float): dropout. Defaults to 0.1.
         """
-        super(ConditionalEncoder, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
+        super(InputsConditionalEncoder, self).__init__()
         self.max_length = max_length
+
+        self.inputs_ff = nn.Sequential(
+            nn.Linear(conditionals_size, hidden_size),
+            nn.LeakyReLU(),
+            nn.Dropout(dropout),
+        )
         self.embedding = CustomDurationEmbedding(
             input_size, hidden_size, dropout=dropout
         )
-        self.fc_hidden = nn.Linear(hidden_size, hidden_size)
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
-            num_layers,
+            hidden_layers,
             batch_first=True,
             bidirectional=False,
         )
         self.norm = nn.LayerNorm(hidden_size)
-        self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(conditionals_size, hidden_size)
-        self.nl = nn.LeakyReLU()
 
-    def forward(self, x, hidden, conditionals):
+    def forward(self, x, conditionals):
         conditionals = (
-            self.nl(self.fc(conditionals))
+            self.inputs_ff(conditionals)
             .unsqueeze(1)
             .repeat(1, self.max_length, 1)
         )
         embedded = self.embedding(x)
         embedded = embedded + conditionals
-        _, (h1, h2) = self.lstm(embedded, hidden)
+        _, (h1, h2) = self.lstm(embedded)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
         h1 = self.norm(h1)
         h2 = self.norm(h2)
         hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
         # [N, flatsize]
+        return hidden
+
+
+class HiddenInputsConditionalEncoder(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        hidden_layers: int,
+        conditionals_size: int,
+        max_length: int,
+        dropout: float = 0.1,
+    ):
+        """LSTM Conditional Encoder. Labels are introduced at the hidden state and input.
+
+        Args:
+            input_size (int): lstm input size.
+            hidden_size (int): lstm hidden size.
+            hidden_layers (int): number of lstm layers.
+            conditionals_size (int): size of conditionals.
+            flat_size_encode (int): flattened hidden size.
+            max_length (int): max length of sequences.
+            dropout (float): dropout. Defaults to 0.1.
+        """
+        super(HiddenInputsConditionalEncoder, self).__init__()
+        self.hidden_size = hidden_size
+        self.hidden_layers = hidden_layers
+        self.max_length = max_length
+        flat_size = 2 * hidden_layers * hidden_size
+
+        self.inputs_ff = nn.Sequential(
+            nn.Linear(conditionals_size, hidden_size),
+            nn.LeakyReLU(),
+            nn.Dropout(dropout),
+        )
+        self.embedding = CustomDurationEmbedding(
+            input_size, hidden_size, dropout=dropout
+        )
+        self.conditionals_ff = nn.Sequential(
+            nn.Linear(conditionals_size, flat_size),
+            nn.LeakyReLU(),
+            nn.Dropout(dropout),
+        )
+        self.lstm = nn.LSTM(
+            hidden_size,
+            hidden_size,
+            hidden_layers,
+            batch_first=True,
+            bidirectional=False,
+        )
+        self.norm = nn.LayerNorm(hidden_size)
+
+    def forward(self, x, conditionals):
+        h1, h2 = (
+            self.conditionals_ff(conditionals)
+            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
+            .permute(1, 0, 2)
+            .split(self.hidden_layers)
+        )
+        h1 = h1.contiguous()
+        h2 = h2.contiguous()
+
+        inputs_conditionals = (
+            self.inputs_ff(conditionals)
+            .unsqueeze(1)
+            .repeat(1, self.max_length, 1)
+        )
+        embedded = self.embedding(x)
+        embedded = embedded + inputs_conditionals
+        _, (h1, h2) = self.lstm(embedded, (h1, h2))
+        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
+        h1 = self.norm(h1)
+        h2 = self.norm(h2)
+        hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
+        # [N, flatsize]
+        return hidden
+
+
+class ConcatLatent(nn.Module):
+    def __init__(
+        self,
+        latent_dim: int,
+        conditionals_size: int,
+        flat_size_encode: int,
+        hidden_layers: int,
+        hidden_size: int,
+    ):
+        super(ConcatLatent, self).__init__()
+        self.hidden_layers = hidden_layers
+        self.hidden_size = hidden_size
+        self.latent_fc = nn.Linear(
+            latent_dim + conditionals_size, flat_size_encode
+        )
+
+    def forward(self, z: Tensor, conditionals: Tensor) -> Tuple[Tensor, Tensor]:
+
+        # add conditionlity to z
+        z = torch.cat((z, conditionals), dim=-1)
+        # initialize hidden state as inputs
+        h = self.latent_fc(z)
+
+        # initialize hidden state
+        hidden = h.unflatten(
+            1, (2 * self.hidden_layers, self.hidden_size)
+        ).permute(
+            1, 0, 2
+        )  # ([2xhidden, N, layers])
+        hidden = hidden.split(
+            self.hidden_layers
+        )  # ([hidden, N, layers, [hidden, N, layers]])
+        return hidden
+
+
+class AddLatent(nn.Module):
+    def __init__(
+        self,
+        conditionals_size: int,
+        latent_dim: int,
+        flat_size_encode: int,
+        hidden_layers: int,
+        hidden_size: int,
+    ):
+        super(AddLatent, self).__init__()
+        self.hidden_layers = hidden_layers
+        self.hidden_size = hidden_size
+        self.conditionals_fc = nn.Linear(conditionals_size, latent_dim)
+        self.latent_fc = nn.Linear(latent_dim, flat_size_encode)
+
+    def forward(self, z: Tensor, conditionals: Tensor) -> Tuple[Tensor, Tensor]:
+
+        # add conditionlity to z
+        conditionals_z = self.conditionals_fc(conditionals)
+        z = z + conditionals_z
+        # initialize hidden state as inputs
+        h = self.latent_fc(z)
+
+        # initialize hidden state
+        hidden = h.unflatten(
+            1, (2 * self.hidden_layers, self.hidden_size)
+        ).permute(
+            1, 0, 2
+        )  # ([2xhidden, N, layers])
+        hidden = hidden.split(
+            self.hidden_layers
+        )  # ([hidden, N, layers, [hidden, N, layers]])
         return hidden
 
 
@@ -431,9 +553,6 @@ class Decoder(nn.Module):
             dropout (float): dropout probability. Defaults to 0.
         """
         super(Decoder, self).__init__()
-        self.current_device = current_device()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
         self.output_size = output_size
         self.max_length = max_length
         self.sos = sos
@@ -453,7 +572,7 @@ class Decoder(nn.Module):
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
 
-    def forward(self, batch_size, hidden, target=None, **kwargs):
+    def forward(self, batch_size, hidden, conditionals, target=None, **kwargs):
         hidden, cell = hidden
         decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
         decoder_input[:, :, 0] = self.sos  # set as SOS
@@ -505,3 +624,77 @@ class Decoder(nn.Module):
         outputs = torch.cat((act, duration), dim=-1)
         # [N, 1, 2]
         return outputs
+
+
+class InputsConditionalDecoder(Decoder):
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        output_size,
+        num_layers,
+        max_length,
+        conditionals_size,
+        dropout=0,
+        sos=0,
+    ):
+        super().__init__(
+            input_size,
+            hidden_size,
+            output_size,
+            num_layers,
+            max_length,
+            dropout,
+            sos,
+        )
+        self.inputs_ff = nn.Sequential(
+            nn.Linear(conditionals_size, hidden_size),
+            nn.LeakyReLU(),
+            nn.Dropout(dropout),
+        )
+
+    def forward(self, batch_size, hidden, conditionals, target=None, **kwargs):
+        hidden, cell = hidden
+        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        decoder_input[:, :, 0] = self.sos  # set as SOS
+        hidden = hidden.contiguous()
+        cell = cell.contiguous()
+        decoder_hidden = (hidden, cell)
+        outputs = []
+
+        inputs_conditionals = (
+            self.inputs_ff(conditionals).unsqueeze(1)
+            # .repeat(1, self.max_length, 1)
+        )
+
+        for i in range(self.max_length):
+            decoder_output, decoder_hidden = self.forward_step(
+                decoder_input, decoder_hidden, inputs_conditionals
+            )
+            outputs.append(decoder_output.squeeze())
+
+            if target is not None:
+                # teacher forcing for next step
+                decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
+            else:
+                # no teacher forcing use decoder output
+                decoder_input = self.pack(decoder_output)
+
+        outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
+
+        acts_logits, durations = torch.split(
+            outputs, [self.output_size - 1, 1], dim=-1
+        )
+        acts_log_probs = self.activity_logprob_activation(acts_logits)
+        durations = torch.log(self.duration_activation(durations))
+        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
+
+        return log_prob_outputs
+
+    def forward_step(self, x, hidden, conditionals):
+        # [N, 1, 2]
+        embedded = self.embedding(x) + conditionals
+        output, hidden = self.lstm(embedded, hidden)
+        prediction = self.fc(output)
+        # [N, 1, encodings+1]
+        return prediction, hidden

@@ -13,7 +13,7 @@ from .seq2score.lstm import Seq2ScoreLSTM
 from .seq2seq.lstm import Seq2SeqLSTM
 from .sequence.auto_sequence_lstm import AutoSeqLSTM
 from .sequence.cond_sequence_lstm import CondSeqLSTM
-from .sequence.cvae_sequence_lstm import CVAESeqLSTM, CVAESeqLSTMPre
+from .sequence.cvae_sequence_lstm import CVAESeqLSTM
 from .sequence.cvae_sequence_lstm_add import CVAESeqLSTMAdd
 from .sequence.cvae_sequence_lstm_after import CVAESeqLSTMAfter
 from .sequence.cvae_sequence_lstm_all import CVAESeqLSTMAll
@@ -51,7 +51,6 @@ library = {
     "VAEDiscLSTM": VAEDiscLSTM,
     "VAEDiscTrans": VAEDiscTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
-    "CVAESeqLSTMPre": CVAESeqLSTMPre,  # attributes at encoder and decoder
     "CVAESeqLSTMAdd": CVAESeqLSTMAdd,  # adds conditionals to latent layer
     "CVAESeqLSTMFeed": CVAESeqLSTMFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMFeedPre": CVAESeqLSTMFeedPre,  # passes conditionals to decoder units

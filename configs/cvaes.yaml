@@ -1,7 +1,7 @@
 global:
   seed: 1234
   logging_params:
-    log_dir: "logs/cvaes"
+    log_dir: "logs/cvaes2"
     name: "batch"
 
   schedules_path: "tmp/nts_home_schedules.csv"
@@ -42,152 +42,212 @@ global:
     kld_weight: 0.01
     label_loss_weight: 0.0001
 
-# Latent:
-#   model_params:
-#     name: "CVAESeqLSTM"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# LatentPre:
-#   model_params:
-#     name: "CVAESeqLSTMPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# Feed:
-#   model_params:
-#     name: "CVAESeqLSTMFeed"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-# FeedPre:
-#   model_params:
-#     name: "CVAESeqLSTMFeedPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
-
-LatentFeed:
+NoneConcatNone:
   model_params:
-    name: "CVAESeqLSTMLatentFeed"
+    name: "CVAESeqLSTM"
     hidden_layers: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
     dropout: 0.1
     teacher_forcing_ratio: 0.5
+    encoder_conditionality: none
+    latent_conditionality: concat
+    decoder_conditionality: none
 
-# LatentFeedPre:
-#   model_params:
-#     name: "CVAESeqLSTMLatentFeedPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+NoneAddNone:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: none
+    latent_conditionality: add
+    decoder_conditionality: none
 
-# NudgeFeed:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeFeed"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+HiddenConcatNone:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: hidden
+    latent_conditionality: concat
+    decoder_conditionality: none
 
-# NudgeFeedPre:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeFeedPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+HiddenAddNone:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: hidden
+    latent_conditionality: add
+    decoder_conditionality: none
 
-# LatentAddFeed:
-#   model_params:
-#     name: "CVAESeqLSTMLatentAddFeed"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+InputsConcatNone:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: inputs
+    latent_conditionality: concat
+    decoder_conditionality: none
 
-# LatentAddFeedPre:
-#   model_params:
-#     name: "CVAESeqLSTMLatentAddFeedPre"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+InputsAddNone:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: inputs
+    latent_conditionality: add
+    decoder_conditionality: none
 
-# After:
-#   model_params:
-#     name: "CVAESeqLSTMAfter"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+BothConcatNone:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: none
 
-# All:
-#   model_params:
-#     name: "CVAESeqLSTMAll"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+BothAddNone:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: add
+    decoder_conditionality: none
 
-# Nudge:
-#   model_params:
-#     name: "CVAESeqLSTMNudge"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+# decoder_conditionality:
 
-# DoubleNudge:
-#   model_params:
-#     name: "CVAESeqLSTMDoubleNudge"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+NoneConcatInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: none
+    latent_conditionality: concat
+    decoder_conditionality: inputs
 
-# NudgeAdv:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeAdv"
-#     hidden_layers: 5
-#     hidden_size: 256
-#     labels_hidden_size: 32
-#     latent_dim: 6
-#     dropout: 0.1
-#     teacher_forcing_ratio: 0.5
+NoneAddInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: none
+    latent_conditionality: add
+    decoder_conditionality: inputs
+
+HiddenConcatInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: hidden
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+HiddenAddInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: hidden
+    latent_conditionality: add
+    decoder_conditionality: inputs
+
+InputsConcatInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: inputs
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+InputsAddInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: inputs
+    latent_conditionality: add
+    decoder_conditionality: inputs
+
+BothConcatInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+BothAddInputs:
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: add
+    decoder_conditionality: inputs
