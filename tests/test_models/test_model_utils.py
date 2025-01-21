@@ -37,7 +37,7 @@ from caveat.models import utils
 )
 def test_argmax_on_axis(target, axis, expected):
     result = utils.hot_argmax(target, axis)
-    result = result.to(device='cpu')
+    result = result.to(device="cpu")
     equal(result, expected)
 
 
@@ -53,7 +53,7 @@ def test_argmax_on_axis(target, axis, expected):
     ],
 )
 def test_conv_size(size, kernel, stride, padding, dilation, expected):
-    result = utils.conv_size(size, kernel, stride, padding, dilation)
+    result = utils.conv2d_size(size, kernel, stride, padding, dilation)
     np.testing.assert_array_equal(result, expected)
 
 

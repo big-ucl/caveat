@@ -1,0 +1,51 @@
+global:
+  logging_params:
+    log_dir: "logs"
+    name: "ccnn"
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes_groups.csv"
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 50
+    max_epochs: 200
+    patience: 20
+
+  experiment_params:
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.01
+
+  seed: 1234
+
+  encoder_params:
+    name: "sequence"
+    duration: 1440
+    jitter: 0.1
+
+fc:
+  model_params:
+    name: "VAESeqFC"
+    latent_dim: 6
+    hidden_layers: [128,128,128,128] 
+    dropout: 0.0
+
+cnn:
+  model_params:
+    name: "VAESeqCNN"
+    latent_dim: 6
+    hidden_layers: [256,256,256,256,256,256] 
+    dropout: 0.1
+
+rnn:
+  model_params:
+    name: "VAESeqLSTM"
+    latent_dim: 6
+    hidden_layers: 5
+    hidden_size: 256
+    dropout: 0.1
+

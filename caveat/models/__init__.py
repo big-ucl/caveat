@@ -38,6 +38,8 @@ from .sequence.cvae_sequence_lstm_nudger import CVAESeqLSTMNudger
 from .sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
 )
+from .sequence.vae_sequence_cnn import VAESeqCNN
+from .sequence.vae_sequence_fc import VAESeqFC
 from .sequence.vae_sequence_lstm import VAESeqLSTM
 
 library = {
@@ -48,6 +50,8 @@ library = {
     "AutoSeqLSTM": AutoSeqLSTM,
     "VAEDiscConv": VAEDiscConv,
     "VAESeqLSTM": VAESeqLSTM,
+    "VAESeqCNN": VAESeqCNN,
+    "VAESeqFC": VAESeqFC,
     "VAEDiscLSTM": VAEDiscLSTM,
     "VAEDiscTrans": VAEDiscTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only

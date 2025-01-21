@@ -9,6 +9,8 @@ from caveat.models.sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
     Discriminator,
 )
+from caveat.models.sequence.vae_sequence_cnn import VAESeqCNN
+from caveat.models.sequence.vae_sequence_fc import VAESeqFC
 from caveat.models.sequence.vae_sequence_lstm import VAESeqLSTM
 
 
@@ -200,7 +202,7 @@ def test_cvae_adv_forward():
 
 
 def test_lstm_forward():
-    x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
+    x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
     weights = torch.ones((3, 10))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
@@ -212,6 +214,74 @@ def test_lstm_forward():
         encoding_weights=torch.ones((5)),
         **{
             "hidden_layers": 1,
+            "hidden_size": 2,
+            "latent_dim": 2,
+            "dropout": 0.1,
+        },
+    )
+    log_prob_y, mu, log_var, z = model(x_encoded)
+    assert log_prob_y.shape == x.shape
+    assert mu.shape == (3, 2)
+    assert log_var.shape == (3, 2)
+    assert z.shape == (3, 2)
+    losses = model.loss_function(
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_encoded,
+        mask=weights,
+    )
+    assert "loss" in losses
+    assert "recon_loss" in losses
+
+
+def test_cnn_forward():
+    x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
+    weights = torch.ones((3, 10))
+    acts, durations = x.split([5, 1], dim=-1)
+    acts_max = acts.argmax(dim=-1).unsqueeze(-1)
+    durations = durations
+    x_encoded = torch.cat([acts_max, durations], dim=-1)
+    model = VAESeqCNN(
+        in_shape=x_encoded[0].shape,
+        encodings=5,
+        encoding_weights=torch.ones((5)),
+        **{
+            "hidden_layers": [16, 8],
+            "hidden_size": 2,
+            "latent_dim": 2,
+            "dropout": 0.1,
+        },
+    )
+    log_prob_y, mu, log_var, z = model(x_encoded)
+    assert log_prob_y.shape == x.shape
+    assert mu.shape == (3, 2)
+    assert log_var.shape == (3, 2)
+    assert z.shape == (3, 2)
+    losses = model.loss_function(
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_encoded,
+        mask=weights,
+    )
+    assert "loss" in losses
+    assert "recon_loss" in losses
+
+
+def test_fc_forward():
+    x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
+    weights = torch.ones((3, 10))
+    acts, durations = x.split([5, 1], dim=-1)
+    acts_max = acts.argmax(dim=-1).unsqueeze(-1)
+    durations = durations
+    x_encoded = torch.cat([acts_max, durations], dim=-1)
+    model = VAESeqFC(
+        in_shape=x_encoded[0].shape,
+        encodings=5,
+        encoding_weights=torch.ones((5)),
+        **{
+            "hidden_layers": [16, 8],
             "hidden_size": 2,
             "latent_dim": 2,
             "dropout": 0.1,

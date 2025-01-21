@@ -26,7 +26,7 @@ def hot_argmax(batch: tensor, axis: int = -1) -> tensor:
     return batch.swapaxes(axis, -1)
 
 
-def conv_size(
+def conv2d_size(
     size: Union[tuple[int, int], int],
     kernel_size: Union[tuple[int, int], int] = 3,
     stride: Union[tuple[int, int], int] = 2,
@@ -61,6 +61,20 @@ def conv_size(
         - np.array(dilation) * (np.array(kernel_size) - 1)
         - 1
     ) // np.array(stride) + 1
+
+
+def conv1d_size(length: int, kernel_size: int, stride: int) -> int:
+    """Calculate output dimensions for 1d convolution.
+
+    Args:
+        length (int): Input size.
+        kernel_size (int): Kernel_size.
+        stride (int): Stride.
+
+    Returns:
+        int: Output size.
+    """
+    return (length - kernel_size) // stride + 1
 
 
 def transconv_size(
