@@ -3,7 +3,7 @@ global:
     log_dir: "logs"
     name: "ccnn"
   schedules_path: "tmp/nts_home_schedules.csv"
-  attributes_path: "tmp/nts_home_attributes_groups.csv"
+  # attributes_path: "tmp/nts_home_attributes_groups.csv"
   loader_params:
     train_batch_size: 1024
     val_batch_size:  1024
@@ -27,6 +27,16 @@ global:
     duration: 1440
     jitter: 0.1
 
+cnn1d:
+  model_params:
+    name: "VAESeqCNN1D"
+    latent_dim: 6
+    hidden_layers: [256,256,256,256,256]
+    dropout: 0.0
+    stride: 2
+    kernel_size: 2
+    padding: 0
+
 fc:
   model_params:
     name: "VAESeqFC"
@@ -34,7 +44,7 @@ fc:
     hidden_layers: [128,128,128,128] 
     dropout: 0.0
 
-cnn:
+cnn2d:
   model_params:
     name: "VAESeqCNN"
     latent_dim: 6
