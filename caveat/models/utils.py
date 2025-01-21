@@ -63,18 +63,20 @@ def conv2d_size(
     ) // np.array(stride) + 1
 
 
-def conv1d_size(length: int, kernel_size: int, stride: int) -> int:
+def conv1d_size(
+    length: int, kernel_size: int, stride: int, padding: int = 0
+) -> int:
     """Calculate output dimensions for 1d convolution.
 
     Args:
         length (int): Input size.
         kernel_size (int): Kernel_size.
         stride (int): Stride.
-
+        padding (int): Input padding.
     Returns:
         int: Output size.
     """
-    return (length - kernel_size) // stride + 1
+    return int((length - (kernel_size - 1) + (2 * padding) - 1) / stride) + 1
 
 
 def transconv_size(

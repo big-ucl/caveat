@@ -39,6 +39,7 @@ from .sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
 )
 from .sequence.vae_sequence_cnn import VAESeqCNN
+from .sequence.vae_sequence_cnn1d import VAESeqCNN1D
 from .sequence.vae_sequence_fc import VAESeqFC
 from .sequence.vae_sequence_lstm import VAESeqLSTM
 
@@ -51,6 +52,7 @@ library = {
     "VAEDiscConv": VAEDiscConv,
     "VAESeqLSTM": VAESeqLSTM,
     "VAESeqCNN": VAESeqCNN,
+    "VAESeqCNN1D": VAESeqCNN1D,
     "VAESeqFC": VAESeqFC,
     "VAEDiscLSTM": VAEDiscLSTM,
     "VAEDiscTrans": VAEDiscTrans,
