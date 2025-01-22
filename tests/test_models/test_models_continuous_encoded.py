@@ -269,10 +269,21 @@ def test_cnn_forward():
     assert "recon_loss" in losses
 
 
-def test_cnn1d_forward():
+@pytest.mark.parametrize(
+    "length,encodings,kernel,stride,padding",
+    [
+        (10, 6, 2, 2, 1),
+        (10, 6, 2, 2, 0),
+        (10, 6, 3, 2, 1),
+        (10, 6, 3, 2, 0),
+        (11, 6, 2, 2, 1),
+        (11, 6, 2, 2, 0),
+        (11, 6, 3, 2, 1),
+        (11, 6, 3, 2, 0),
+    ],
+)
+def test_cnn1d_forward(length, encodings, kernel, stride, padding):
     N = 3
-    length = 10
-    encodings = 5
     x = torch.randn(N, length, encodings + 1)  # (batch, steps, acts+1)
     weights = torch.ones((N, length))
     acts, durations = x.split([encodings, 1], dim=-1)
@@ -280,9 +291,16 @@ def test_cnn1d_forward():
     x_encoded = torch.cat([acts_max, durations], dim=-1)
     model = VAESeqCNN1D(
         in_shape=x_encoded[0].shape,
-        encodings=5,
+        encodings=encodings,
         encoding_weights=torch.ones((5)),
-        **{"hidden_layers": [16, 8], "latent_dim": 2, "dropout": 0.1},
+        **{
+            "hidden_layers": [16, 8],
+            "latent_dim": 2,
+            "dropout": 0.1,
+            "kernel_size": kernel,
+            "stride": stride,
+            "padding": padding,
+        },
     )
     log_prob_y, mu, log_var, z = model(x_encoded)
     assert log_prob_y.shape == x.shape

@@ -79,7 +79,7 @@ def conv1d_size(
     return int((length - (kernel_size - 1) + (2 * padding) - 1) / stride) + 1
 
 
-def transconv_size(
+def transconv_size_2d(
     size: Union[tuple[int, int], int],
     kernel_size: Union[tuple[int, int], int] = 3,
     stride: Union[tuple[int, int], int] = 2,
@@ -121,7 +121,33 @@ def transconv_size(
     )
 
 
-def calc_output_padding(size: Union[tuple[int, int, int], int]) -> np.array:
+def transconv_size_1d(
+    length, kernel_size, stride, padding, output_padding, dilation=1
+):
+    return (
+        (length - 1) * stride
+        - 2 * padding
+        + dilation * (kernel_size - 1)
+        + output_padding
+        + 1
+    )
+
+
+def calc_output_padding_1d(
+    length: int,
+    target: int,
+    kernel_size: int,
+    stride: int,
+    padding: int,
+    patience: int = 10,
+) -> int:
+    for i in range(patience):
+        if transconv_size_1d(length, kernel_size, stride, padding, i) == target:
+            return i
+    raise ValueError(f"Could not find output padding for target {target}")
+
+
+def calc_output_padding_2d(size: Union[tuple[int, int, int], int]) -> np.array:
     """Calculate output padding for a transposed convolution such that output dims will
     match dimensions of inputs to a convolution of given size.
     For each dimension, padding is set to 1 if even size, otherwise 0.

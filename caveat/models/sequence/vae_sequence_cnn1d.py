@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from caveat.models import Base, CustomDurationEmbedding
-from caveat.models.utils import conv1d_size
+from caveat.models.utils import calc_output_padding_1d, conv1d_size
 
 
 class VAESeqCNN1D(Base):
@@ -165,12 +165,16 @@ class Decoder(nn.Module):
         target_shapes.reverse()
 
         for i in range(len(target_shapes) - 1):
-            c_in, _ = target_shapes[i]
+            c_in, l_in = target_shapes[i]
             c_out, l_out = target_shapes[i + 1]
-            if l_out % 2 == 1:
-                out_padding = 1
-            else:
-                out_padding = 0
+            out_padding = calc_output_padding_1d(
+                length=l_in,
+                target=l_out,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+            )
+            print(l_in, "==>", l_out, " padding: ", out_padding)
             block = [
                 nn.ConvTranspose1d(
                     in_channels=c_in,

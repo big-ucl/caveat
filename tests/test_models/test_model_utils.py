@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from torch import equal, tensor
+from torch import equal, nn, randn, tensor
 
 from caveat.models import utils
 
@@ -72,7 +72,7 @@ def test_conv_size(size, kernel, stride, padding, dilation, expected):
 def test_transconv_size(
     size, kernel, stride, padding, dilation, output_padding, expected
 ):
-    result = utils.transconv_size(
+    result = utils.transconv_size_2d(
         size, kernel, stride, padding, dilation, output_padding
     )
     np.testing.assert_array_equal(result, expected)
@@ -90,5 +90,93 @@ def test_transconv_size(
     ],
 )
 def test_specify_output_padding(size, expected):
-    result = utils.calc_output_padding(size)
+    result = utils.calc_output_padding_2d(size)
     np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "length,kernel_size,stride,padding,out_padding",
+    [
+        (10, 2, 2, 1, 0),
+        (11, 2, 2, 1, 0),
+        (10, 2, 1, 1, 0),
+        (11, 2, 1, 1, 0),
+        (10, 2, 2, 0, 0),
+        (11, 2, 2, 0, 0),
+        (10, 2, 1, 0, 0),
+        (11, 2, 1, 0, 0),
+        (10, 3, 2, 1, 0),
+        (11, 3, 2, 1, 0),
+        (10, 3, 1, 1, 0),
+        (11, 3, 1, 1, 0),
+        (10, 3, 2, 0, 0),
+        (11, 3, 2, 0, 0),
+        (10, 3, 1, 0, 0),
+        (11, 3, 1, 0, 0),
+        (10, 2, 2, 1, 1),
+        (11, 2, 2, 1, 1),
+        (10, 2, 2, 0, 1),
+        (11, 2, 2, 0, 1),
+        (10, 3, 2, 1, 1),
+        (11, 3, 2, 1, 1),
+        (10, 3, 2, 0, 1),
+        (11, 3, 2, 0, 1),
+    ],
+)
+def test_1d_lengths(length, kernel_size, stride, padding, out_padding):
+    H = 10
+    x = randn(3, H, length)
+    conv = nn.Conv1d(H, H, kernel_size, stride, padding)
+    x = conv(x)
+    L1 = x.shape[-1]
+    assert L1 == utils.conv1d_size(length, kernel_size, stride, padding)
+    deconv = nn.ConvTranspose1d(H, H, kernel_size, stride, padding, out_padding)
+    x = deconv(x)
+    L2 = x.shape[-1]
+    assert L2 == utils.transconv_size_1d(
+        L1, kernel_size, stride, padding, out_padding
+    )
+
+
+@pytest.mark.parametrize(
+    "length,kernel_size,stride,padding",
+    [
+        (10, 2, 2, 1),
+        (11, 2, 2, 1),
+        (10, 2, 1, 1),
+        (11, 2, 1, 1),
+        (10, 2, 2, 0),
+        (11, 2, 2, 0),
+        (10, 2, 1, 0),
+        (11, 2, 1, 0),
+        (10, 3, 2, 1),
+        (11, 3, 2, 1),
+        (10, 3, 1, 1),
+        (11, 3, 1, 1),
+        (10, 3, 2, 0),
+        (11, 3, 2, 0),
+        (10, 3, 1, 0),
+        (11, 3, 1, 0),
+        (10, 2, 2, 1),
+        (11, 2, 2, 1),
+        (10, 2, 2, 0),
+        (11, 2, 2, 0),
+        (10, 3, 2, 1),
+        (11, 3, 2, 1),
+        (10, 3, 2, 0),
+        (11, 3, 2, 0),
+    ],
+)
+def test_find_out_padding(length, kernel_size, stride, padding):
+    H = 10
+    x = randn(3, H, length)
+    conv = nn.Conv1d(H, H, kernel_size, stride, padding)
+    x = conv(x)
+    L1 = x.shape[-1]
+    out_padding = utils.calc_output_padding_1d(
+        L1, length, kernel_size, stride, padding
+    )
+    deconv = nn.ConvTranspose1d(H, H, kernel_size, stride, padding, out_padding)
+    x = deconv(x)
+    L2 = x.shape[-1]
+    assert L2 == length
