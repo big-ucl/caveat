@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from caveat.models import Base, CustomDurationEmbedding
-from caveat.models.utils import calc_output_padding, conv2d_size
+from caveat.models.utils import calc_output_padding_2d, conv2d_size
 
 
 class VAESeqCNN(Base):
@@ -173,7 +173,7 @@ class Decoder(nn.Module):
                         kernel_size=kernel_size,
                         stride=stride,
                         padding=padding,
-                        output_padding=calc_output_padding(
+                        output_padding=calc_output_padding_2d(
                             target_shapes[i + 1]
                         ),
                         # bias=False,
@@ -192,7 +192,7 @@ class Decoder(nn.Module):
                     kernel_size=kernel_size,
                     stride=stride,
                     padding=padding,
-                    output_padding=calc_output_padding(target_shapes[-1]),
+                    output_padding=calc_output_padding_2d(target_shapes[-1]),
                 ),
                 nn.BatchNorm2d(target_shapes[-1][0]),
             )

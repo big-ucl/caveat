@@ -3,7 +3,7 @@ global:
     log_dir: "logs"
     name: "ccnn"
   schedules_path: "tmp/nts_home_schedules.csv"
-  # attributes_path: "tmp/nts_home_attributes_groups.csv"
+  attributes_path: "tmp/nts_home_attributes_groups.csv"
   loader_params:
     train_batch_size: 1024
     val_batch_size:  1024
@@ -35,7 +35,7 @@ cnn1d:
     dropout: 0.0
     stride: 2
     kernel_size: 2
-    padding: 0
+    padding: 1
 
 fc:
   model_params:
