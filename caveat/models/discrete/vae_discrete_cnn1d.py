@@ -1,15 +1,14 @@
 from typing import Optional, Tuple
 
-import torch
 from torch import Tensor, nn
 
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models.base import Base
 from caveat.models.utils import calc_output_padding_1d, conv1d_size
 
 
-class VAESeqCNN1D(Base):
+class VAEDiscCNN1D(Base):
     def __init__(self, *args, **kwargs):
-        """CNN based encoder and decoder with encoder embedding layer."""
+        """Convolution based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
 
     def build(self, **config):
@@ -20,7 +19,7 @@ class VAESeqCNN1D(Base):
         stride = Optional[int]
         padding = Optional[int]
 
-        encoded_size = config.get("embed_size", self.encodings + 1)
+        encoded_size = config.get("embed_size", self.encodings)
         hidden_layers = config["hidden_layers"]
         latent_dim = config["latent_dim"]
         dropout = config.get("dropout", 0)
@@ -70,6 +69,13 @@ class VAESeqCNN1D(Base):
         log_probs = self.decoder(hidden)
         return log_probs
 
+    def loss_function(
+        self, log_probs, mu, log_var, target, mask, *args, **kwargs
+    ) -> dict:
+        return self.discretized_loss(
+            log_probs, mu, log_var, target, mask, *args, **kwargs
+        )
+
 
 class Encoder(nn.Module):
     def __init__(
@@ -83,9 +89,10 @@ class Encoder(nn.Module):
         stride: int = 2,
         padding: int = 1,
     ):
-        """2d Convolutions Encoder.
+        """1d Convolutions Encoder.
 
         Args:
+            input_encoding (int): number of encoding classes.
             encoded_size (int): number of encoding classes and hidden size.
             in_shape (tuple[int, int, int]): [C, time_step, activity_encoding].
             hidden_layers (list, optional): _description_. Defaults to None.
@@ -95,15 +102,12 @@ class Encoder(nn.Module):
             padding (int): padding. Defaults to 1.
         """
         super(Encoder, self).__init__()
-        print(in_shape)
         length = in_shape[0]
-        self.embedding = CustomDurationEmbedding(
-            input_encoding, encoded_size, dropout=dropout
-        )
-
         channels = encoded_size
         self.shapes = []
         modules = []
+
+        self.embedding = nn.Embedding(input_encoding, encoded_size)
 
         for hidden_channels in hidden_layers:
             self.shapes.append((channels, length))
@@ -202,12 +206,4 @@ class Decoder(nn.Module):
     def forward(self, hidden, **kwargs):
         y = self.decoder(hidden)
         y = y.permute(0, 2, 1)
-        acts_logits, durations = torch.split(
-            y, [self.hidden_size - 1, 1], dim=-1
-        )
-        acts_log_probs = self.logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
-        durations = torch.log(durations)
-        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-
-        return log_prob_outputs
+        return self.logprob_activation(y)

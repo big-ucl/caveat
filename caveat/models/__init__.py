@@ -2,6 +2,7 @@ from .base import Base
 from .discrete.auto_discrete_lstm import AutoDiscLSTM
 from .discrete.cond_discrete_conv import CondDiscConv
 from .discrete.cond_discrete_lstm import CondDiscLSTM
+from .discrete.vae_discrete_cnn1d import VAEDiscCNN1D
 from .discrete.vae_discrete_conv import VAEDiscConv
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_transformer import VAEDiscTrans
@@ -50,6 +51,7 @@ library = {
     "AutoDiscLSTM": AutoDiscLSTM,  # lstm unit input is previous output
     "AutoSeqLSTM": AutoSeqLSTM,
     "VAEDiscConv": VAEDiscConv,
+    "VAEDiscCNN1D": VAEDiscCNN1D,
     "VAESeqLSTM": VAESeqLSTM,
     "VAESeqCNN": VAESeqCNN,
     "VAESeqCNN1D": VAESeqCNN1D,
