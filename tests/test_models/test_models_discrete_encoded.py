@@ -1,8 +1,10 @@
+import pytest
 import torch
 
 from caveat.models.discrete.auto_discrete_lstm import AutoDiscLSTM
 from caveat.models.discrete.cond_discrete_conv import CondDiscConv
 from caveat.models.discrete.cond_discrete_lstm import CondDiscLSTM
+from caveat.models.discrete.vae_discrete_cnn1d import VAEDiscCNN1D
 from caveat.models.discrete.vae_discrete_conv import VAEDiscConv
 from caveat.models.discrete.vae_discrete_lstm import VAEDiscLSTM
 from caveat.models.discrete.vae_discrete_transformer import VAEDiscTrans
@@ -80,6 +82,49 @@ def test_discrete_vae_conv_forward():
     )
     log_prob_y, mu, log_var, z = model(x_max)
     assert log_prob_y.shape == torch.Size([3, 144, 5])
+    assert mu.shape == (3, 2)
+    assert log_var.shape == (3, 2)
+    assert z.shape == (3, 2)
+    losses = model.loss_function(
+        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
+    )
+    assert "loss" in losses
+    assert "recon_loss" in losses
+
+
+@pytest.mark.parametrize(
+    "length,encodings,kernel,stride,padding",
+    [
+        (144, 6, 2, 2, 1),
+        (144, 6, 2, 2, 0),
+        (144, 6, 3, 2, 1),
+        (144, 6, 3, 2, 0),
+        (145, 6, 2, 2, 1),
+        (145, 6, 2, 2, 0),
+        (145, 6, 3, 2, 1),
+        (145, 6, 3, 2, 0),
+    ],
+)
+def test_discrete_vae_conv1d_forward(
+    length, encodings, kernel, stride, padding
+):
+    x = torch.randn(3, 1, length, encodings)  # (batch, channels, steps, acts)
+    x_max = x.argmax(dim=-1).squeeze()
+    model = VAEDiscCNN1D(
+        in_shape=x_max[0].shape,
+        encodings=encodings,
+        encoding_weights=torch.ones((encodings)),
+        **{
+            "hidden_layers": [16, 8],
+            "latent_dim": 2,
+            "dropout": 0.1,
+            "kernel_size": kernel,
+            "stride": stride,
+            "padding": padding,
+        },
+    )
+    log_prob_y, mu, log_var, z = model(x_max)
+    assert log_prob_y.shape == torch.Size([3, length, encodings])
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
