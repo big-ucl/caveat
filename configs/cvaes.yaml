@@ -249,5 +249,5 @@ BothAddInputs:
     dropout: 0.1
     teacher_forcing_ratio: 0.5
     encoder_conditionality: both
-    latent_conditionality: add
+    latent_conditionality: add`
     decoder_conditionality: inputs
