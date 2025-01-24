@@ -1,136 +1,62 @@
 global:
-  schedules_path: C:\Users\DAF3\Data\NTS\processed\nts_2021_acts_home_based.csv
-  logging_params:
-    log_dir: experiments
-    name: discrete_mods_LR
-  encoder_params:
-    name: discrete_padded
-    duration: 1440
-    step_size: 10
-    jitter: 0.2
-  trainer_params:
-    max_epochs: 200
-    min_epochs: 100
-    patience: 100
-  loader_params:
-    train_batch_size: 256
-    val_batch_size:  256
-    num_workers: 3
-  model_params:
-    name: "Attention_Discrete"
-    hidden_layers: 3
-    hidden_size: 64
-    heads: 4
-    latent_dim: 6
-    dropout: 0.1
-    weighted_loss: True
-    kld_weight: 0.005
-    position_embedding: learnt
   seed: 1234
+  logging_params:
+    log_dir: "logs"
+    name: "discrete_models"
+  
+  schedules_path: "tmp/nts_home_schedules.csv"
+  # attributes_path: "tmp/nts_home_attributes_groups.csv"
 
-# TransformerBigJitter:
-#   encoder_params:
-#     name: discrete_padded
-#     duration: 1440
-#     step_size: 10
-#     jitter: 0.2
-#   model_params:
-#     name: "Attention_Discrete"
-#     hidden_layers: 4
-#     hidden_size: 128
-#     heads: 8
-#     latent_dim: 6
-#     dropout: 0.1
-#     weighted_loss: True
-#     kld_weight: 0.005
-#     position_embedding: learnt
-
-# SlowLR:
-#   experiment_params:
-#     LR: 0.00001
-#     weight_decay: 0.0001
-#     scheduler_gamma: 0.95
-
-# VFastLR:
-#   experiment_params:
-#     LR: 0.01
-#     weight_decay: 0.0001
-#     scheduler_gamma: 0.95
-
-# FastLR:
-#   experiment_params:
-#     LR: 0.001
-#     weight_decay: 0.0001
-#     scheduler_gamma: 0.95
-
-# MidLR:
-#   experiment_params:
-#     LR: 0.0001
-#     weight_decay: 0.0001
-#     scheduler_gamma: 0.95
-
-VFastLRNoDecay:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-
-FastLRNoDecay:
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+  
+  trainer_params:
+    min_epochs: 50
+    max_epochs: 200
+    patience: 20
+  
   experiment_params:
     LR: 0.001
     weight_decay: 0.0
-    scheduler_gamma: 0.95
+    scheduler_gamma: 0.9
+    kld_weight: 0.002
+  
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
 
-MidLRNoDecay:
-  experiment_params:
-    LR: 0.0001
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
+cnn1d:
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_layers: [256,256,256,256,256,256]
+    dropout: 0.0
+    stride: 2
+    kernel_size: 2
+    padding: 0
 
+fc:
+  model_params:
+    name: "VAEDiscFC"
+    latent_dim: 6
+    hidden_layers: [128,32] 
+    dropout: 0.1
 
-# TransformerSmallJitter:
-#   encoder_params:
-#     name: discrete_padded
-#     duration: 1440
-#     step_size: 10
-#     jitter: 0.2
+# cnn2d:
 #   model_params:
-#     name: "Attention_Discrete"
-#     hidden_layers: 2
-#     hidden_size: 32
-#     heads: 2
+#     name: "VAEDiscConv"
 #     latent_dim: 6
+#     hidden_layers: [256,256,256,256,256,256] 
 #     dropout: 0.1
-#     weighted_loss: False
-#     kld_weight: 0.005
-#     position_embedding: learnt
 
-# LSTM:
-#   encoder_params:
-#     name: "discrete"
-#     duration: 1440
-#     step_size: 10
-#     jitter: 0.1
-#   model_params:
-#     name: "LSTM_Discrete"
-#     hidden_layers: 6
-#     hidden_size: 256
-#     latent_dim: 6
-#     teacher_forcing_ratio: 0.5
-#     dropout: 0.2
-#     weighted_loss: True
-#     kld_weight: 0.005
+rnn:
+  model_params:
+    name: "VAEDiscLSTM"
+    latent_dim: 6
+    hidden_layers: 4
+    hidden_size: 128
+    dropout: 0.1
 
-# Conv:
-#   encoder_params:
-#     name: "discrete"
-#     duration: 1440
-#     step_size: 10
-#     jitter: 0.1
-#   model_params:
-#     name: "conv"
-#     hidden_layers: [128, 128, 128, 128, 128]
-#     latent_dim: 6
-#     dropout: 0.2
-#     kld_weight: 0.005
-#     weighted_loss: True

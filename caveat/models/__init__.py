@@ -4,6 +4,7 @@ from .discrete.cond_discrete_conv import CondDiscConv
 from .discrete.cond_discrete_lstm import CondDiscLSTM
 from .discrete.vae_discrete_cnn1d import VAEDiscCNN1D
 from .discrete.vae_discrete_conv import VAEDiscConv
+from .discrete.vae_discrete_fc import VAEDiscFC
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_transformer import VAEDiscTrans
 from .embed import CustomDurationEmbedding, CustomDurationModeDistanceEmbedding
@@ -52,6 +53,7 @@ library = {
     "AutoSeqLSTM": AutoSeqLSTM,
     "VAEDiscConv": VAEDiscConv,
     "VAEDiscCNN1D": VAEDiscCNN1D,
+    "VAEDiscFC": VAEDiscFC,
     "VAESeqLSTM": VAESeqLSTM,
     "VAESeqCNN": VAESeqCNN,
     "VAESeqCNN1D": VAESeqCNN1D,

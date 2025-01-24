@@ -1,7 +1,7 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "ccnn"
+    name: "sequence_models"
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
   loader_params:
@@ -37,19 +37,19 @@ cnn1d:
     kernel_size: 2
     padding: 1
 
-fc:
-  model_params:
-    name: "VAESeqFC"
-    latent_dim: 6
-    hidden_layers: [128,128,128,128] 
-    dropout: 0.0
-
 cnn2d:
   model_params:
     name: "VAESeqCNN"
     latent_dim: 6
     hidden_layers: [256,256,256,256,256,256] 
     dropout: 0.1
+
+fc:
+  model_params:
+    name: "VAESeqFC"
+    latent_dim: 6
+    hidden_layers: [128,128,128,128] 
+    dropout: 0.0
 
 rnn:
   model_params:

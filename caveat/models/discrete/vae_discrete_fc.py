@@ -1,12 +1,11 @@
 from typing import Optional, Tuple
 
-import torch
 from torch import Tensor, nn
 
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import Base
 
 
-class VAESeqFC(Base):
+class VAEDiscFC(Base):
     def __init__(self, *args, **kwargs):
         """Fully connected encoder and decoder with embedding layer."""
         super().__init__(*args, **kwargs)
@@ -16,7 +15,7 @@ class VAESeqFC(Base):
         latent_dim = int
         dropout = Optional[float]
 
-        encoded_size = self.encodings + 1
+        encoded_size = config.get("embed_size", self.encodings)
         hidden_layers = config["hidden_layers"]
         latent_dim = config["latent_dim"]
         dropout = config.get("dropout", 0)
@@ -24,10 +23,12 @@ class VAESeqFC(Base):
 
         self.encoder = Encoder(
             length=self.in_shape[0],
+            input_encoding=self.encodings,
             encoded_size=encoded_size,
             hidden_layers=hidden_layers,
             dropout=dropout,
         )
+        # TODO add drop out
         self.decoder = Decoder(
             length=self.in_shape[0],
             in_size=self.encoder.flat_size,
@@ -56,11 +57,19 @@ class VAESeqFC(Base):
         log_probs = self.decoder(hidden)
         return log_probs
 
+    def loss_function(
+        self, log_probs, mu, log_var, target, mask, *args, **kwargs
+    ) -> dict:
+        return self.discretized_loss(
+            log_probs, mu, log_var, target, mask, *args, **kwargs
+        )
+
 
 class Encoder(nn.Module):
     def __init__(
         self,
         length: int,
+        input_encoding: int,
         encoded_size: int,
         hidden_layers: list,
         dropout: float = 0.1,
@@ -69,14 +78,13 @@ class Encoder(nn.Module):
 
         Args:
             length (int): number of time steps.
+            input_encoding (int): number of encoding classes.
             encoded_size (int): number of encoding classes and hidden size.
             hidden_layers (list, optional): _description_. Defaults to None.
             dropout (float): dropout. Defaults to 0.1.
         """
         super(Encoder, self).__init__()
-        self.embedding = CustomDurationEmbedding(
-            encoded_size, encoded_size, dropout=dropout
-        )
+        self.embedding = nn.Embedding(input_encoding, encoded_size)
         modules = []
 
         input_size = length * encoded_size
@@ -149,12 +157,4 @@ class Decoder(nn.Module):
     def forward(self, hidden, **kwargs):
         y = self.decoder(hidden)
         y = y.view(-1, self.length, self.hidden_size)
-        acts_logits, durations = torch.split(
-            y, [self.hidden_size - 1, 1], dim=-1
-        )
-        acts_log_probs = self.logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
-        durations = torch.log(durations)
-        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-
-        return log_prob_outputs
+        return self.logprob_activation(y)
