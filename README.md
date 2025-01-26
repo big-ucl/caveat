@@ -107,9 +107,12 @@ If you want to get a cuda enabled windows install you can try the following mamb
 ```
 mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
 ```
-Or lake a look [here](https://pytorch.org/get-started/locally/).
+Or lake a look [here](https://pytorch.org/get-started/locally/). Note that you need to have the right version of python.
 <!--- --8<-- [end:docs-install-dev] -->
 For more detailed instructions, see our [documentation](https://fredshone.github.io/caveat/latest/installation/).
+
+### Windows and Ray-Tune
+Ray tune is also a bit finickety on windows. Take a look [here](https://docs.ray.io/en/latest/ray-overview/installation.html#installing-from-conda-forge) for help.
 
 ## Contributing
 
