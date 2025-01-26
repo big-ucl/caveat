@@ -9,4 +9,4 @@ tensorboard
 cml-pam
 pot
 scipy<=1.13
-ray-tune
+optuna

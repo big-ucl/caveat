@@ -1,4 +1,3 @@
-import datetime
 import pickle
 from pathlib import Path
 from typing import Optional, Tuple, Union
@@ -7,188 +6,169 @@ import pandas as pd
 import torch
 from pandas import DataFrame
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    LearningRateMonitor,
-    ModelCheckpoint,
-)
 from pytorch_lightning.loggers import TensorBoardLogger
-from ray import tune
-from ray.train import CheckpointConfig, RunConfig, ScalingConfig
-from ray.train.lightning import (
-    RayDDPStrategy,
-    RayLightningEnvironment,
-    RayTrainReportCallback,
-    prepare_trainer,
-)
-from ray.train.torch import TorchTrainer
-from ray.tune.schedulers import ASHAScheduler
 from torch import Tensor
-from torch.random import seed as seeder
 
-from caveat import cuda_available, data, encoding, label_encoding, models
-from caveat.callbacks import LinearLossScheduler
+from caveat import data, encoding, label_encoding, models
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.evaluate import evaluate
-from caveat.label_encoding.base import BaseLabelEncoder
 
+# def tune_command(
+#     config: dict,
+#     verbose: bool = False,
+#     gen: bool = True,
+#     test: bool = False,
+#     infer=True,
+# ) -> None:
+#     """
+#     Runs the training and reporting process using the provided configuration.
 
-def tune_command(
-    config: dict,
-    verbose: bool = False,
-    gen: bool = True,
-    test: bool = False,
-    infer=True,
-) -> None:
-    """
-    Runs the training and reporting process using the provided configuration.
+#     https://docs.ray.io/en/latest/train/examples/lightning/lightning_cola_advanced.html?_gl=1*1fbd0te*_up*MQ..*_ga*MTYxMjAzMDY5NC4xNzM3NzI2NDU2*_ga_0LCWHW1N3S*MTczNzcyNjQ1Ni4xLjAuMTczNzcyNjQ1Ni4wLjAuMA..
 
-    https://docs.ray.io/en/latest/train/examples/lightning/lightning_cola_advanced.html?_gl=1*1fbd0te*_up*MQ..*_ga*MTYxMjAzMDY5NC4xNzM3NzI2NDU2*_ga_0LCWHW1N3S*MTczNzcyNjQ1Ni4xLjAuMTczNzcyNjQ1Ni4wLjAuMA..
+#     Args:
+#         config (dict): A dictionary containing the configuration parameters.
 
-    Args:
-        config (dict): A dictionary containing the configuration parameters.
+#     Returns:
+#         None
+#     """
+#     logger_params = config.get("logging_params", {})
+#     log_dir = Path(logger_params.get("log_dir", "logs"))
+#     name = str(
+#         logger_params.get(
+#             "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+#         )
+#     )
+#     logger = initiate_logger(log_dir, name)
+#     seed = config.pop("seed", seeder())
 
-    Returns:
-        None
-    """
-    logger_params = config.get("logging_params", {})
-    log_dir = Path(logger_params.get("log_dir", "logs"))
-    name = str(
-        logger_params.get(
-            "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        )
-    )
-    logger = initiate_logger(log_dir, name)
-    seed = config.pop("seed", seeder())
+#     # load data
+#     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
-    # load data
-    input_schedules, input_attributes, synthetic_attributes = load_data(config)
+#     # encode data
+#     label_encoder, encoded_labels, label_weights = encode_input_attributes(
+#         logger.log_dir, input_attributes, config
+#     )
 
-    # encode data
-    label_encoder, encoded_labels, label_weights = encode_input_attributes(
-        logger.log_dir, input_attributes, config
-    )
+#     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
+#         logger.log_dir, input_schedules, encoded_labels, label_weights, config
+#     )
 
-    schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-        logger.log_dir, input_schedules, encoded_labels, label_weights, config
-    )
+#     # train
 
-    # train
+#     def train_func(tune_config):
 
-    def train_func(tune_config):
+#         torch.manual_seed(seed)
 
-        torch.manual_seed(seed)
+#         config["experiment_params"]["LR"] = tune_config["LR"]
+#         config["loader_params"]["train_batch_size"] = tune_config["batch_size"]
+#         config["loader_params"]["val_batch_size"] = tune_config["batch_size"]
 
-        config["experiment_params"]["LR"] = tune_config["LR"]
-        config["loader_params"]["train_batch_size"] = tune_config["batch_size"]
-        config["loader_params"]["val_batch_size"] = tune_config["batch_size"]
+#         label_kwargs = label_encoder.label_kwargs if label_encoder else {}
+#         model = build_model(encoded_schedules, config, test, gen, label_kwargs)
+#         trainer = build_trainer(logger=logger, config=config)
+#         trainer = prepare_trainer(trainer)
+#         trainer.fit(model, datamodule=data_loader)
 
-        label_kwargs = label_encoder.label_kwargs if label_encoder else {}
-        model = build_model(encoded_schedules, config, test, gen, label_kwargs)
-        trainer = build_trainer(logger=logger, config=config)
-        trainer = prepare_trainer(trainer)
-        trainer.fit(model, datamodule=data_loader)
+#     def tune_func(search_space):
 
-    def tune_func(search_space):
+#         # The maximum training epochs
+#         num_epochs = 100
+#         # Number of sampls from parameter space
+#         num_samples = 10
+#         scheduler = ASHAScheduler(
+#             max_t=num_epochs, grace_period=1, reduction_factor=2
+#         )
 
-        # The maximum training epochs
-        num_epochs = 100
-        # Number of sampls from parameter space
-        num_samples = 10
-        scheduler = ASHAScheduler(
-            max_t=num_epochs, grace_period=1, reduction_factor=2
-        )
+#         scaling_config = ScalingConfig(
+#             num_workers=1,
+#             use_gpu=True,
+#             resources_per_worker={"CPU": 1, "GPU": 1},
+#         )
 
-        scaling_config = ScalingConfig(
-            num_workers=1,
-            use_gpu=True,
-            resources_per_worker={"CPU": 1, "GPU": 1},
-        )
+#         run_config = RunConfig(
+#             checkpoint_config=CheckpointConfig(
+#                 num_to_keep=2,
+#                 checkpoint_score_attribute="val_loss",
+#                 checkpoint_score_order="min",
+#             )
+#         )
+#         # Define a TorchTrainer without hyper-parameters for Tuner
+#         ray_trainer = TorchTrainer(
+#             train_func, scaling_config=scaling_config, run_config=run_config
+#         )
 
-        run_config = RunConfig(
-            checkpoint_config=CheckpointConfig(
-                num_to_keep=2,
-                checkpoint_score_attribute="val_loss",
-                checkpoint_score_order="min",
-            )
-        )
-        # Define a TorchTrainer without hyper-parameters for Tuner
-        ray_trainer = TorchTrainer(
-            train_func, scaling_config=scaling_config, run_config=run_config
-        )
+#         tuner = tune.Tuner(
+#             ray_trainer,
+#             param_space={"train_loop_config": search_space},
+#             tune_config=tune.TuneConfig(
+#                 metric="val_loss",
+#                 mode="min",
+#                 num_samples=num_samples,
+#                 scheduler=scheduler,
+#             ),
+#         )
 
-        tuner = tune.Tuner(
-            ray_trainer,
-            param_space={"train_loop_config": search_space},
-            tune_config=tune.TuneConfig(
-                metric="val_loss",
-                mode="min",
-                num_samples=num_samples,
-                scheduler=scheduler,
-            ),
-        )
+#         tuner.fit()
 
-        tuner.fit()
+#     search_space = {
+#         "LR": tune.loguniform(1e-4, 1e-1),
+#         "batch_size": tune.choice([32, 64, 128, 256, 512, 1024]),
+#     }
 
-    search_space = {
-        "LR": tune.loguniform(1e-4, 1e-1),
-        "batch_size": tune.choice([32, 64, 128, 256, 512, 1024]),
-    }
+#     results = tune_func(search_space=search_space)
+#     print(results.get_best_result(metric="val_loss", mode="max"))
 
-    results = tune_func(search_space=search_space)
-    print(results.get_best_result(metric="val_loss", mode="max"))
+# if test:
+#     # test the model
+#     run_test(
+#         trainer=trainer,
+#         schedule_encoder=schedule_encoder,
+#         write_dir=Path(logger.log_dir),
+#         seed=seed,
+#     )
 
-    # if test:
-    #     # test the model
-    #     run_test(
-    #         trainer=trainer,
-    #         schedule_encoder=schedule_encoder,
-    #         write_dir=Path(logger.log_dir),
-    #         seed=seed,
-    #     )
+# if infer:
+#     test_infer_path = Path(f"{logger.log_dir}/test_inference")
+#     test_infer_path.mkdir(exist_ok=True, parents=True)
 
-    # if infer:
-    #     test_infer_path = Path(f"{logger.log_dir}/test_inference")
-    #     test_infer_path.mkdir(exist_ok=True, parents=True)
+#     test_inference(
+#         trainer=trainer,
+#         schedule_encoder=schedule_encoder,
+#         attribute_encoder=label_encoder,
+#         write_dir=test_infer_path,
+#         seed=seed,
+#     )
 
-    #     test_inference(
-    #         trainer=trainer,
-    #         schedule_encoder=schedule_encoder,
-    #         attribute_encoder=label_encoder,
-    #         write_dir=test_infer_path,
-    #         seed=seed,
-    #     )
+# if gen:
+#     # prepare synthetic attributes
+#     if synthetic_attributes is not None:
+#         synthetic_population, _ = label_encoder.encode(synthetic_attributes)
+#     else:
+#         synthetic_population = input_schedules.pid.nunique()
 
-    # if gen:
-    #     # prepare synthetic attributes
-    #     if synthetic_attributes is not None:
-    #         synthetic_population, _ = label_encoder.encode(synthetic_attributes)
-    #     else:
-    #         synthetic_population = input_schedules.pid.nunique()
+#     # generate synthetic schedules
+#     synthetic_schedules, _, _ = generate(
+#         trainer=trainer,
+#         population=synthetic_population,
+#         schedule_encoder=schedule_encoder,
+#         attribute_encoder=label_encoder,
+#         config=config,
+#         write_dir=Path(logger.log_dir),
+#         seed=seed,
+#     )
 
-    #     # generate synthetic schedules
-    #     synthetic_schedules, _, _ = generate(
-    #         trainer=trainer,
-    #         population=synthetic_population,
-    #         schedule_encoder=schedule_encoder,
-    #         attribute_encoder=label_encoder,
-    #         config=config,
-    #         write_dir=Path(logger.log_dir),
-    #         seed=seed,
-    #     )
-
-    #     # evaluate synthetic schedules
-    #     evaluate_synthetics(
-    #         synthetic_schedules={name: synthetic_schedules},
-    #         synthetic_attributes={name: synthetic_attributes},
-    #         default_eval_schedules=input_schedules,
-    #         default_eval_attributes=input_attributes,
-    #         write_path=Path(logger.log_dir),
-    #         eval_params=config.get("evaluation_params", {}),
-    #         stats=False,
-    #         verbose=verbose,
-    #     )
+#     # evaluate synthetic schedules
+#     evaluate_synthetics(
+#         synthetic_schedules={name: synthetic_schedules},
+#         synthetic_attributes={name: synthetic_attributes},
+#         default_eval_schedules=input_schedules,
+#         default_eval_attributes=input_attributes,
+#         write_path=Path(logger.log_dir),
+#         eval_params=config.get("evaluation_params", {}),
+#         stats=False,
+#         verbose=verbose,
+#     )
 
 
 def load_labels(path):
@@ -380,49 +360,49 @@ def encode_input_attributes(
     return (attribute_encoder, encoded_attributes, weights)
 
 
-def train(
-    name: str,
-    data_loader: DataModule,
-    encoded_schedules: BaseDataset,
-    config: dict,
-    test: bool,
-    gen: bool,
-    logger: TensorBoardLogger,
-    seed: Optional[int] = None,
-    ckpt_path: Optional[Path] = None,
-    label_encoder: Optional[BaseLabelEncoder] = None,
-) -> Tuple[Trainer, encoding.BaseEncoder]:
-    """
-    Trains a model on the observed data. Return model trainer (which includes model) and encoder.
+# def train(
+#     name: str,
+#     data_loader: DataModule,
+#     encoded_schedules: BaseDataset,
+#     config: dict,
+#     test: bool,
+#     gen: bool,
+#     logger: TensorBoardLogger,
+#     seed: Optional[int] = None,
+#     ckpt_path: Optional[Path] = None,
+#     label_encoder: Optional[BaseLabelEncoder] = None,
+# ) -> Tuple[Trainer, encoding.BaseEncoder]:
+#     """
+#     Trains a model on the observed data. Return model trainer (which includes model) and encoder.
 
-    Args:
-        name (str): The name of the experiment.
-        schedules (pandas.DataFrame): The "observed" population data to train the model on.
-        conditionals (pandas.DataFrame): The "conditionals" data to train the model on.
-        config (dict): A dictionary containing the configuration parameters for the experiment.
-        logger (TensorBoardLogger): Logger.
+#     Args:
+#         name (str): The name of the experiment.
+#         schedules (pandas.DataFrame): The "observed" population data to train the model on.
+#         conditionals (pandas.DataFrame): The "conditionals" data to train the model on.
+#         config (dict): A dictionary containing the configuration parameters for the experiment.
+#         logger (TensorBoardLogger): Logger.
 
-    Returns:
-        Tuple(pytorch.Trainer, BaseEncoder).
-    """
-    print(f"\n======= Training {name} =======")
+#     Returns:
+#         Tuple(pytorch.Trainer, BaseEncoder).
+#     """
+#     print(f"\n======= Training {name} =======")
 
-    torch.manual_seed(seed)
+#     torch.manual_seed(seed)
 
-    if cuda_available():
-        torch.set_float32_matmul_precision("medium")
+#     if cuda_available():
+#         torch.set_float32_matmul_precision("medium")
 
-    torch.cuda.empty_cache()
-    if ckpt_path is not None:
-        experiment = load_model(ckpt_path, config)
-    else:
-        label_kwargs = label_encoder.label_kwargs if label_encoder else {}
-        experiment = build_model(
-            encoded_schedules, config, test, gen, label_kwargs
-        )
-    trainer = build_trainer(logger, config)
-    trainer.fit(experiment, datamodule=data_loader)
-    return trainer
+#     torch.cuda.empty_cache()
+#     if ckpt_path is not None:
+#         experiment = load_model(ckpt_path, config)
+#     else:
+#         label_kwargs = label_encoder.label_kwargs if label_encoder else {}
+#         experiment = build_model(
+#             encoded_schedules, config, test, gen, label_kwargs
+#         )
+#     trainer = build_trainer(logger, config)
+#     trainer.fit(experiment, datamodule=data_loader)
+#     return trainer
 
 
 def run_test(
@@ -731,40 +711,40 @@ def load_model(ckpt_path: Path, config: dict) -> LightningModule:
     return model.load_from_checkpoint(ckpt_path)
 
 
-def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
+# def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
 
-    if cuda_available():
-        torch.set_float32_matmul_precision("medium")
+#     if cuda_available():
+#         torch.set_float32_matmul_precision("medium")
 
-    torch.cuda.empty_cache()
-    trainer_config = config.get("trainer_params", {})
-    patience = trainer_config.pop("patience", 5)
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=Path(logger.log_dir, "checkpoints"),
-        monitor="val_loss",
-        save_top_k=2,
-        save_weights_only=False,
-    )
-    loss_scheduling = trainer_config.pop("loss_scheduling", {})
-    custom_loss_scheduler = LinearLossScheduler(loss_scheduling)
-    return Trainer(
-        logger=logger,
-        devices="auto",
-        accelerator="auto",
-        strategy=RayDDPStrategy(),
-        callbacks=[
-            RayTrainReportCallback(),
-            EarlyStopping(
-                monitor="val_loss", patience=patience, stopping_threshold=0.0
-            ),
-            LearningRateMonitor(),
-            checkpoint_callback,
-            custom_loss_scheduler,
-        ],
-        plugins=[RayLightningEnvironment()],
-        enable_progress_bar=False,
-        **trainer_config,
-    )
+#     torch.cuda.empty_cache()
+#     trainer_config = config.get("trainer_params", {})
+#     patience = trainer_config.pop("patience", 5)
+#     checkpoint_callback = ModelCheckpoint(
+#         dirpath=Path(logger.log_dir, "checkpoints"),
+#         monitor="val_loss",
+#         save_top_k=2,
+#         save_weights_only=False,
+#     )
+#     loss_scheduling = trainer_config.pop("loss_scheduling", {})
+#     custom_loss_scheduler = LinearLossScheduler(loss_scheduling)
+#     return Trainer(
+#         logger=logger,
+#         devices="auto",
+#         accelerator="auto",
+#         strategy=RayDDPStrategy(),
+#         callbacks=[
+#             RayTrainReportCallback(),
+#             EarlyStopping(
+#                 monitor="val_loss", patience=patience, stopping_threshold=0.0
+#             ),
+#             LearningRateMonitor(),
+#             checkpoint_callback,
+#             custom_loss_scheduler,
+#         ],
+#         plugins=[RayLightningEnvironment()],
+#         enable_progress_bar=False,
+#         **trainer_config,
+#     )
 
 
 def initiate_logger(save_dir: Union[Path, str], name: str) -> TensorBoardLogger:
