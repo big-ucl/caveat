@@ -11,4 +11,4 @@ cml-pam
 pot
 scipy<=1.13
 optuna
-# grpcio-tools<=1.67.1
+optuna-integration

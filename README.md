@@ -111,8 +111,8 @@ Or lake a look [here](https://pytorch.org/get-started/locally/). Note that you n
 <!--- --8<-- [end:docs-install-dev] -->
 For more detailed instructions, see our [documentation](https://fredshone.github.io/caveat/latest/installation/).
 
-### Windows and Ray-Tune
-Ray tune is also a bit finickety on windows. Take a look [here](https://docs.ray.io/en/latest/ray-overview/installation.html#installing-from-conda-forge) for help.
+### Optuna
+Optuna is also a bit finickety. Specifically it seems to be ahead of the grpcio version available on conda-forge. Breaking the mamba build. Current work around is to pip install within the mamba env `pip install grpcio==1.70.0`. To make sure that this version is used, make sure to use the dev build which includes a conda-forge pip, ensuring everything is discovered correctly.
 
 ## Contributing
 
