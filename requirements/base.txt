@@ -10,3 +10,4 @@ cml-pam
 pot
 scipy<=1.13
 optuna
+optuna-integration

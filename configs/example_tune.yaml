@@ -1,0 +1,37 @@
+logging_params:
+  log_dir: "logs"
+  name: "test_tune"
+
+schedules_path: "examples/data/synthetic_schedules.csv"
+
+tune:
+  trials: 3
+  prune: True
+  timeout: 300 # seconds
+
+encoder_params:
+  name: "discrete"
+  duration: 1440
+  step_size: 10
+
+model_params:
+  name: "VAEDiscConv"
+  hidden_layers: [64,64]
+  latent_dim: suggest_int("latent_dim", 2, 6, step=2)
+  stride: [2,2]
+
+loader_params:
+  train_batch_size: suggest_categorical("batch_size", [16, 32, 64, 128])
+  val_batch_size:  32
+  num_workers: 3
+
+experiment_params:
+  LR: suggest_float("LR", 1e-5, 1e-1, log=True)
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.00025
+
+trainer_params:
+  max_epochs: 10
+
+seed: 1234

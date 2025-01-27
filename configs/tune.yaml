@@ -1,0 +1,42 @@
+logging_params:
+  log_dir: "logs"
+  name: "fc_tune"
+
+tune:
+  trials: 200
+  prune: True
+  timeout: 36000 # seconds
+
+
+schedules_path: "tmp/nts_home_schedules.csv"
+# attributes_path: "tmp/nts_home_attributes_groups.csv"
+
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+
+trainer_params:
+  min_epochs: 50
+  max_epochs: 200
+  patience: 20
+
+experiment_params:
+  LR: suggest_float("LR", 1e-5, 1, log=True)
+  weight_decay: suggest_float("weight_decay", 0, 1)
+  scheduler_gamma: suggest_float("scheduler_gamma", 0, 1)
+  kld_weight: 0.01
+
+seed: 1234
+
+encoder_params:
+  name: "sequence"
+  duration: 1440
+  jitter: suggest_categorical("jitter", [0, 0.1, 0.2, 0.3])
+
+
+model_params:
+  name: "VAESeqFC"
+  latent_dim: 6
+  hidden_layers: [128,128,128,128]
+  dropout: suggest_categorical("dropout", [0, 0.1, 0.25, 0.5])
