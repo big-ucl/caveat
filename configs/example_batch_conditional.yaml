@@ -31,7 +31,7 @@ conditional_only:
     jitter: 0.1
   model_params:
     name: "AutoDiscLSTM"
-    hidden_layers: 1
+    hidden_n: 1
     hidden_size: 32
     latent_dim: 6
     dropout: 0.1
@@ -44,7 +44,7 @@ standard_vae:
     jitter: 0.3
   model_params:
     name: "VAESeqLSTM"
-    hidden_layers: 4
+    hidden_n: 4
     hidden_size: 128
     latent_dim: 6
     dropout: 0.3
@@ -58,7 +58,7 @@ conditional_vae:
     jitter: 0.2
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 4
+    hidden_n: 4
     hidden_size: 512
     latent_dim: 6
     dropout: 0.3

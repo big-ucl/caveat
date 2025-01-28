@@ -18,7 +18,7 @@ encoder_params:
 
 model_params:
   name: "JVAESeqLSTM"
-  hidden_layers: 3
+  hidden_n: 3
   hidden_size: 128
   latent_dim: 6
   dropout: 0.1

@@ -8,7 +8,7 @@ from caveat.models import Base, CustomDurationEmbedding
 
 class CVAESeqLSTM(Base):
     def __init__(self, *args, **kwargs):
-        """RNN based encoder and decoder with encoder embedding layer and conditionality."""
+        """RNN based encoder and decoders with optional conditionalities at encoder, latent and decoder."""
         super().__init__(*args, **kwargs)
         if self.conditionals_size is None:
             raise UserWarning(
@@ -18,12 +18,12 @@ class CVAESeqLSTM(Base):
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
+        self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
-        self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
+        flat_size_encode = self.hidden_n * self.hidden_size * 2
 
         # encoder
         encoder_conditionality = config.get("encoder_conditionality", "none")
@@ -32,7 +32,7 @@ class CVAESeqLSTM(Base):
             self.encoder = Encoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
-                hidden_layers=self.hidden_layers,
+                hidden_layers=self.hidden_n,
                 dropout=self.dropout,
             )
         elif encoder_conditionality == "hidden":
@@ -40,7 +40,7 @@ class CVAESeqLSTM(Base):
             self.encoder = HiddenConditionalEncoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
-                hidden_layers=self.hidden_layers,
+                hidden_layers=self.hidden_n,
                 conditionals_size=self.conditionals_size,
                 dropout=self.dropout,
             )
@@ -49,7 +49,7 @@ class CVAESeqLSTM(Base):
             self.encoder = InputsConditionalEncoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
-                hidden_layers=self.hidden_layers,
+                hidden_layers=self.hidden_n,
                 conditionals_size=self.conditionals_size,
                 max_length=length,
                 dropout=self.dropout,
@@ -62,7 +62,7 @@ class CVAESeqLSTM(Base):
             self.encoder = HiddenInputsConditionalEncoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
-                hidden_layers=self.hidden_layers,
+                hidden_layers=self.hidden_n,
                 conditionals_size=self.conditionals_size,
                 max_length=length,
                 dropout=self.dropout,
@@ -77,14 +77,14 @@ class CVAESeqLSTM(Base):
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
 
         # latent block (add or concat)
-        latent_conditionality = config.get("label_conditionality", "concat")
+        latent_conditionality = config.get("latent_conditionality", "concat")
         if latent_conditionality == "concat":
             print("Label conditionality is concat")
             self.latent_block = ConcatLatent(
                 latent_dim=self.latent_dim,
                 conditionals_size=self.conditionals_size,
                 flat_size_encode=flat_size_encode,
-                hidden_layers=self.hidden_layers,
+                hidden_layers=self.hidden_n,
                 hidden_size=self.hidden_size,
             )
         elif latent_conditionality == "add":
@@ -93,7 +93,7 @@ class CVAESeqLSTM(Base):
                 conditionals_size=self.conditionals_size,
                 latent_dim=self.latent_dim,
                 flat_size_encode=flat_size_encode,
-                hidden_layers=self.hidden_layers,
+                hidden_layers=self.hidden_n,
                 hidden_size=self.hidden_size,
             )
         else:
@@ -109,7 +109,7 @@ class CVAESeqLSTM(Base):
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 output_size=self.encodings + 1,
-                num_layers=self.hidden_layers,
+                num_layers=self.hidden_n,
                 max_length=length,
                 dropout=self.dropout,
                 sos=self.sos,
@@ -120,7 +120,7 @@ class CVAESeqLSTM(Base):
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 output_size=self.encodings + 1,
-                num_layers=self.hidden_layers,
+                num_layers=self.hidden_n,
                 max_length=length,
                 conditionals_size=self.conditionals_size,
                 dropout=self.dropout,

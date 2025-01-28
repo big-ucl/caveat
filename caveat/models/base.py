@@ -28,26 +28,26 @@ class Base(Experiment):
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
+        self.hidden_n = config["hidden_n"]
         self.dropout = config.get("dropout", 0)
         length, _ = self.in_shape
 
         self.encoder = BaseEncoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             dropout=self.dropout,
         )
         self.decoder = BaseDecoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             output_size=self.encodings + 1,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             max_length=length,
             sos=self.sos,
         )
-        self.unflattened_shape = (self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size
+        self.unflattened_shape = (self.hidden_n, self.hidden_size)
+        flat_size_encode = self.hidden_n * self.hidden_size
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
@@ -164,7 +164,7 @@ class Base(Experiment):
             1, 0, 2
         )  # ([2xhidden, N, layers])
         hidden = hidden.split(
-            self.hidden_layers
+            self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
         batch_size = z.shape[0]
 

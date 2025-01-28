@@ -20,12 +20,7 @@ def test_discrete_auto_lstm_forward():
         encodings=5,
         encoding_weights=torch.ones((5)),
         conditionals_size=10,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob, _, _, _ = model(x_max, conditionals=conditionals)
     assert log_prob.shape == torch.Size([3, 144, 5])
@@ -59,12 +54,7 @@ def test_discrete_conditional_lstm_forward():
         encodings=5,
         encoding_weights=torch.ones((5)),
         conditionals_size=10,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_max, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
@@ -166,12 +156,7 @@ def test_discrete_vae_lstm_forward():
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_max)
     assert log_prob_y.shape == x.shape
@@ -193,7 +178,7 @@ def test_discrete_transformer_forward():
         encodings=5,
         encoding_weights=torch.ones((5)),
         **{
-            "hidden_layers": 1,
+            "hidden_n": 1,
             "hidden_size": 2,
             "heads": 1,
             "latent_dim": 2,

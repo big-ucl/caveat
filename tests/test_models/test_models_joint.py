@@ -22,7 +22,7 @@ def test_jvae_lstm_forward():
         encoding_weights=None,
         conditionals_size=10,
         **{
-            "hidden_layers": 1,
+            "hidden_n": 1,
             "hidden_size": 2,
             "latent_dim": 2,
             "dropout": 0.1,

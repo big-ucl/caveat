@@ -19,7 +19,7 @@ class CondSeqLSTM(Base):
     def build(self, **config):
         self.latent_dim = 1  # dummy value for the predict dataloader
         self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
+        self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
@@ -27,13 +27,13 @@ class CondSeqLSTM(Base):
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             output_size=self.encodings + 1,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             max_length=length,
             dropout=self.dropout,
             sos=self.sos,
         )
-        self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
+        flat_size_encode = self.hidden_n * self.hidden_size * 2
         self.fc_hidden = nn.Linear(self.conditionals_size, flat_size_encode)
         self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
 
@@ -102,13 +102,11 @@ class CondSeqLSTM(Base):
         x = self.fc_x(conditionals).unsqueeze(-2)
 
         # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
-        ).permute(
+        hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
             1, 0, 2
         )  # ([2xhidden, N, layers])
         hidden = hidden.split(
-            self.hidden_layers
+            self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
 
         log_probs = self.decoder(hidden=hidden, x=x, target=None)
@@ -164,7 +162,9 @@ class Decoder(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Sequential(nn.Sigmoid(), nn.LogSoftmax(dim=-2))
+        self.duration_activation = nn.Sequential(
+            nn.Sigmoid(), nn.LogSoftmax(dim=-2)
+        )
 
     def forward(self, hidden, x, **kwargs):
         hidden, cell = hidden

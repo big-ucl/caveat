@@ -17,7 +17,6 @@ from caveat.runners import (
     report_command,
     run_command,
 )
-from caveat.tune import tune_command
 
 
 @click.version_option(package_name="caveat")
@@ -66,6 +65,8 @@ def tune(
     verbose: bool,
 ):
     """Train and report on an encoder and model as per the given configuration file."""
+    from caveat.tune import tune_command  # noqa
+
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
         tune_command(

@@ -20,7 +20,7 @@ global:
 
   model_params:
     name: "JVAESeqLSTM"
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     latent_dim: 6
     dropout: 0.1

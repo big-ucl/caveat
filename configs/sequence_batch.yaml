@@ -42,7 +42,7 @@ cond:
 
   model_params:
     name: "C_LSTM"
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     dropout: 0.2
 
@@ -55,7 +55,7 @@ gen:
 
   model_params:
     name: "VAE_LSTM"
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     latent_dim: 6
     dropout: 0.2
@@ -70,7 +70,7 @@ cond_gen:
 
   model_params:
     name: "CVAE_LSTM"
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     latent_dim: 6
     dropout: 0.2
@@ -85,7 +85,7 @@ cond_stag:
 
   model_params:
     name: "C_LSTM"
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     dropout: 0.2
 
@@ -98,7 +98,7 @@ gen_stag:
 
   model_params:
     name: "VAE_LSTM"
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     latent_dim: 6
     dropout: 0.2
@@ -113,7 +113,7 @@ cond_gen_stag:
 
   model_params:
     name: "CVAE_LSTM"
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     latent_dim: 6
     dropout: 0.2

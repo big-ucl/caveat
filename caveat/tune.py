@@ -44,7 +44,7 @@ def tune_command(
         )
     )
     base_logger = runners.initiate_logger(log_dir, name)
-    # log_dir = Path(logger_params.get("log_dir", "logs"), name)
+    base_dir = base_logger.log_dir
     seed = config.pop("seed", seeder())
 
     # load data
@@ -64,8 +64,9 @@ def tune_command(
         torch.cuda.empty_cache()
 
         trial_config, hyperparameters = build_config(trial, config)
-        trial_name = str(trial.number)
-        logger = runners.initiate_logger(base_logger.log_dir, trial_name)
+
+        trial_name = build_trial_name(trial.number, hyperparameters)
+        logger = runners.initiate_logger(base_dir, trial_name)
 
         # encode data
         label_encoder, encoded_labels, label_weights = (
@@ -74,14 +75,12 @@ def tune_command(
             )
         )
 
-        schedule_encoder, encoded_schedules, data_loader = (
-            runners.encode_schedules(
-                logger.log_dir,
-                input_schedules,
-                encoded_labels,
-                label_weights,
-                trial_config,
-            )
+        _, encoded_schedules, data_loader = runners.encode_schedules(
+            logger.log_dir,
+            input_schedules,
+            encoded_labels,
+            label_weights,
+            trial_config,
         )
 
         # build model
@@ -108,8 +107,10 @@ def tune_command(
     else:
         pruner = optuna.pruners.NopPruner()
 
+    db_name = f"sqlite:///{base_dir}/optuna.sqlite3"
+    print(f"Study logging to {db_name}")
     study = optuna.create_study(
-        storage=f"sqlite:///{base_logger.log_dir}/optuna.sqlite3",
+        storage=db_name,
         study_name=name,
         direction="minimize",
         sampler=optuna.samplers.TPESampler(seed=seed),
@@ -120,12 +121,16 @@ def tune_command(
     )
 
     config = study.user_attrs["config"]
+    config["logging_params"]["log_dir"] = base_dir
+    config["logging_params"]["name"] = "best_trial"
 
     best_trial = study.best_trial
     print("Best params:", best_trial.params)
     print("=============================================")
 
-    runners.run_command(config)
+    runners.run_command(
+        config, verbose=verbose, gen=gen, test=test, infer=infer
+    )
 
     print("Best params:", best_trial.params)
 
@@ -173,6 +178,34 @@ def build_config(trial: optuna.Trial, config: dict) -> dict:
     return new_config, suggestions
 
 
+def build_trial_name(
+    number: int, suggestions: dict, include_kvs: bool = True
+) -> str:
+    number_str = str(number).zfill(4)
+    if include_kvs:
+        kv_str = "_".join(
+            [f"{skey(k)}>{svalue(v)}" for k, v in suggestions.items()]
+        )
+        number_str = f"{number_str}_{kv_str}"
+    return number_str
+
+
+def skey(key: str) -> str:
+    ks = key.split("_")
+    if len(ks) > 1:
+        return "".join([k[0].upper() for k in ks])
+    length = len(key)
+    if length > 3:
+        return key[:4]
+    return key
+
+
+def svalue(value) -> str:
+    if isinstance(value, float):
+        return f"{value:.2e}"
+    return str(value)
+
+
 def build_suggestions(trial: optuna.Trial, config: dict, suggestions: dict):
     for k, v in config.copy().items():
         if isinstance(v, dict):
@@ -200,11 +233,14 @@ def parse_suggestion(trial, value: str):
         return suggest_float(trial, value)
     if value.startswith("suggest_categorical("):
         return suggest_categorical(trial, value)
+    raise ValueError(f"Unknown suggestion type: {value}")
 
 
 def suggest_int(trial: optuna.Trial, value: str):
-    args = value.removeprefix("suggest_int(").removesuffix(")").split(",")
-    name = args[0]
+    args = (
+        value.strip().removeprefix("suggest_int(").removesuffix(")").split(",")
+    )
+    name = parse_name(args[0])
     low = int(args[1])
     high = int(args[2])
     kwargs = {}
@@ -215,8 +251,13 @@ def suggest_int(trial: optuna.Trial, value: str):
 
 
 def suggest_float(trial: optuna.Trial, value: str):
-    args = value.removeprefix("suggest_float(").removesuffix(")").split(",")
-    name = args[0]
+    args = (
+        value.strip()
+        .removeprefix("suggest_float(")
+        .removesuffix(")")
+        .split(",")
+    )
+    name = parse_name(args[0])
     low = float(args[1])
     high = float(args[2])
     kwargs = {}
@@ -228,13 +269,20 @@ def suggest_float(trial: optuna.Trial, value: str):
 
 def suggest_categorical(trial: optuna.Trial, value: str):
     args = (
-        value.removeprefix("suggest_categorical(").removesuffix(")").split(",")
+        value.strip()
+        .removeprefix("suggest_categorical(")
+        .removesuffix(")")
+        .split(",", 1)
     )
-    name = args[0]
+    name = parse_name(args[0])
     choices = args[1]
     choices = choices.strip().removeprefix("[").removesuffix("]").split(",")
     choices = [parse_value(c) for c in choices]
     return (name, trial.suggest_categorical(name, choices))
+
+
+def parse_name(name: str):
+    return name.strip().removeprefix('"').removesuffix('"')
 
 
 def parse_value(value: str):

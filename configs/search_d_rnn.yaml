@@ -38,24 +38,6 @@ global:
   #   split_on: [work_status]
   
 
-# LR01:
-#   experiment_params:
-#     LR: 0.01
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
-#   encoder_params:
-#     name: "discrete"
-#     step_size: 10
-#     duration: 1440
-#     jitter: 0.1
-#   model_params:
-#     name: "CondDiscLSTM"
-#     latent_dim: 0
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.1
-#     bidirectional: True
-
 2x64:
   experiment_params:
     LR: 0.01
@@ -69,7 +51,7 @@ global:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 64
     dropout: 0.1
     bidirectional: True
@@ -87,7 +69,7 @@ global:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 3
+    hidden_n: 3
     hidden_size: 64
     dropout: 0.1
     bidirectional: True
@@ -105,7 +87,7 @@ global:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 3
+    hidden_n: 3
     hidden_size: 128
     dropout: 0.1
     bidirectional: True
@@ -123,7 +105,7 @@ global:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 4
+    hidden_n: 4
     hidden_size: 128
     dropout: 0.1
     bidirectional: True

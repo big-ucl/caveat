@@ -20,8 +20,8 @@ class Experiment(pl.LightningModule):
         sos: int = 0,
         gen: bool = False,
         test: bool = False,
-        LR: float = 0.005,
-        weight_decay: float = 0.0,
+        LR: float = 0.001,
+        weight_decay: float = 0.01,
         **kwargs,
     ) -> None:
         super(Experiment, self).__init__()
@@ -265,7 +265,7 @@ class Experiment(pl.LightningModule):
         return scheduler
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(
+        optimizer = optim.AdamW(
             self.parameters(), lr=self.LR, weight_decay=self.weight_decay
         )
 

@@ -31,52 +31,7 @@ VAESeqLSTM_6x6x512_kld0:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 512
     dropout: 0.2
     kld_weight: 0.0
-
-# VAESeqLSTM_6x6x512_kld0001:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
-#     dropout: 0.2
-#     kld_weight: 0.0001
-
-# VAESeqLSTM_6x6x512_kld0005:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
-#     dropout: 0.2
-#     kld_weight: 0.0005
-
-# VAESeqLSTM_6x6x512_kld001:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
-#     dropout: 0.2
-#     kld_weight: 0.001
-
-# VAESeqLSTM_6x6x512_kld005:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
-#     dropout: 0.2
-#     kld_weight: 0.005
-
-# VAESeqLSTM_6x6x512_kld01:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
-#     dropout: 0.2
-#     kld_weight: 0.01

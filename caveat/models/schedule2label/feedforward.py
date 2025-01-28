@@ -12,12 +12,12 @@ class Schedule2LabelFeedForward(LabelExperiment):
 
     def build(self, **config):
         self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
+        self.hidden_n = config["hidden_n"]
         self.label_hidden_size = config.get(
             "label_hidden_size", self.hidden_size
         )
         self.label_hidden_layers = config.get(
-            "label_hidden_layers", self.hidden_layers
+            "label_hidden_layers", self.hidden_n
         )
         self.dropout = config["dropout"]
         length, _ = self.in_shape
@@ -26,7 +26,7 @@ class Schedule2LabelFeedForward(LabelExperiment):
             length=length,
             input_size=self.encodings,
             hidden_size=self.hidden_size,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             dropout=self.dropout,
         )
         self.decoder = AttributeDecoder(

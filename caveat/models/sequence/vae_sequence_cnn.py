@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Union
 import torch
 from torch import Tensor, nn
 
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationEmbedding, utils
 from caveat.models.utils import calc_output_padding_2d, conv2d_size
 
 
@@ -21,7 +21,7 @@ class VAESeqCNN(Base):
         padding = Optional[Union[tuple[int, int], int]]
 
         encoded_size = self.encodings + 1
-        hidden_layers = config["hidden_layers"]
+        hidden_layers = utils.build_hidden_layers(config)
         latent_dim = config["latent_dim"]
         dropout = config.get("dropout", 0)
         kernel_size = config.get("kernel_size", 3)

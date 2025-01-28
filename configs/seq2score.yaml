@@ -22,7 +22,7 @@ encoder_params:
 
 model_params:
   name: "Seq2Score_LSTM"
-  hidden_layers: 2
+  hidden_n: 2
   hidden_size: 128
   dropout: 0.1
 

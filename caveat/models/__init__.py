@@ -16,22 +16,7 @@ from .seq2seq.lstm import Seq2SeqLSTM
 from .sequence.auto_sequence_lstm import AutoSeqLSTM
 from .sequence.cond_sequence_lstm import CondSeqLSTM
 from .sequence.cvae_sequence_lstm import CVAESeqLSTM
-from .sequence.cvae_sequence_lstm_add import CVAESeqLSTMAdd
-from .sequence.cvae_sequence_lstm_after import CVAESeqLSTMAfter
-from .sequence.cvae_sequence_lstm_all import CVAESeqLSTMAll
 from .sequence.cvae_sequence_lstm_double_nudger import CVAESeqLSTMDoubleNudger
-from .sequence.cvae_sequence_lstm_feed import (
-    CVAESeqLSTMFeed,
-    CVAESeqLSTMFeedPre,
-)
-from .sequence.cvae_sequence_lstm_latent_add_feed import (
-    CVAESeqLSTMLatentAddFeed,
-    CVAESeqLSTMLatentAddFeedPre,
-)
-from .sequence.cvae_sequence_lstm_latent_feed import (
-    CVAESeqLSTMLatentFeed,
-    CVAESeqLSTMLatentFeedPre,
-)
 from .sequence.cvae_sequence_lstm_nudge_feed import (
     CVAESeqLSTMNudgeFeed,
     CVAESeqLSTMNudgeFeedPre,
@@ -61,17 +46,8 @@ library = {
     "VAEDiscLSTM": VAEDiscLSTM,
     "VAEDiscTrans": VAEDiscTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
-    "CVAESeqLSTMAdd": CVAESeqLSTMAdd,  # adds conditionals to latent layer
-    "CVAESeqLSTMFeed": CVAESeqLSTMFeed,  # passes conditionals to decoder units
-    "CVAESeqLSTMFeedPre": CVAESeqLSTMFeedPre,  # passes conditionals to decoder units
-    "CVAESeqLSTMLatentFeed": CVAESeqLSTMLatentFeed,  # passes conditionals to decoder units
-    "CVAESeqLSTMLatentFeedPre": CVAESeqLSTMLatentFeedPre,  # passes conditionals to decoder units
-    "CVAESeqLSTMLatentAddFeed": CVAESeqLSTMLatentAddFeed,  # adds conditionals to latent layer and passes to decoder units
-    "CVAESeqLSTMLatentAddFeedPre": CVAESeqLSTMLatentAddFeedPre,  # adds conditionals to latent layer and passes to decoder units
     "CVAESeqLSTMNudgeFeed": CVAESeqLSTMNudgeFeed,  # nudger model
     "CVAESeqLSTMNudgeFeedPre": CVAESeqLSTMNudgeFeedPre,  # nudger model
-    "CVAESeqLSTMAfter": CVAESeqLSTMAfter,  # conditionals concat after LSTM output
-    "CVAESeqLSTMAll": CVAESeqLSTMAll,  # labels cat to latents and added to unit in/outs
     "CVAESeqLSTMNudge": CVAESeqLSTMNudger,  # nudger model
     "CVAESeqLSTMDoubleNudge": CVAESeqLSTMDoubleNudger,  # double nudger model
     "CVAESeqLSTMNudgeAdv": CVAESeqLSTMNudgerAdversarial,  # adversarial nudger model

@@ -23,7 +23,7 @@ encoder_params:
   norm_duration: 1440
 model_params:
   name: "VAESeqLSTM"
-  hidden_layers: 4
+  hidden_n: 4
   hidden_size: 128
   latent_dim: 6
   dropout: 0.1
