@@ -18,7 +18,7 @@ encoder_params:
 
 model_params:
   name: "CVAESeqLSTM"
-  hidden_layers: 1
+  hidden_n: 1
   hidden_size: 32
   latent_dim: 6
   dropout: 0.1

@@ -22,7 +22,7 @@ encoder_params:
 
 model_params:
   name: "Seq2Seq_LSTM"
-  hidden_layers: 4
+  hidden_n: 4
   hidden_size: 128
   dropout: 0.1
   teacher_forcing_ratio: 0.5

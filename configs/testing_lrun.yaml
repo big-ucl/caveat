@@ -19,7 +19,7 @@ encoder_params:
 
 model_params:
   name: "LabelFeedForward"
-  hidden_layers: 3
+  hidden_n: 3
   hidden_size: 128
   latent_dim: 0
   dropout: 0.3

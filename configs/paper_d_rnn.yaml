@@ -52,7 +52,7 @@ DiscLSTM1:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     dropout: 0.2
     bidirectional: True
@@ -67,7 +67,7 @@ DiscLSTM2:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     dropout: 0.2
     bidirectional: True
@@ -82,7 +82,7 @@ DiscLSTM3:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     dropout: 0.2
     bidirectional: True
@@ -97,7 +97,7 @@ DiscLSTM4:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     dropout: 0.2
     bidirectional: True
@@ -112,7 +112,7 @@ DiscLSTM5:
   model_params:
     name: "CondDiscLSTM"
     latent_dim: 0
-    hidden_layers: 2
+    hidden_n: 2
     hidden_size: 128
     dropout: 0.2
     bidirectional: True

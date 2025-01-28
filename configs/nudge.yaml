@@ -47,137 +47,11 @@ global:
     norm_duration: 1440
     jitter: 0.2
 
-# DiscLSTM:
-#   encoder_params:
-#     name: "discrete"
-#     step_size: 5
-#     duration: 1440
-#     jitter: 0.2
-#   model_params:
-#     name: "CondDiscLSTM"
-#     latent_dim: 6
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.2
-#     bidirectional: True
-
-# VAESeqLSTM_kld0:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.0
-
-# VAESeqLSTM_kld0005:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.0005
-
-# VAESeqLSTM_kld005:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.005
-
-# VAESeqLSTM_kld05:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.05
-
-# VAESeqLSTM_kld5:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.5
-
-# CVAESeqLSTM_kld0:
-#   model_params:
-#     name: "CVAESeqLSTM2"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.0
-
-# CVAESeqLSTM_kld0005:
-#   model_params:
-#     name: "CVAESeqLSTM2"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.0005
-
-# CVAESeqLSTM_kld005:
-#   model_params:
-#     name: "CVAESeqLSTM2"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.005
-
-# CVAESeqLSTM_kld05:
-#   model_params:
-#     name: "CVAESeqLSTM2"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.05
-
-# CVAESeqLSTM_kld5:
-#   model_params:
-#     name: "CVAESeqLSTM2"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.5
-
-
-
-
-
-# VAESeqLSTM_kld0005:
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 128
-#     hidden_layers: 8
-#     hidden_size: 1024
-#     dropout: 0.0
-#     kld_weight: 0.0005
-
-# CVAESeqLSTM_kld0005:
-#   model_params:
-#     name: "CVAESeqLSTM2"
-#     latent_dim: 128
-#     hidden_layers: 8
-#     hidden_size: 1024
-#     dropout: 0.0
-#     kld_weight: 0.005
-
 CVAESeqLSTM_kld1:
   model_params:
     name: "CVAESeqLSTMDoubleNudge"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 512
     dropout: 0.2
     kld_weight: 1
@@ -186,7 +60,7 @@ CVAESeqLSTM_kld01:
   model_params:
     name: "CVAESeqLSTMDoubleNudge"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 512
     dropout: 0.2
     kld_weight: 0.1
@@ -195,7 +69,7 @@ CVAESeqLSTM_kld001:
   model_params:
     name: "CVAESeqLSTMDoubleNudge"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 512
     dropout: 0.2
     kld_weight: 0.01
@@ -204,7 +78,7 @@ CVAESeqLSTM_kld0001:
   model_params:
     name: "CVAESeqLSTMDoubleNudge"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 512
     dropout: 0.2
     kld_weight: 0.001
@@ -213,71 +87,7 @@ CVAESeqLSTM_kld00001:
   model_params:
     name: "CVAESeqLSTMDoubleNudge"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 512
     dropout: 0.2
     kld_weight: 0.0001
-
-
-
-
-# CVAESeqLSTM_kld005_adv1:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeAdv"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.005
-#     adv_weight: 0.1
-
-# CVAESeqLSTM_kld05_adv1:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeAdv"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.05
-#     adv_weight: 0.1
-
-# CVAESeqLSTM_kld005_adv10:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeAdv"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.005
-#     adv_weight: 1.0
-
-# CVAESeqLSTM_kld05_adv10:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeAdv"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.05
-#     adv_weight: 1.0
-
-# CVAESeqLSTM_kld005_adv100:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeAdv"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.005
-#     adv_weight: 10.0
-
-# CVAESeqLSTM_kld05_adv100:
-#   model_params:
-#     name: "CVAESeqLSTMNudgeAdv"
-#     latent_dim: 2
-#     hidden_layers: 2
-#     hidden_size: 128
-#     dropout: 0.0
-#     kld_weight: 0.05
-#     adv_weight: 10.0
-

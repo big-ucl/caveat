@@ -22,12 +22,7 @@ def test_seq2seq_forward():
         encodings=(A, M),
         encoding_weights=None,
         conditionals_size=4,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 12,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 12, "latent_dim": 2, "dropout": 0.1},
     )
     log_probs = model(x_encoded, conditionals=conditionals)
     assert log_probs.shape == (N, L, C)
@@ -55,12 +50,7 @@ def test_seq2score_forward():
         encodings=(A, M),
         encoding_weights=None,
         conditionals_size=4,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 12,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 12, "latent_dim": 2, "dropout": 0.1},
     )
     score = model(x_encoded, conditionals=conditionals)
     assert score.shape == (N, 1)

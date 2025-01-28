@@ -180,13 +180,13 @@ class CVAESeqLSTMNudger(Base):
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
+        self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
         self.encoder = Encoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             dropout=self.dropout,
         )
         self.label_network = LabelNetwork(
@@ -198,13 +198,13 @@ class CVAESeqLSTMNudger(Base):
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             output_size=self.encodings + 1,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             max_length=length,
             dropout=self.dropout,
             sos=self.sos,
         )
-        self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
+        flat_size_encode = self.hidden_n * self.hidden_size * 2
         self.fc_conditionals = nn.Linear(
             self.conditionals_size, flat_size_encode
         )
@@ -275,13 +275,11 @@ class CVAESeqLSTMNudger(Base):
         h = self.fc_hidden(z)
 
         # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
-        ).permute(
+        hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
             1, 0, 2
         )  # ([2xhidden, N, layers])
         hidden = hidden.split(
-            self.hidden_layers
+            self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
         batch_size = z.shape[0]
 

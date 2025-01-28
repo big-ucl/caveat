@@ -2,7 +2,7 @@ from typing import Optional, Tuple
 
 from torch import Tensor, nn
 
-from caveat.models import Base
+from caveat.models import Base, utils
 
 
 class VAEDiscFC(Base):
@@ -11,12 +11,11 @@ class VAEDiscFC(Base):
         super().__init__(*args, **kwargs)
 
     def build(self, **config):
-        hidden_layers = list
         latent_dim = int
         dropout = Optional[float]
 
         encoded_size = config.get("embed_size", self.encodings)
-        hidden_layers = config["hidden_layers"]
+        hidden_layers = utils.build_hidden_layers(config)
         latent_dim = config["latent_dim"]
         dropout = config.get("dropout", 0)
         self.latent_dim = latent_dim

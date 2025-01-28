@@ -31,7 +31,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 3
+    hidden_n: 3
     hidden_size: 128
     dropout: 0.1
     
@@ -46,7 +46,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 4
+    hidden_n: 4
     hidden_size: 128
     dropout: 0.1
     
@@ -61,7 +61,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 128
     dropout: 0.1
     
@@ -76,7 +76,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 128
     dropout: 0.1
 
@@ -91,7 +91,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 3
+    hidden_n: 3
     hidden_size: 256
     dropout: 0.1
     
@@ -106,7 +106,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 4
+    hidden_n: 4
     hidden_size: 256
     dropout: 0.1
     
@@ -121,7 +121,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     dropout: 0.1
     
@@ -136,7 +136,7 @@ global:
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 6
+    hidden_n: 6
     hidden_size: 256
     dropout: 0.1
     

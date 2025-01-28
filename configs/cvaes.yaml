@@ -1,8 +1,8 @@
 global:
   seed: 1234
   logging_params:
-    log_dir: "logs/cvaes2"
-    name: "batch"
+    log_dir: "logs/cvaes"
+    name: "test"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -12,8 +12,8 @@ global:
     num_workers: 4
 
   trainer_params:
-    min_epochs: 20
-    max_epochs: 100
+    min_epochs: 10
+    max_epochs: 200
     patience: 10
 
   conditionals:
@@ -30,7 +30,7 @@ global:
 
   encoder_params:
     name: "sequence"
-    max_length: 12
+    max_length: 16
     norm_duration: 1440
     jitter: 0.1
     fix_durations: True
@@ -45,7 +45,7 @@ global:
 NoneConcatNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -58,7 +58,7 @@ NoneConcatNone:
 NoneAddNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -71,7 +71,7 @@ NoneAddNone:
 HiddenConcatNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -84,7 +84,7 @@ HiddenConcatNone:
 HiddenAddNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -97,7 +97,7 @@ HiddenAddNone:
 InputsConcatNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -110,7 +110,7 @@ InputsConcatNone:
 InputsAddNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -123,7 +123,7 @@ InputsAddNone:
 BothConcatNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -136,7 +136,7 @@ BothConcatNone:
 BothAddNone:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -146,12 +146,10 @@ BothAddNone:
     latent_conditionality: add
     decoder_conditionality: none
 
-# decoder_conditionality:
-
 NoneConcatInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -164,7 +162,7 @@ NoneConcatInputs:
 NoneAddInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -177,7 +175,7 @@ NoneAddInputs:
 HiddenConcatInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -190,7 +188,7 @@ HiddenConcatInputs:
 HiddenAddInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -203,7 +201,7 @@ HiddenAddInputs:
 InputsConcatInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -216,7 +214,7 @@ InputsConcatInputs:
 InputsAddInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -229,7 +227,7 @@ InputsAddInputs:
 BothConcatInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
@@ -242,12 +240,12 @@ BothConcatInputs:
 BothAddInputs:
   model_params:
     name: "CVAESeqLSTM"
-    hidden_layers: 5
+    hidden_n: 5
     hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
     dropout: 0.1
     teacher_forcing_ratio: 0.5
     encoder_conditionality: both
-    latent_conditionality: add`
+    latent_conditionality: add
     decoder_conditionality: inputs

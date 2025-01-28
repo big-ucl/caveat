@@ -19,7 +19,7 @@ class AutoDiscLSTM(Base):
     def build(self, **config):
         self.latent_dim = 1  # dummy value for the predict dataloader
         self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
+        self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length = self.in_shape[0]
         bidirectional = config.get("bidirectional", False)
@@ -29,7 +29,7 @@ class AutoDiscLSTM(Base):
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             output_size=self.encodings,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             max_length=length,
             dropout=self.dropout,
             sos=self.sos,
@@ -38,16 +38,13 @@ class AutoDiscLSTM(Base):
         )
         # self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
         if bidirectional:
-            flat_size_encode = self.hidden_layers * self.hidden_size * 2 * 2
-            self.adjusted_layers = self.hidden_layers * 2
-            self.unflatten_shape = (
-                2 * 2 * self.hidden_layers,
-                self.hidden_size,
-            )
+            flat_size_encode = self.hidden_n * self.hidden_size * 2 * 2
+            self.adjusted_layers = self.hidden_n * 2
+            self.unflatten_shape = (2 * 2 * self.hidden_n, self.hidden_size)
         else:
-            flat_size_encode = self.hidden_layers * self.hidden_size * 2
-            self.adjusted_layers = self.hidden_layers
-            self.unflatten_shape = (2 * self.hidden_layers, self.hidden_size)
+            flat_size_encode = self.hidden_n * self.hidden_size * 2
+            self.adjusted_layers = self.hidden_n
+            self.unflatten_shape = (2 * self.hidden_n, self.hidden_size)
         self.fc_hidden = nn.Linear(self.conditionals_size, flat_size_encode)
 
     def forward(

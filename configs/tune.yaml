@@ -1,15 +1,15 @@
 logging_params:
-  log_dir: "logs"
-  name: "fc_tune"
+  log_dir: logs
+  name: fc_tune
 
 tune:
-  trials: 200
+  trials: 1000
   prune: True
-  timeout: 36000 # seconds
+  timeout:  36000 # seconds
 
 
-schedules_path: "tmp/nts_home_schedules.csv"
-# attributes_path: "tmp/nts_home_attributes_groups.csv"
+schedules_path: tmp/nts_home_schedules.csv
+# attributes_path: tmp/nts_home_attributes_groups.csv
 
 loader_params:
   train_batch_size: 1024
@@ -17,26 +17,27 @@ loader_params:
   num_workers: 8
 
 trainer_params:
-  min_epochs: 50
-  max_epochs: 200
-  patience: 20
+  min_epochs: 20
+  max_epochs: 100
+  patience: 10
 
 experiment_params:
-  LR: suggest_float("LR", 1e-5, 1, log=True)
-  weight_decay: suggest_float("weight_decay", 0, 1)
-  scheduler_gamma: suggest_float("scheduler_gamma", 0, 1)
+  LR: suggest_float(LR, 1e-5, 0.01, log=True)
+  weight_decay: suggest_float(weight_decay, 0, 0.1)
+  scheduler_gamma: suggest_float(scheduler_gamma, 0.95, 1)
   kld_weight: 0.01
 
 seed: 1234
 
 encoder_params:
-  name: "sequence"
+  name: sequence
   duration: 1440
-  jitter: suggest_categorical("jitter", [0, 0.1, 0.2, 0.3])
+  jitter: suggest_float(jitter, 0, 0.5, step = 0.1)
 
 
 model_params:
-  name: "VAESeqFC"
+  name: VAESeqFC
   latent_dim: 6
-  hidden_layers: [128,128,128,128]
-  dropout: suggest_categorical("dropout", [0, 0.1, 0.25, 0.5])
+  hidden_n: suggest_int(hidden_n, 3, 6)
+  hidden_size: suggest_categorical(hidden_size, [128, 256, 512])
+  dropout: suggest_float(dropout, 0, 0.3, step = 0.1)

@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 from torch import Tensor, nn
 
+from caveat.models import utils
 from caveat.models.base import Base
 from caveat.models.utils import calc_output_padding_1d, conv1d_size
 
@@ -20,7 +21,7 @@ class VAEDiscCNN1D(Base):
         padding = Optional[int]
 
         encoded_size = config.get("embed_size", self.encodings)
-        hidden_layers = config["hidden_layers"]
+        hidden_layers = hidden_layers = utils.build_hidden_layers(config)
         latent_dim = config["latent_dim"]
         dropout = config.get("dropout", 0)
         kernel_size = config.get("kernel_size", 2)

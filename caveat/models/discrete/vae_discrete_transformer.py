@@ -20,8 +20,8 @@ class VAEDiscTrans(Base):
         print(f"Hidden size: {self.hidden_size}")
         self.heads = config["heads"]
         print(f"Heads: {self.heads}")
-        self.hidden_layers = config["hidden_layers"]
-        print(f"Hidden layers: {self.hidden_layers}")
+        self.hidden_n = config["hidden_n"]
+        print(f"Hidden n: {self.hidden_n}")
         self.dropout = config["dropout"]
         print(f"Dropout: {self.dropout}")
         self.length = self.in_shape[0]
@@ -36,7 +36,7 @@ class VAEDiscTrans(Base):
             hidden_size=self.hidden_size,
             length=self.length,
             n_head=self.heads,
-            n_layer=self.hidden_layers,
+            n_layer=self.hidden_n,
             dropout=self.dropout,
             position_embedding=self.position_embedding,
         )
@@ -45,7 +45,7 @@ class VAEDiscTrans(Base):
             hidden_size=self.hidden_size,
             output_size=self.encodings,
             num_heads=self.heads,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             length=self.length,
             dropout=self.dropout,
             position_embedding=self.position_embedding,

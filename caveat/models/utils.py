@@ -164,25 +164,6 @@ def calc_output_padding_2d(size: Union[tuple[int, int, int], int]) -> np.array:
     return (int(h % 2 == 0), int(w % 2 == 0))
 
 
-# class LearningRateScheduler(_LRScheduler):
-
-#     def __init__(self, optimizer, init_lr):
-#         self.optimizer = optimizer
-#         self.init_lr = init_lr
-
-#     def step(self, *args, **kwargs):
-#         raise NotImplementedError
-
-#     @staticmethod
-#     def set_lr(optimizer, lr):
-#         for g in optimizer.param_groups:
-#             g["lr"] = lr
-
-#     def get_lr(self):
-#         for g in self.optimizer.param_groups:
-#             return g["lr"]
-
-
 class ScheduledOptim(_LRScheduler):
     """A simple wrapper class for learning rate scheduling"""
 
@@ -210,3 +191,38 @@ class ScheduledOptim(_LRScheduler):
 
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
+
+
+def build_hidden_layers(config: dict) -> list:
+    """
+    Build hidden layer sizes from config.
+
+    Args:
+        config (dict): Configuration dictionary containing hidden layer parameters.
+
+    Raises:
+        ValueError: If both hidden_layers and hidden_n/hidden_size are specified.
+        ValueError: If hidden_layers is not a list.
+        ValueError: If hidden_layers contains non-integer values.
+        ValueError: If neither hidden_layers nor hidden_n/hidden_size are specified.
+
+    Returns:
+        list: List of hidden layer sizes.
+    """
+    hidden_layers = config.get("hidden_layers", None)
+    hidden_n = config.get("hidden_n", None)
+    hidden_size = config.get("hidden_size", None)
+    if hidden_layers is not None:
+        if hidden_n is not None or hidden_size is not None:
+            raise ValueError(
+                "Cannot specify hidden_layers and layer_n or layer_size"
+            )
+        if not isinstance(hidden_layers, list):
+            raise ValueError("hidden_layers must be a list")
+        for layer in hidden_layers:
+            if not isinstance(layer, int):
+                raise ValueError("hidden_layers must be a list of integers")
+        return hidden_layers
+    if hidden_n is not None and hidden_size is not None:
+        return [int(hidden_size)] * int(hidden_n)
+    raise ValueError("Must specify hidden_layers or layer_n and layer_size")

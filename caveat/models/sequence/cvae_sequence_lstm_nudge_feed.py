@@ -39,7 +39,7 @@ class CVAESeqLSTMNudgeFeed(Base):
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
-        self.hidden_layers = config["hidden_layers"]
+        self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
         self.label_network = LabelNetwork(
@@ -50,20 +50,20 @@ class CVAESeqLSTMNudgeFeed(Base):
         self.encoder = Encoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             dropout=self.dropout,
         )
         self.decoder = Decoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             output_size=self.encodings + 1,
-            num_layers=self.hidden_layers,
+            num_layers=self.hidden_n,
             max_length=length,
             dropout=self.dropout,
             sos=self.sos,
         )
-        self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
+        flat_size_encode = self.hidden_n * self.hidden_size * 2
         self.fc_conditionals = nn.Linear(
             self.conditionals_size, flat_size_encode
         )
@@ -115,11 +115,9 @@ class CVAESeqLSTMNudgeFeed(Base):
         # encode labels for hidden state
         h1, h2 = (
             self.fc_conditionals(conditionals)
-            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
+            .unflatten(1, (2 * self.hidden_n, self.hidden_size))
             .permute(1, 0, 2)
-            .split(
-                self.hidden_layers
-            )  # ([hidden, N, layers, [hidden, N, layers]])
+            .split(self.hidden_n)  # ([hidden, N, layers, [hidden, N, layers]])
         )
         h1 = h1.contiguous()
         h2 = h2.contiguous()
@@ -159,13 +157,11 @@ class CVAESeqLSTMNudgeFeed(Base):
         x = self.fc_x(conditionals).unsqueeze(-2)
 
         # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
-        ).permute(
+        hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
             1, 0, 2
         )  # ([2xhidden, N, layers])
         hidden = hidden.split(
-            self.hidden_layers
+            self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
 
         log_probs = self.decoder(hidden=hidden, x=x, target=None)

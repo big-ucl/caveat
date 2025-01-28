@@ -56,7 +56,7 @@ rnn:
   model_params:
     name: "VAEDiscLSTM"
     latent_dim: 6
-    hidden_layers: 4
+    hidden_n: 4
     hidden_size: 128
     dropout: 0.1
 

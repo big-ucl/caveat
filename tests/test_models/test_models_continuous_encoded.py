@@ -28,12 +28,7 @@ def test_auto_lstm_forward():
         encodings=5,
         encoding_weights=torch.ones((5)),
         conditionals_size=10,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_encoded, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
@@ -56,12 +51,7 @@ def test_conditional_lstm_forward():
         encodings=5,
         encoding_weights=torch.ones((5)),
         conditionals_size=10,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_encoded, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
@@ -106,7 +96,7 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
         encoding_weights=torch.ones((5)),
         conditionals_size=10,
         **{
-            "hidden_layers": 1,
+            "hidden_n": 1,
             "hidden_size": 2,
             "latent_dim": 2,
             "dropout": 0.1,
@@ -144,12 +134,7 @@ def test_cvae_lstm_nudger_forward():
         encodings=5,
         encoding_weights=torch.ones((5)),
         conditionals_size=10,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_encoded, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
@@ -188,12 +173,7 @@ def test_cvae_adv_forward():
         encodings=5,
         encoding_weights=torch.ones((5)),
         conditionals_size=10,
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     x_out, preds, zs, conditionals_out = model.predict_step(batch)
     assert x_out.shape == (3, 10, 2)
@@ -213,12 +193,7 @@ def test_lstm_forward():
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        **{
-            "hidden_layers": 1,
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_encoded)
     assert log_prob_y.shape == x.shape
@@ -246,12 +221,7 @@ def test_cnn_forward():
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        **{
-            "hidden_layers": [16, 8],
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_layers": [16, 8], "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_encoded)
     assert log_prob_y.shape == x.shape
@@ -328,12 +298,7 @@ def test_fc_forward():
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        **{
-            "hidden_layers": [16, 8],
-            "hidden_size": 2,
-            "latent_dim": 2,
-            "dropout": 0.1,
-        },
+        **{"hidden_layers": [16, 8], "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_encoded)
     assert log_prob_y.shape == x.shape
