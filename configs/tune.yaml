@@ -1,9 +1,9 @@
 logging_params:
   log_dir: logs
-  name: fc_tune
+  name: VAESeqCNN1D_tune
 
 tune:
-  trials: 1000
+  trials: 200
   prune: True
   timeout:  36000 # seconds
 
@@ -32,12 +32,15 @@ seed: 1234
 encoder_params:
   name: sequence
   duration: 1440
-  jitter: suggest_float(jitter, 0, 0.5, step = 0.1)
+  jitter: suggest_float(jitter, 0, 0.3, step = 0.1)
 
 
 model_params:
-  name: VAESeqFC
+  name: VAESeqCNN1D
   latent_dim: 6
   hidden_n: suggest_int(hidden_n, 3, 6)
   hidden_size: suggest_categorical(hidden_size, [128, 256, 512])
   dropout: suggest_float(dropout, 0, 0.3, step = 0.1)
+  stride: 2
+  kernel_size: 2
+  padding: 1
