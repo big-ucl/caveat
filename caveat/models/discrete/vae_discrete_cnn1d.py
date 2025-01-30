@@ -26,7 +26,7 @@ class VAEDiscCNN1D(Base):
         dropout = config.get("dropout", 0)
         kernel_size = config.get("kernel_size", 2)
         stride = config.get("stride", 2)
-        padding = config.get("padding", 1)
+        padding = config.get("padding", 0)
 
         self.latent_dim = latent_dim
 
@@ -112,6 +112,9 @@ class Encoder(nn.Module):
 
         for hidden_channels in hidden_layers:
             self.shapes.append((channels, length))
+            if length + padding < kernel_size:
+                print("Skipping convolution:", length, kernel_size)
+                break
             modules.append(
                 nn.Sequential(
                     nn.Conv1d(
@@ -176,7 +179,12 @@ class Decoder(nn.Module):
         for i in range(len(target_shapes) - 1):
             c_in, l_in = target_shapes[i]
             c_out, l_out = target_shapes[i + 1]
-            out_padding = calc_output_padding_1d(
+            if c_in == c_out and l_in == l_out:
+                print(
+                    "Skipping transpose convolution:", c_in, l_in, c_out, l_out
+                )
+                continue
+            in_padding, out_padding = calc_output_padding_1d(
                 length=l_in,
                 target=l_out,
                 kernel_size=kernel_size,
@@ -189,7 +197,7 @@ class Decoder(nn.Module):
                     out_channels=c_out,
                     kernel_size=kernel_size,
                     stride=stride,
-                    padding=padding,
+                    padding=in_padding,
                     output_padding=out_padding,
                     bias=False,
                 ),

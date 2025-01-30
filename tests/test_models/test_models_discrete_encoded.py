@@ -2,10 +2,10 @@ import pytest
 import torch
 
 from caveat.models.discrete.auto_discrete_lstm import AutoDiscLSTM
-from caveat.models.discrete.cond_discrete_conv import CondDiscConv
+from caveat.models.discrete.cond_discrete_conv import CondDiscCNN2D
 from caveat.models.discrete.cond_discrete_lstm import CondDiscLSTM
 from caveat.models.discrete.vae_discrete_cnn1d import VAEDiscCNN1D
-from caveat.models.discrete.vae_discrete_conv import VAEDiscConv
+from caveat.models.discrete.vae_discrete_cnn2d import VAEDiscCNN2D
 from caveat.models.discrete.vae_discrete_fc import VAEDiscFC
 from caveat.models.discrete.vae_discrete_lstm import VAEDiscLSTM
 from caveat.models.discrete.vae_discrete_transformer import VAEDiscTrans
@@ -32,7 +32,7 @@ def test_discrete_conditional_conv_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
     conditionals = torch.randn(3, 10)  # (batch, channels)
-    model = CondDiscConv(
+    model = CondDiscCNN2D(
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -65,7 +65,7 @@ def test_discrete_conditional_lstm_forward():
 def test_discrete_vae_conv_forward():
     x = torch.randn(3, 1, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
-    model = VAEDiscConv(
+    model = VAEDiscCNN2D(
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),

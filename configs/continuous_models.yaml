@@ -39,7 +39,7 @@ cnn1d:
 
 cnn2d:
   model_params:
-    name: "VAESeqCNN"
+    name: "VAESeqCNN2D"
     latent_dim: 6
     hidden_layers: [256,256,256,256,256,256] 
     dropout: 0.1

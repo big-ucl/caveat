@@ -47,7 +47,7 @@ fc:
 
 # cnn2d:
 #   model_params:
-#     name: "VAEDiscConv"
+#     name: "VAEDiscCNN2D"
 #     latent_dim: 6
 #     hidden_layers: [256,256,256,256,256,256] 
 #     dropout: 0.1

@@ -173,10 +173,12 @@ def test_find_out_padding(length, kernel_size, stride, padding):
     conv = nn.Conv1d(H, H, kernel_size, stride, padding)
     x = conv(x)
     L1 = x.shape[-1]
-    out_padding = utils.calc_output_padding_1d(
+    in_padding, out_padding = utils.calc_output_padding_1d(
         L1, length, kernel_size, stride, padding
     )
-    deconv = nn.ConvTranspose1d(H, H, kernel_size, stride, padding, out_padding)
+    deconv = nn.ConvTranspose1d(
+        H, H, kernel_size, stride, in_padding, out_padding
+    )
     x = deconv(x)
     L2 = x.shape[-1]
     assert L2 == length
