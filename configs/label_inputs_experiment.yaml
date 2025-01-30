@@ -16,18 +16,6 @@ global:
     max_epochs: 200
     patience: 10
 
-  conditionals:
-    gender: nominal
-    age_group: nominal
-    car_access: nominal
-    work_status: nominal
-    income: nominal
-
-  attribute_encoder: "tokens"
-
-  evaluation_params:
-    split_on: [work_status]
-
   encoder_params:
     name: "sequence"
     max_length: 16

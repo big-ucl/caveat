@@ -1,0 +1,170 @@
+global:
+  seed: 12345
+
+  logging_params:
+    log_dir: "logs"
+    name: "search_c_rnn_cvae"
+
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes_groups.csv"
+
+  conditionals:
+    gender: nominal
+    age: nominal
+    # ethnicity: nominal
+    # education: nominal
+    # license: nominal
+    car_access: nominal
+    work_status: nominal
+    # area: nominal
+    income: nominal
+    # hh_size: ordinal
+    # hh_composition: nominal
+    # hh_children: ordinal
+    # hh_cars: ordinal
+    # hh_bikes: ordinal
+    # hh_motorcycles: ordinal
+
+  evaluation_params:
+    split_on: [gender, age, car_access, work_status, income]
+
+  attribute_encoder: "tokens"
+
+  encoder_params:
+    name: "sequence"
+    max_length: 12
+    norm_duration: 1440
+    jitter: 0
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 20
+    patience: 10
+    max_epochs: 100
+
+  experiment_params:
+    LR: 0.0003
+    weight_decay: 0.0
+    scheduler_gamma: 0.99
+    label_loss_weight: 0.0001
+
+L6K01:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.01
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L12K01:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.01
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 12
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L24K01:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.01
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 24
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L6K001:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.001
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L12K001:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.001
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 12
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L24K001:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.001
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 24
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L6K0001:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.0001
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L12K0001:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.0001
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 12
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L24K0001:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.0001
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 24
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs

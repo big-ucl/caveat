@@ -103,7 +103,6 @@ class Experiment(pl.LightningModule):
         (x, _), (y, y_mask), (labels, _) = batch
 
         self.curr_device = x.device
-
         log_probs, mu, log_var, z = self.forward(
             x, conditionals=labels, target=y
         )
@@ -147,6 +146,7 @@ class Experiment(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
         )
+        self.log("hp_metric", val_loss["loss"])
 
     def on_validation_end(self) -> None:
         if self.gen:

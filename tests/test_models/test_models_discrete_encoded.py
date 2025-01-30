@@ -8,7 +8,7 @@ from caveat.models.discrete.vae_discrete_cnn1d import VAEDiscCNN1D
 from caveat.models.discrete.vae_discrete_cnn2d import VAEDiscCNN2D
 from caveat.models.discrete.vae_discrete_fc import VAEDiscFC
 from caveat.models.discrete.vae_discrete_lstm import VAEDiscLSTM
-from caveat.models.discrete.vae_discrete_transformer import VAEDiscTrans
+from caveat.models.discrete.vae_discrete_xattention import VAEDiscXTrans
 
 
 def test_discrete_auto_lstm_forward():
@@ -170,17 +170,17 @@ def test_discrete_vae_lstm_forward():
     assert "recon_loss" in losses
 
 
-def test_discrete_transformer_forward():
+def test_discrete_xtransformer_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
-    model = VAEDiscTrans(
+    model = VAEDiscXTrans(
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
         **{
-            "hidden_n": 1,
+            "hidden_n": 2,
             "hidden_size": 2,
-            "heads": 1,
+            "heads": 2,
             "latent_dim": 2,
             "dropout": 0.1,
         },
