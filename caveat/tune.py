@@ -26,15 +26,18 @@ def tune_command(
     infer=True,
 ) -> None:
     """
-    Runs the training and reporting process using the provided configuration.
-
-    https://docs.ray.io/en/latest/train/examples/lightning/lightning_cola_advanced.html?_gl=1*1fbd0te*_up*MQ..*_ga*MTYxMjAzMDY5NC4xNzM3NzI2NDU2*_ga_0LCWHW1N3S*MTczNzcyNjQ1Ni4xLjAuMTczNzcyNjQ1Ni4wLjAuMA..
+    Tune the hyperparameters of the model using optuna.
 
     Args:
-        config (dict): A dictionary containing the configuration parameters.
+        config (dict): The configuration dictionary.
+        verbose (bool, optional): Whether to print verbose output. Defaults to False.
+        gen (bool, optional): Whether to generate synthetic data. Defaults to True.
+        test (bool, optional): Whether to test the model. Defaults to False.
+        infer (bool, optional): Whether to infer the model. Defaults to True.
 
     Returns:
         None
+
     """
     logger_params = config.get("logging_params", {})
     log_dir = Path(logger_params.get("log_dir", "logs"))

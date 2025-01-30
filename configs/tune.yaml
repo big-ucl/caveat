@@ -1,15 +1,25 @@
+seed: 12345
+
 logging_params:
   log_dir: logs
-  name: VAEDiscCNN1D_tune
+  name: CVAEContRNN_tune
 
 tune:
   trials: 200
   prune: True
   timeout:  36000 # seconds
 
-
 schedules_path: tmp/nts_home_schedules.csv
-# attributes_path: tmp/nts_home_attributes_groups.csv
+attributes_path: tmp/nts_home_attributes_groups.csv
+
+conditionals:
+  gender: nominal
+  age_group: nominal
+  car_access: nominal
+  work_status: nominal
+  income: nominal
+
+attribute_encoder: "tokens"
 
 loader_params:
   train_batch_size: 1024
@@ -27,21 +37,16 @@ experiment_params:
   scheduler_gamma: suggest_float(scheduler_gamma, 0.95, 1)
   kld_weight: 0.001
 
-seed: 1234
-
 encoder_params:
-  name: "discrete"
-  duration: 1440
-  step_size: 10
+  name: "sequence"
+  max_length: 16
+  norm_duration: 1440
   jitter: 0
 
 
 model_params:
-  name: VAEDiscCNN1D
+  name: CVAESeqLSTM
   latent_dim: 6
   hidden_n: suggest_int(hidden_n, 3, 6)
-  hidden_size: suggest_categorical(hidden_size, [128, 256, 512])
+  hidden_size: suggest_categorical(hidden_size, [128, 256, 512, 1024])
   dropout: 0
-  stride: suggest_int(stride, 2, 4)
-  kernel_size: suggest_int(kernel_size, 2, 4)
-  padding: 0

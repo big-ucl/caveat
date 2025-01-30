@@ -8,7 +8,7 @@ from torch import Tensor, exp, nn
 from caveat.models.base import Base
 
 
-class VAEDiscTrans(Base):
+class VAEDiscXTrans(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -74,7 +74,7 @@ class VAEDiscTrans(Base):
 
         if target is not None:  # training
             log_prob_y = self.decode(z, context=x)
-            return [log_prob_y, mu, log_var]
+            return [log_prob_y, mu, log_var, z]
 
         # no target so assume generating
         log_prob = self.predict_sequences(z, current_device=z.device)
@@ -111,7 +111,7 @@ class VAEDiscTrans(Base):
             log_probs, mu, log_var, target, mask, **kwargs
         )
 
-    def predict(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
+    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -121,7 +121,7 @@ class VAEDiscTrans(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        log_prob_samples = self.predict_sequences(z, current_device)
+        log_prob_samples = self.predict_sequences(z, device)
         return exp(log_prob_samples)
 
     def predict_sequences(
@@ -139,21 +139,20 @@ class VAEDiscTrans(Base):
         z = z.to(current_device)
         B = z.shape[0]
         log_outputs = []
-        outputs = []
         sequences = torch.zeros(B, 1, device=z.device)
         for _ in range(self.length):
             # get the predictions
-            log_probs, probs = self.decode(z, context=sequences)
+            log_probs = self.decode(z, context=sequences)
             # focus only on the last time step
             last_log_probs = log_probs[:, -1, :]  # becomes (B, C)
-            last_probs = probs[:, -1, :]  # becomes (B, C)
             log_outputs.append(last_log_probs.unsqueeze(1))
-            outputs.append(last_probs.unsqueeze(1))
             if self.sampling:
                 # sample from the distribution
-                next = torch.multinomial(last_probs, num_samples=1)  # (B, 1)
+                next = torch.multinomial(
+                    torch.exp(last_log_probs), num_samples=1
+                )  # (B, 1)
             else:
-                _, next = last_probs.topk(1)
+                _, next = last_log_probs.topk(1)
             # append sampled index to the running sequence
             sequences = torch.cat((sequences, next), dim=1)  # (B, T+1)
 
@@ -245,7 +244,7 @@ class MaskedAttentionHead(nn.Module):
 
 
 class MultiHeadMaskedAttention(nn.Module):
-    """multiple heads of masked self-attention in parallel"""
+    """Multiple heads of masked self-attention in parallel"""
 
     def __init__(
         self, num_heads, head_size, block_size, n_embd=10, dropout=0.0
@@ -269,7 +268,7 @@ class MultiHeadMaskedAttention(nn.Module):
 
 
 class CrossAttentionHead(nn.Module):
-    """one head of self-attention"""
+    """one head of x-attention"""
 
     def __init__(self, head_size, n_embd=10, block_size=128, dropout=0.0):
         super().__init__()
@@ -296,7 +295,7 @@ class CrossAttentionHead(nn.Module):
 
 
 class MultiHeadCrossAttention(nn.Module):
-    """multiple heads of masked self-attention in parallel"""
+    """multiple heads of masked x-attention in parallel"""
 
     def __init__(self, num_heads, head_size, n_embd=10, dropout=0.0):
         super().__init__()
@@ -532,7 +531,6 @@ class AttentionDecoder(nn.Module):
         )
         self.ln_f = nn.LayerNorm(hidden_size)
         self.lm_head = nn.Linear(hidden_size, output_size)
-        self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.apply(self._init_weights)
 
@@ -559,7 +557,6 @@ class AttentionDecoder(nn.Module):
         x = self.lm_head(x)
         # todo get ride of this ^, needs to be done for cnn too
 
-        acts_probs = self.activity_prob_activation(x)
         acts_log_probs = self.activity_logprob_activation(x)
 
-        return acts_log_probs, acts_probs
+        return acts_log_probs

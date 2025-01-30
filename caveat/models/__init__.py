@@ -6,7 +6,7 @@ from .discrete.vae_discrete_cnn1d import VAEDiscCNN1D
 from .discrete.vae_discrete_cnn2d import VAEDiscCNN2D
 from .discrete.vae_discrete_fc import VAEDiscFC
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
-from .discrete.vae_discrete_transformer import VAEDiscTrans
+from .discrete.vae_discrete_xattention import VAEDiscXTrans
 from .embed import CustomDurationEmbedding, CustomDurationModeDistanceEmbedding
 from .joint_vaes.jvae_sequence import JVAESeqLSTM
 from .joint_vaes.jvae_sequence_rerouted import JVAESeqLSTMRerouted
@@ -44,7 +44,7 @@ library = {
     "VAESeqCNN1D": VAESeqCNN1D,
     "VAESeqFC": VAESeqFC,
     "VAEDiscLSTM": VAEDiscLSTM,
-    "VAEDiscTrans": VAEDiscTrans,
+    "VAEDiscTrans": VAEDiscXTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
     "CVAESeqLSTMNudgeFeed": CVAESeqLSTMNudgeFeed,  # nudger model
     "CVAESeqLSTMNudgeFeedPre": CVAESeqLSTMNudgeFeedPre,  # nudger model
