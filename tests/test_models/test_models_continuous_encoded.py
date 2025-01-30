@@ -9,7 +9,7 @@ from caveat.models.sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
     Discriminator,
 )
-from caveat.models.sequence.vae_sequence_cnn import VAESeqCNN
+from caveat.models.sequence.vae_sequence_cnn import VAESeqCNN2D
 from caveat.models.sequence.vae_sequence_cnn1d import VAESeqCNN1D
 from caveat.models.sequence.vae_sequence_fc import VAESeqFC
 from caveat.models.sequence.vae_sequence_lstm import VAESeqLSTM
@@ -217,7 +217,7 @@ def test_cnn_forward():
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = VAESeqCNN(
+    model = VAESeqCNN2D(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),

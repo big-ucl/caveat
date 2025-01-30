@@ -7,7 +7,7 @@ from caveat.models import Base, CustomDurationEmbedding, utils
 from caveat.models.utils import calc_output_padding_2d, conv2d_size
 
 
-class VAESeqCNN(Base):
+class VAESeqCNN2D(Base):
     def __init__(self, *args, **kwargs):
         """CNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)

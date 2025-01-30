@@ -1,9 +1,9 @@
 from .base import Base
 from .discrete.auto_discrete_lstm import AutoDiscLSTM
-from .discrete.cond_discrete_conv import CondDiscConv
+from .discrete.cond_discrete_conv import CondDiscCNN2D
 from .discrete.cond_discrete_lstm import CondDiscLSTM
 from .discrete.vae_discrete_cnn1d import VAEDiscCNN1D
-from .discrete.vae_discrete_conv import VAEDiscConv
+from .discrete.vae_discrete_cnn2d import VAEDiscCNN2D
 from .discrete.vae_discrete_fc import VAEDiscFC
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_transformer import VAEDiscTrans
@@ -25,22 +25,22 @@ from .sequence.cvae_sequence_lstm_nudger import CVAESeqLSTMNudger
 from .sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
 )
-from .sequence.vae_sequence_cnn import VAESeqCNN
+from .sequence.vae_sequence_cnn import VAESeqCNN2D
 from .sequence.vae_sequence_cnn1d import VAESeqCNN1D
 from .sequence.vae_sequence_fc import VAESeqFC
 from .sequence.vae_sequence_lstm import VAESeqLSTM
 
 library = {
     "CondDiscLSTM": CondDiscLSTM,  # lstm unit given attributes as input at every step
-    "CondDiscConv": CondDiscConv,  # similar to koushik but with CNN
+    "CondDiscCNN2D": CondDiscCNN2D,  # similar to koushik but with CNN
     "CondSeqLSTM": CondSeqLSTM,  # lstm unit given attributes as input at first step
     "AutoDiscLSTM": AutoDiscLSTM,  # lstm unit input is previous output
     "AutoSeqLSTM": AutoSeqLSTM,
-    "VAEDiscConv": VAEDiscConv,
+    "VAEDiscCNN2D": VAEDiscCNN2D,
     "VAEDiscCNN1D": VAEDiscCNN1D,
     "VAEDiscFC": VAEDiscFC,
     "VAESeqLSTM": VAESeqLSTM,
-    "VAESeqCNN": VAESeqCNN,
+    "VAESeqCNN2D": VAESeqCNN2D,
     "VAESeqCNN1D": VAESeqCNN1D,
     "VAESeqFC": VAESeqFC,
     "VAEDiscLSTM": VAEDiscLSTM,

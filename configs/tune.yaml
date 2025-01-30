@@ -1,6 +1,6 @@
 logging_params:
   log_dir: logs
-  name: VAESeqCNN1D_tune
+  name: VAEDiscCNN1D_tune
 
 tune:
   trials: 200
@@ -25,22 +25,23 @@ experiment_params:
   LR: suggest_float(LR, 1e-5, 0.01, log=True)
   weight_decay: suggest_float(weight_decay, 0, 0.1)
   scheduler_gamma: suggest_float(scheduler_gamma, 0.95, 1)
-  kld_weight: 0.01
+  kld_weight: 0.001
 
 seed: 1234
 
 encoder_params:
-  name: sequence
+  name: "discrete"
   duration: 1440
-  jitter: suggest_float(jitter, 0, 0.3, step = 0.1)
+  step_size: 10
+  jitter: 0
 
 
 model_params:
-  name: VAESeqCNN1D
+  name: VAEDiscCNN1D
   latent_dim: 6
   hidden_n: suggest_int(hidden_n, 3, 6)
   hidden_size: suggest_categorical(hidden_size, [128, 256, 512])
-  dropout: suggest_float(dropout, 0, 0.3, step = 0.1)
-  stride: 2
-  kernel_size: 2
-  padding: 1
+  dropout: 0
+  stride: suggest_int(stride, 2, 4)
+  kernel_size: suggest_int(kernel_size, 2, 4)
+  padding: 0

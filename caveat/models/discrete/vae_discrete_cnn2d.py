@@ -7,7 +7,7 @@ from caveat.models.base import Base
 from caveat.models.utils import calc_output_padding_2d, conv2d_size
 
 
-class VAEDiscConv(Base):
+class VAEDiscCNN2D(Base):
     def __init__(self, *args, **kwargs):
         """Convolution based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)

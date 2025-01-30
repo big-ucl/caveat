@@ -139,12 +139,38 @@ def calc_output_padding_1d(
     kernel_size: int,
     stride: int,
     padding: int,
-    patience: int = 10,
+    patience: int = 20,
 ) -> int:
-    for i in range(patience):
-        if transconv_size_1d(length, kernel_size, stride, padding, i) == target:
-            return i
-    raise ValueError(f"Could not find output padding for target {target}")
+    """
+    Calculate the output padding required for a 1D transposed convolution to achieve a target length.
+    This function iterates over possible padding values and output padding values to find a combination
+    that results in the desired target length after a 1D transposed convolution.
+    Args:
+        length (int): The length of the input.
+        target (int): The desired length of the output.
+        kernel_size (int): The size of the convolution kernel.
+        stride (int): The stride of the convolution.
+        padding (int): The initial padding value.
+        patience (int, optional): The maximum number of iterations to try for padding and output padding. Default is 20.
+    Returns:
+        tuple: A tuple containing the padding and output padding values that achieve the target length.
+    Raises:
+        ValueError: If no combination of padding and output padding can achieve the target length within the given patience.
+    """
+
+    for pad in range(padding, padding + patience):
+        for i in range(patience):
+            if transconv_size_1d(length, kernel_size, stride, pad, i) == target:
+                if pad != padding:
+                    print(
+                        f"Changed padding from {padding} to {pad} for target {target}."
+                    )
+                return pad, i
+    raise ValueError(
+        f"""Could not find input and output padding combination for target {target},
+        length {length}, kernel_size {kernel_size}, stride {stride}, padding {padding}.
+    """
+    )
 
 
 def calc_output_padding_2d(size: Union[tuple[int, int, int], int]) -> np.array:
