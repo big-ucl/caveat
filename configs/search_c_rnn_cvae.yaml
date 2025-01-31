@@ -52,6 +52,45 @@ global:
     scheduler_gamma: 0.99
     label_loss_weight: 0.0001
 
+L6K1:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.1
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L12K1:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.1
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 12
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
+L24K1:
+  model_params:
+    name: "CVAESeqLSTM"
+    kld_weight: 0.1
+    hidden_n: 6
+    hidden_size: 512
+    latent_dim: 24
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
+
 L6K01:
   model_params:
     name: "CVAESeqLSTM"
@@ -91,80 +130,80 @@ L24K01:
     latent_conditionality: concat
     decoder_conditionality: inputs
 
-L6K001:
-  model_params:
-    name: "CVAESeqLSTM"
-    kld_weight: 0.001
-    hidden_n: 6
-    hidden_size: 512
-    latent_dim: 6
-    dropout: 0
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both
-    latent_conditionality: concat
-    decoder_conditionality: inputs
+# L6K001:
+#   model_params:
+#     name: "CVAESeqLSTM"
+#     kld_weight: 0.001
+#     hidden_n: 6
+#     hidden_size: 512
+#     latent_dim: 6
+#     dropout: 0
+#     teacher_forcing_ratio: 0.5
+#     encoder_conditionality: both
+#     latent_conditionality: concat
+#     decoder_conditionality: inputs
 
-L12K001:
-  model_params:
-    name: "CVAESeqLSTM"
-    kld_weight: 0.001
-    hidden_n: 6
-    hidden_size: 512
-    latent_dim: 12
-    dropout: 0
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both
-    latent_conditionality: concat
-    decoder_conditionality: inputs
+# L12K001:
+#   model_params:
+#     name: "CVAESeqLSTM"
+#     kld_weight: 0.001
+#     hidden_n: 6
+#     hidden_size: 512
+#     latent_dim: 12
+#     dropout: 0
+#     teacher_forcing_ratio: 0.5
+#     encoder_conditionality: both
+#     latent_conditionality: concat
+#     decoder_conditionality: inputs
 
-L24K001:
-  model_params:
-    name: "CVAESeqLSTM"
-    kld_weight: 0.001
-    hidden_n: 6
-    hidden_size: 512
-    latent_dim: 24
-    dropout: 0
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both
-    latent_conditionality: concat
-    decoder_conditionality: inputs
+# L24K001:
+#   model_params:
+#     name: "CVAESeqLSTM"
+#     kld_weight: 0.001
+#     hidden_n: 6
+#     hidden_size: 512
+#     latent_dim: 24
+#     dropout: 0
+#     teacher_forcing_ratio: 0.5
+#     encoder_conditionality: both
+#     latent_conditionality: concat
+#     decoder_conditionality: inputs
 
-L6K0001:
-  model_params:
-    name: "CVAESeqLSTM"
-    kld_weight: 0.0001
-    hidden_n: 6
-    hidden_size: 512
-    latent_dim: 6
-    dropout: 0
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both
-    latent_conditionality: concat
-    decoder_conditionality: inputs
+# L6K0001:
+#   model_params:
+#     name: "CVAESeqLSTM"
+#     kld_weight: 0.0001
+#     hidden_n: 6
+#     hidden_size: 512
+#     latent_dim: 6
+#     dropout: 0
+#     teacher_forcing_ratio: 0.5
+#     encoder_conditionality: both
+#     latent_conditionality: concat
+#     decoder_conditionality: inputs
 
-L12K0001:
-  model_params:
-    name: "CVAESeqLSTM"
-    kld_weight: 0.0001
-    hidden_n: 6
-    hidden_size: 512
-    latent_dim: 12
-    dropout: 0
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both
-    latent_conditionality: concat
-    decoder_conditionality: inputs
+# L12K0001:
+#   model_params:
+#     name: "CVAESeqLSTM"
+#     kld_weight: 0.0001
+#     hidden_n: 6
+#     hidden_size: 512
+#     latent_dim: 12
+#     dropout: 0
+#     teacher_forcing_ratio: 0.5
+#     encoder_conditionality: both
+#     latent_conditionality: concat
+#     decoder_conditionality: inputs
 
-L24K0001:
-  model_params:
-    name: "CVAESeqLSTM"
-    kld_weight: 0.0001
-    hidden_n: 6
-    hidden_size: 512
-    latent_dim: 24
-    dropout: 0
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both
-    latent_conditionality: concat
-    decoder_conditionality: inputs
+# L24K0001:
+#   model_params:
+#     name: "CVAESeqLSTM"
+#     kld_weight: 0.0001
+#     hidden_n: 6
+#     hidden_size: 512
+#     latent_dim: 24
+#     dropout: 0
+#     teacher_forcing_ratio: 0.5
+#     encoder_conditionality: both
+#     latent_conditionality: concat
+#     decoder_conditionality: inputs
