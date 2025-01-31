@@ -19,6 +19,9 @@ conditionals:
   work_status: nominal
   income: nominal
 
+evaluation_params:
+  split_on: [gender, age_group, car_access, work_status, income]
+
 attribute_encoder: "tokens"
 
 loader_params:
@@ -35,18 +38,21 @@ experiment_params:
   LR: suggest_float(LR, 1e-5, 0.01, log=True)
   weight_decay: suggest_float(weight_decay, 0, 0.1)
   scheduler_gamma: suggest_float(scheduler_gamma, 0.95, 1)
-  kld_weight: 0.001
+  kld_weight: 0.01
 
 encoder_params:
   name: "sequence"
   max_length: 16
   norm_duration: 1440
-  jitter: 0
-
+  jitter: suggest_float(jitter, 0, 0.3)
+  fix_durations: True
 
 model_params:
   name: CVAESeqLSTM
   latent_dim: 6
-  hidden_n: suggest_int(hidden_n, 3, 6)
+  hidden_n: suggest_int(hidden_n, 3, 7)
   hidden_size: suggest_categorical(hidden_size, [128, 256, 512, 1024])
-  dropout: 0
+  dropout: suggest_float(dropout, 0, 0.3)
+  encoder_conditionality: both
+  latent_conditionality: concat
+  decoder_conditionality: inputs
