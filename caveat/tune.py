@@ -110,7 +110,7 @@ def tune_command(
     else:
         pruner = optuna.pruners.NopPruner()
 
-    db_name = f"sqlite:///{base_dir}/optuna.sqlite3"
+    db_name = f"sqlite:///{base_dir}/optuna.db"
     print(f"Study logging to {db_name}")
     study = optuna.create_study(
         storage=db_name,

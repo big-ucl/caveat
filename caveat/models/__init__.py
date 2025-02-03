@@ -25,6 +25,7 @@ from .sequence.cvae_sequence_lstm_nudger import CVAESeqLSTMNudger
 from .sequence.cvae_sequence_lstm_nudger_adversarial import (
     CVAESeqLSTMNudgerAdversarial,
 )
+from .sequence.vae_sequence_attention import VAESeqXAtt
 from .sequence.vae_sequence_cnn import VAESeqCNN2D
 from .sequence.vae_sequence_cnn1d import VAESeqCNN1D
 from .sequence.vae_sequence_fc import VAESeqFC
@@ -39,12 +40,13 @@ library = {
     "VAEDiscCNN2D": VAEDiscCNN2D,
     "VAEDiscCNN1D": VAEDiscCNN1D,
     "VAEDiscFC": VAEDiscFC,
+    "VAEDiscLSTM": VAEDiscLSTM,
+    "VAEDiscTrans": VAEDiscXTrans,
     "VAESeqLSTM": VAESeqLSTM,
     "VAESeqCNN2D": VAESeqCNN2D,
     "VAESeqCNN1D": VAESeqCNN1D,
     "VAESeqFC": VAESeqFC,
-    "VAEDiscLSTM": VAEDiscLSTM,
-    "VAEDiscTrans": VAEDiscXTrans,
+    "VAESeqXAtt": VAESeqXAtt,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
     "CVAESeqLSTMNudgeFeed": CVAESeqLSTMNudgeFeed,  # nudger model
     "CVAESeqLSTMNudgeFeedPre": CVAESeqLSTMNudgeFeedPre,  # nudger model

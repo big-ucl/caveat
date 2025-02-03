@@ -1,9 +1,11 @@
+seed: 12345
 
 logging_params:
   log_dir: "logs"
   name: "paper_c_rnn_vae"
 
 schedules_path: "tmp/nts_home_schedules.csv"
+
 loader_params:
   train_batch_size: 1024
   val_batch_size:  1024
@@ -15,22 +17,20 @@ trainer_params:
   patience: 20
 
 experiment_params:
-  LR: 0.001
-  weight_decay: 0.0
-  scheduler_gamma: 0.95
+  LR: 0.0005
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
   kld_weight: 0.01
-
-seed: 1234
 
 encoder_params:
   name: "sequence"
   duration: 1440
-  jitter: 0.1
+  jitter: 0
 
 model_params:
   name: "VAESeqLSTM"
   latent_dim: 6
   hidden_n: 5
   hidden_size: 256
-  dropout: 0.1
+  dropout: 0
 
