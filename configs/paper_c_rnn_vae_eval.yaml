@@ -1,5 +1,4 @@
 global:
-
   logging_params:
     log_dir: "logs"
     name: "paper_c_rnn_vae"
@@ -18,7 +17,7 @@ global:
   encoder_params:
     name: "sequence"
     duration: 1440
-    jitter: 0.1
+    jitter: 0
 
 
 paper_c_rnn_vae_nrun0:

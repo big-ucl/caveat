@@ -1,7 +1,7 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "paper_c_rnn_jvae3"
+    name: "paper_c_rnn_cvae"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -12,6 +12,9 @@ global:
     car_access: nominal
     work_status: nominal
     income: nominal
+
+  evaluation_params:
+    split_on: [gender, age_group, car_access, work_status, income]
 
   attribute_encoder: "tokens"
 
@@ -33,33 +36,39 @@ global:
     max_epochs: 200
 
   model_params:
-    name: "JVAESeqLSTM"
+    name: "CVAESeqLSTM"
     hidden_n: 6
-    hidden_size: 256
+    hidden_size: 512
     labels_hidden_size: 32
     latent_dim: 6
     dropout: 0
     teacher_forcing_ratio: 0.5
+    encoder_conditionality: both
+    latent_conditionality: concat
+    decoder_conditionality: inputs
 
   experiment_params:
     LR: 0.0005
     weight_decay: 0.02
     scheduler_gamma: 0.975
     kld_weight: 0.01
-    label_loss_weight: 0.0001
 
-A:
-  seed: 11111
+paper_c_rnn_cvae_nrun0:
+  model_params:
+    name: "CVAESeqLSTM"
 
-B:
-  seed: 22222
+paper_c_rnn_cvae_nrun1:
+  model_params:
+    name: "CVAESeqLSTM"
 
-C:
-  seed: 33333
+paper_c_rnn_cvae_nrun2:
+  model_params:
+    name: "CVAESeqLSTM"
 
-D:
-  seed: 44444
+paper_c_rnn_cvae_nrun3:
+  model_params:
+    name: "CVAESeqLSTM"
 
-E:
-  seed: 55555
-
+paper_c_rnn_cvae_nrun4:
+  model_params:
+    name: "CVAESeqLSTM"

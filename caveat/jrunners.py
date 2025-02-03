@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import label_encoding, data, encoding, samplers
+from caveat import data, encoding, label_encoding, samplers
 from caveat.runners import (
     encode_input_attributes,
     encode_schedules,

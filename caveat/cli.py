@@ -109,34 +109,6 @@ def jrun(
         )
 
 
-# @cli.command(name="jsample")
-# @click.argument("config_path", type=click.Path(exists=True))
-# @click.option("--patience", "-p", type=int, default=10)
-# @click.option("--test", "-t", is_flag=True)
-# @click.option("--no-infer", "-ni", is_flag=True)
-# @click.option("--no-gen", "-ng", is_flag=True)
-# @click.option("--verbose", "-v", is_flag=True)
-# def jsample(
-#     config_path: click.Path,
-#     patience: int,
-#     test: bool,
-#     no_gen: bool,
-#     no_infer: bool,
-#     verbose: bool,
-# ):
-#     """Train and report on a joint model with sampling as per the given configuration file."""
-#     with open(config_path, "r") as file:
-#         config = yaml.safe_load(file)
-#         jsample_command(
-#             config,
-#             patience=patience,
-#             verbose=verbose,
-#             test=test,
-#             gen=not no_gen,
-#             infer=not no_infer,
-#         )
-
-
 @cli.command(name="jbatch")
 @click.argument("config_path", type=click.Path(exists=True))
 @click.option("--test", "-t", is_flag=True)
