@@ -1,5 +1,5 @@
 import math
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -16,16 +16,18 @@ class VAESeqXAtt(Base):
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
+        self.ffwd_size = config.get("ffwd_size", self.hidden_size)
         self.heads = config["heads"]
         self.hidden_n = config["hidden_n"]
         self.dropout = config.get("dropout", 0.0)
         self.length, _ = self.in_shape
         self.sampling = config.get("sampling", False)
-        self.position_embedding = config.get("position_embedding", "learnt")
+        self.position_embedding = config.get("position_embedding", "fixed")
 
         self.encoder = AttentionEncoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
+            ffwd_size=self.ffwd_size,
             length=self.length,
             n_head=self.heads,
             n_layer=self.hidden_n,
@@ -36,6 +38,7 @@ class VAESeqXAtt(Base):
             input_size=self.encodings,
             output_size=self.encodings + 1,
             hidden_size=self.hidden_size,
+            ffwd_size=self.ffwd_size,
             num_heads=self.heads,
             num_layers=self.hidden_n,
             length=self.length,
@@ -52,7 +55,9 @@ class VAESeqXAtt(Base):
             print("Sharing embeddings")
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    def forward(self, x: Tensor, target=None, **kwargs) -> List[Tensor]:
+    def forward(
+        self, x: Tensor, target=None, input_mask=None, **kwargs
+    ) -> List[Tensor]:
         """Forward pass, also return latent parameterization.
 
         Args:
@@ -61,19 +66,50 @@ class VAESeqXAtt(Base):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x, conditionals=None)
+        if input_mask is not None:
+            mask = torch.zeros_like(input_mask)
+            mask[input_mask > 0] = 1.0
+            mask = mask[:, None, :]
+        else:
+            mask = None
+
+        mu, log_var = self.encode(x, conditionals=None, mask=mask)
         z = self.reparameterize(mu, log_var)
 
         if target is not None:  # training
-            log_prob_y = self.decode(z, context=x)
+            log_prob_y = self.decode(z, context=x, mask=mask)
             return [log_prob_y, mu, log_var, z]
 
         # no target so assume generating
         log_prob = self.predict_sequences(z, current_device=z.device)
         return [log_prob, mu, log_var, z]
 
+    def encode(
+        self,
+        input: Tensor,
+        conditionals: Optional[Tensor],
+        mask: Optional[Tensor],
+    ) -> list[Tensor]:
+        """Encodes the input by passing through the encoder network.
+
+        Args:
+            input (tensor): Input sequence batch [N, steps, acts].
+
+        Returns:
+            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
+        """
+        # [N, L, C]
+        hidden = self.encoder(input, mask)
+        # [N, flatsize]
+
+        # Split the result into mu and var components
+        mu = self.fc_mu(hidden)
+        log_var = self.fc_var(hidden)
+
+        return [mu, log_var]
+
     def decode(
-        self, z: Tensor, context=None, **kwargs
+        self, z: Tensor, context: Tensor, mask: Optional[Tensor], **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -86,7 +122,7 @@ class VAESeqXAtt(Base):
         # initialize hidden state as inputs
         hidden = self.fc_hidden(z)
         hidden = hidden.unflatten(1, self.unflattened_shape)
-        log_probs = self.decoder(hidden, context)
+        log_probs = self.decoder(hidden, context, mask)
 
         return log_probs
 
@@ -122,7 +158,7 @@ class VAESeqXAtt(Base):
         sequence[:, :, 0] = self.sos  # all sos with duration 0
         for i in range(self.length):
             # get the predictions
-            logits = self.decode(z, context=sequence)
+            logits = self.decode(z, context=sequence, mask=None)
             # focus only on the last time step
             logits = logits[:, -1, :]  # becomes (B, C)
 
@@ -159,12 +195,66 @@ class VAESeqXAtt(Base):
         # [N, 1, 2]
         return outputs
 
+    def infer(
+        self,
+        x: Tensor,
+        device: int,
+        input_mask: Optional[Tensor] = None,
+        **kwargs,
+    ) -> Tensor:
+        """Given an encoder input, return reconstructed output and z samples.
+
+        Args:
+            x (tensor): [N, steps, acts].
+
+        Returns:
+            (tensor: [N, steps, acts], tensor: [N, latent_dims]).
+        """
+        log_probs_x, _, _, z = self.forward(x, input_mask=input_mask, **kwargs)
+        prob_samples = exp(log_probs_x)
+        prob_samples = prob_samples.to(device)
+        z = z.to(device)
+        return prob_samples, z
+
+    def validation_step(self, batch, batch_idx, optimizer_idx=0):
+        """Override the validation step to include the target during validation.
+        This is required for self attention.
+        """
+
+        (x, _), (y, y_weights), (labels, _) = batch
+        self.curr_device = x.device
+
+        log_probs, mu, log_var, z = self.forward(
+            x, conditionals=labels, target=y
+        )
+        val_loss = self.loss_function(
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
+            target=y,
+            mask=y_weights,
+            kld_weight=self.kld_loss_weight,
+            duration_weight=self.duration_loss_weight,
+            optimizer_idx=optimizer_idx,
+            batch_idx=batch_idx,
+        )
+
+        self.log_dict(
+            {f"val_{key}": val.item() for key, val in val_loss.items()},
+            sync_dist=True,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
+        self.log("hp_metric", val_loss["loss"])
+
 
 class AttentionEncoder(nn.Module):
     def __init__(
         self,
         input_size,
         hidden_size,
+        ffwd_size,
         length,
         n_head,
         n_layer,
@@ -176,6 +266,7 @@ class AttentionEncoder(nn.Module):
         Args:
             input_size (int): Number of input features.
             hidden_size (int): Number of hidden units.
+            ffwd_size (int): Number of hidden units in the feedforward layer.
             length (int): Length of the sequence.
             n_head (int): Number of heads in the multi-head attention.
             n_layer (int): Number of layers in the encoder.
@@ -203,9 +294,14 @@ class AttentionEncoder(nn.Module):
                 f"Positional embedding must be either 'learnt' or 'fixed', got {position_embedding}"
             )
 
-        self.blocks = nn.Sequential(
-            *[
-                EncoderBlock(hidden_size, n_head=n_head, dropout=dropout)
+        self.blocks = nn.ModuleList(
+            [
+                EncoderBlock(
+                    hidden_size,
+                    n_head=n_head,
+                    dropout=dropout,
+                    ffwd_size=ffwd_size,
+                )
                 for _ in range(n_layer)
             ]
         )
@@ -225,11 +321,12 @@ class AttentionEncoder(nn.Module):
             torch.nn.init.zeros_(module.bias)
             torch.nn.init.ones_(module.weight)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         # idx and targets are both (B,T) tensor of integers
         x = self.embedding(x)  # (B,T,C)
         x = self.position_embedding(x)  # (B,T,C)
-        x = self.blocks(x)  # (B,T,C)
+        for block in self.blocks:
+            x = block(x, mask=mask)  # (B,T,C)
         x = self.ln_f(x)  # (B,T,C)
         x = x.flatten(1)
 
@@ -242,6 +339,7 @@ class AttentionDecoder(nn.Module):
         input_size,
         output_size,
         hidden_size,
+        ffwd_size,
         num_heads,
         num_layers,
         length,
@@ -270,11 +368,12 @@ class AttentionDecoder(nn.Module):
             )
         self.blocks = nn.ModuleList(
             [
-                DecoderBlock(
+                DecoderBlockAddAttention(
                     hidden_size,
                     n_head=num_heads,
                     dropout=dropout,
                     block_size=length,
+                    ffwd_size=ffwd_size,
                 )
                 for _ in range(num_layers)
             ]
@@ -296,17 +395,15 @@ class AttentionDecoder(nn.Module):
             torch.nn.init.zeros_(module.bias)
             torch.nn.init.ones_(module.weight)
 
-    def forward(self, hidden, target):
+    def forward(self, hidden, target, mask=None):
         # idx and targets are both (B,T) tensor of integers
         outputs = self.embedding(target)  # (B,T,C)
         outputs = self.position_embedding(outputs)  # (B,T,C)
-
         for layer in self.blocks:
-            outputs = layer(hidden, outputs)
+            outputs = layer(hidden, outputs, mask)
 
         outputs = self.ln_f(outputs)  # (B,T,C)
         outputs = self.lm_head(outputs)
-        # todo get ride of this ^, needs to be done for cnn too
 
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
@@ -323,7 +420,7 @@ class AttentionDecoder(nn.Module):
 class EncoderBlock(nn.Module):
     """Transformer block: communication followed by computation"""
 
-    def __init__(self, n_embd, n_head, dropout):
+    def __init__(self, n_embd, n_head, dropout, ffwd_size: int = None):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embd // n_head
@@ -333,12 +430,12 @@ class EncoderBlock(nn.Module):
             n_embd=n_embd,
             dropout=dropout,
         )
-        self.ffwd = FeedFoward(n_embd)
+        self.ffwd = FeedFoward(n_embd=n_embd, ffwd_size=ffwd_size)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
 
-    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
+    def forward(self, x, mask=None):
+        x = x + self.sa(self.ln1(x), mask)
         x = x + self.ffwd(self.ln2(x))
         return x
 
@@ -353,7 +450,7 @@ class AttentionHead(nn.Module):
         self.value = nn.Linear(n_embd, head_size, bias=False)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         # input of size (batch, time-step, channels)
         # output of size (batch, time-step, head size)
         k = self.key(x)  # (B,T,hs)
@@ -362,6 +459,8 @@ class AttentionHead(nn.Module):
         wei = (
             q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5
         )  # (B, T, hs) @ (B, hs, T) -> (B, T, T)
+        if mask is not None:
+            wei = wei.masked_fill(mask == 0, float("-inf"))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
         wei = self.dropout(wei)
         # perform the weighted aggregation of the values
@@ -384,8 +483,8 @@ class MultiHeadAttention(nn.Module):
         self.proj = nn.Linear(head_size * num_heads, n_embd)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
+    def forward(self, x, mask=None):
+        out = torch.cat([h(x, mask) for h in self.heads], dim=-1)
         out = self.dropout(self.proj(out))
         return out
 
@@ -393,18 +492,17 @@ class MultiHeadAttention(nn.Module):
 class MaskedAttentionHead(nn.Module):
     """one head of self-attention"""
 
-    def __init__(self, head_size, n_embd=10, block_size=128, dropout=0.0):
+    def __init__(self, head_size, n_embd, block_size, dropout=0.0):
         super().__init__()
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
         self.value = nn.Linear(n_embd, head_size, bias=False)
         self.register_buffer(
-            "tril", torch.tril(torch.ones(block_size, block_size))
+            "tril", torch.tril(torch.ones(block_size, block_size), diagonal=0)
         )
-
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         B, T, C = x.shape
         # input of size (batch, time-step, channels)
         # output of size (batch, time-step, head size)
@@ -417,6 +515,8 @@ class MaskedAttentionHead(nn.Module):
         wei = wei.masked_fill(
             self.tril[:T, :T] == 0, float("-inf")
         )  # (B, T, T)
+        if mask is not None:
+            wei = wei.masked_fill(mask == 0, float("-inf"))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
         wei = self.dropout(wei)
         # perform the weighted aggregation of the values
@@ -428,9 +528,7 @@ class MaskedAttentionHead(nn.Module):
 class MultiHeadMaskedAttention(nn.Module):
     """Multiple heads of masked self-attention in parallel"""
 
-    def __init__(
-        self, num_heads, head_size, block_size, n_embd=10, dropout=0.0
-    ):
+    def __init__(self, num_heads, head_size, block_size, n_embd, dropout=0.0):
         super().__init__()
         self.masked_heads = nn.ModuleList(
             [
@@ -443,8 +541,8 @@ class MultiHeadMaskedAttention(nn.Module):
         self.proj = nn.Linear(head_size * num_heads, n_embd)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.masked_heads], dim=-1)
+    def forward(self, x, mask=None):
+        out = torch.cat([h(x, mask) for h in self.masked_heads], dim=-1)
         out = self.dropout(self.proj(out))
         return out
 
@@ -499,12 +597,14 @@ class MultiHeadCrossAttention(nn.Module):
 class FeedFoward(nn.Module):
     """a simple linear layer followed by a non-linearity"""
 
-    def __init__(self, n_embd, dropout=0.0, hidden_multiplier=1):
+    def __init__(self, n_embd, dropout=0.0, ffwd_size=None):
         super().__init__()
+        if ffwd_size is None:
+            ffwd_size = n_embd * 2
         self.net = nn.Sequential(
-            nn.Linear(n_embd, hidden_multiplier * n_embd),
+            nn.Linear(n_embd, ffwd_size),
             nn.GELU(),
-            nn.Linear(hidden_multiplier * n_embd, n_embd),
+            nn.Linear(ffwd_size, n_embd),
             nn.Dropout(dropout),
         )
 
@@ -512,33 +612,64 @@ class FeedFoward(nn.Module):
         return self.net(x)
 
 
-class DecoderBlock(nn.Module):
-    def __init__(self, n_embd, n_head, block_size, dropout):
+class DecoderBlockXAttention(nn.Module):
+    def __init__(
+        self, n_embd, n_head, block_size, dropout, ffwd_size: int = None
+    ):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embd // n_head
-        self.sa = MultiHeadMaskedAttention(
+        self.self_attention = MultiHeadMaskedAttention(
             num_heads=n_head,
             head_size=head_size,
             n_embd=n_embd,
             block_size=block_size,
             dropout=dropout,
         )
-        self.ca = MultiHeadCrossAttention(
+        self.cross_attention = MultiHeadCrossAttention(
             num_heads=n_head,
             head_size=head_size,
             n_embd=n_embd,
             dropout=dropout,
         )
-        self.ffwd = FeedFoward(n_embd)
+        self.ffwd = FeedFoward(n_embd=n_embd, ffwd_size=ffwd_size)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
         self.ln3 = nn.LayerNorm(n_embd)
         self.ln4 = nn.LayerNorm(n_embd)
 
     def forward(self, hidden, target):
-        target = target + self.sa(self.ln1(target))
-        target = target + self.ca(self.ln2(hidden), self.ln3(target))
+        target = target + self.self_attention(self.ln1(target))
+        target = target + self.cross_attention(
+            self.ln2(hidden), self.ln3(target)
+        )
+        target = target + self.ffwd(self.ln4(target))
+        return target
+
+
+class DecoderBlockAddAttention(nn.Module):
+    def __init__(
+        self, n_embd, n_head, block_size, dropout, ffwd_size: int = None
+    ):
+        # n_embd: embedding dimension, n_head: the number of heads we'd like
+        super().__init__()
+        head_size = n_embd // n_head
+        self.self_attention = MultiHeadMaskedAttention(
+            num_heads=n_head,
+            head_size=head_size,
+            n_embd=n_embd,
+            block_size=block_size,
+            dropout=dropout,
+        )
+        self.ffwd = FeedFoward(n_embd=n_embd, ffwd_size=ffwd_size)
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
+        self.ln3 = nn.LayerNorm(n_embd)
+        self.ln4 = nn.LayerNorm(n_embd)
+
+    def forward(self, hidden, target, mask=None):
+        target = target + self.self_attention(self.ln1(target), mask)
+        target = target + hidden
         target = target + self.ffwd(self.ln4(target))
         return target
 

@@ -16,26 +16,27 @@ global:
 
   experiment_params:
     LR: 0.001
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.0
 
   seed: 1234
 
   encoder_params:
-    name: "sequence"
+    name: "sequence_staggered"
     max_length: 16
     duration: 1440
-    jitter: 0.1
+    jitter: 0.0
 
 xattention:
   model_params:
     name: "VAESeqXAtt"
     latent_dim: 6
-    hidden_n: 4
+    hidden_n: 2
     heads: 4
-    hidden_size: 256
-    dropout: 0.2
+    hidden_size: 128
+    ffwd_size: 256
+    dropout: 0
 
 # cnn1d:
 #   model_params:

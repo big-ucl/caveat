@@ -10,8 +10,8 @@ global:
     step_size: 10
 
   loader_params:
-    train_batch_size: 128
-    val_batch_size:  128
+    train_batch_size: 1024
+    val_batch_size:  1024
     num_workers: 3
 
   experiment_params:
