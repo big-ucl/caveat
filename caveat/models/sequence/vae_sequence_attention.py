@@ -368,7 +368,7 @@ class AttentionDecoder(nn.Module):
             )
         self.blocks = nn.ModuleList(
             [
-                DecoderBlockAddAttention(
+                DecoderBlockXAttention(
                     hidden_size,
                     n_head=num_heads,
                     dropout=dropout,
@@ -557,7 +557,7 @@ class CrossAttentionHead(nn.Module):
         self.value = nn.Linear(n_embd, head_size, bias=False)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x_encode, x_decode):
+    def forward(self, x_encode, x_decode, mask=None):
         # input of size (batch, time-step, channels)
         # output of size (batch, time-step, head size)
         k = self.key(x_encode)  # (B,T,hs)
@@ -566,6 +566,8 @@ class CrossAttentionHead(nn.Module):
         wei = (
             q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5
         )  # (B, T, hs) @ (B, hs, T) -> (B, T, T)
+        if mask is not None:
+            wei = wei.masked_fill(mask == 0, float("-inf"))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
         wei = self.dropout(wei)
         # perform the weighted aggregation of the values
@@ -588,8 +590,8 @@ class MultiHeadCrossAttention(nn.Module):
         self.proj = nn.Linear(head_size * num_heads, n_embd)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x_encode, x):
-        out = torch.cat([h(x_encode, x) for h in self.heads], dim=-1)
+    def forward(self, x_encode, x, mask=None):
+        out = torch.cat([h(x_encode, x, mask) for h in self.heads], dim=-1)
         out = self.dropout(self.proj(out))
         return out
 
@@ -638,10 +640,10 @@ class DecoderBlockXAttention(nn.Module):
         self.ln3 = nn.LayerNorm(n_embd)
         self.ln4 = nn.LayerNorm(n_embd)
 
-    def forward(self, hidden, target):
-        target = target + self.self_attention(self.ln1(target))
+    def forward(self, hidden, target, mask=None):
+        target = target + self.self_attention(self.ln1(target), mask)
         target = target + self.cross_attention(
-            self.ln2(hidden), self.ln3(target)
+            self.ln2(hidden), self.ln3(target), mask
         )
         target = target + self.ffwd(self.ln4(target))
         return target

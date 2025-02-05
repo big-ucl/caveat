@@ -696,7 +696,9 @@ def encode_input_attributes(
     if input_attributes is not None:
         conditionals_config = config.get("conditionals", None)
         if conditionals_config is None:
-            raise UserWarning("Config must contain conditionals configuration.")
+            raise UserWarning(
+                "You have specified input attributes/labels, config must contain conditionals configuration."
+            )
 
         encoder_name = config.get("attribute_encoder", "onehot")
         attribute_encoder = label_encoding.library[encoder_name](

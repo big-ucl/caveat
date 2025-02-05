@@ -2,7 +2,7 @@ seed: 12345
 
 logging_params:
   log_dir: logs
-  name: VAEDiscFC_tune
+  name: VAEContXAtt_tune
 
 tune:
   trials: 200
@@ -10,17 +10,17 @@ tune:
   timeout:  36000 # seconds
 
 schedules_path: tmp/nts_home_schedules.csv
-attributes_path: tmp/nts_home_attributes_groups.csv
+# attributes_path: tmp/nts_home_attributes_groups.csv
 
-conditionals:
-  gender: nominal
-  age_group: nominal
-  car_access: nominal
-  work_status: nominal
-  income: nominal
+# conditionals:
+#   gender: nominal
+#   age_group: nominal
+#   car_access: nominal
+#   work_status: nominal
+#   income: nominal
 
-evaluation_params:
-  split_on: [gender, age_group, car_access, work_status, income]
+# evaluation_params:
+#   split_on: [gender, age_group, car_access, work_status, income]
 
 loader_params:
   train_batch_size: 1024
@@ -32,21 +32,23 @@ trainer_params:
   max_epochs: 100
   patience: 10
 
-experiment_params:
-  LR: suggest_float(LR, 1e-5, 0.01, log=True)
-  weight_decay: suggest_float(weight_decay, 0, 0.1)
-  scheduler_gamma: suggest_float(scheduler_gamma, 0.95, 1)
-  kld_weight: 0.001
-
 encoder_params:
-  name: "discrete"
+  name: "sequence_staggered"
+  max_length: 16
   duration: 1440
-  step_size: 10
   jitter: suggest_float(jitter, 0, 0.3)
 
+experiment_params:
+  LR: suggest_float(LR, 1e-5, 0.1, log=True)
+  weight_decay: suggest_float(weight_decay, 0, 0.1)
+  scheduler_gamma: suggest_float(scheduler_gamma, 0.95, 1)
+  kld_weight: 0.00
+
 model_params:
-  name: CVAESeqLSTM
+  name: VAESeqXAtt
   latent_dim: 6
-  hidden_n: suggest_int(hidden_n, 1, 3)
-  hidden_size: suggest_categorical(hidden_size, [16, 32, 64])
-  dropout: suggest_float(dropout, 0, 0.3)
+  hidden_n: suggest_int(hidden_n, 1, 6)
+  heads: suggest_int(heads, 1, 8)
+  hidden_size: suggest_categorical(hidden_size, [16, 32, 64, 128, 256, 512])
+  ffwd_size: suggest_categorical(ffwd_size, [16, 32, 64, 128, 256, 512, 1024])
+  dropout: suggest_float(dropout, 0, 0.5)
