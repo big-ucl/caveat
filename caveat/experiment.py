@@ -100,18 +100,18 @@ class Experiment(pl.LightningModule):
         return super().on_validation_epoch_end()
 
     def training_step(self, batch, batch_idx):
-        (x, _), (y, y_mask), (labels, _) = batch
+        (x, x_weights), (y, y_weights), (labels, _) = batch
 
         self.curr_device = x.device
         log_probs, mu, log_var, z = self.forward(
-            x, conditionals=labels, target=y
+            x, conditionals=labels, target=y, input_mask=x_weights
         )
         train_loss = self.loss_function(
             log_probs=log_probs,
             mu=mu,
             log_var=log_var,
             target=y,
-            mask=y_mask,
+            mask=y_weights,
             kld_weight=self.kld_loss_weight,
             duration_weight=self.duration_loss_weight,
             batch_idx=batch_idx,
@@ -123,10 +123,12 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, _), (y, y_weights), (labels, _) = batch
+        (x, x_weights), (y, y_weights), (labels, _) = batch
         self.curr_device = x.device
 
-        log_probs, mu, log_var, z = self.forward(x, conditionals=labels)
+        log_probs, mu, log_var, z = self.forward(
+            x, conditionals=labels, input_mask=x_weights
+        )
         val_loss = self.loss_function(
             log_probs=log_probs,
             mu=mu,
@@ -155,11 +157,11 @@ class Experiment(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         if self.test:
-            (x, _), (y, y_weights), conditionals = batch
+            (x, x_weights), (y, y_weights), conditionals = batch
             self.curr_device = x.device
 
             log_probs_x, mu, log_var, z = self.forward(
-                x, conditionals=conditionals
+                x, conditionals=conditionals, input_mask=x_weights
             )
             test_loss = self.loss_function(
                 log_probs_x=log_probs_x,
