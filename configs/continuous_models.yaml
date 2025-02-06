@@ -18,7 +18,7 @@ global:
     LR: 0.001
     weight_decay: 0.0
     scheduler_gamma: 0.99
-    kld_weight: 0.0
+    kld_weight: 0.01
 
   seed: 1234
 
@@ -28,20 +28,40 @@ global:
     duration: 1440
     jitter: 0.3
 
+# auto_attention:
+#   encoder_params:
+#     name: "sequence_staggered"
+#     max_length: 16
+#     duration: 1440
+#     jitter: 0.1
+#   model_params:
+#     name: "AutoSeqAtt"
+#     latent_dim: 6
+#     hidden_n: 2
+#     heads: 4
+#     hidden_size: 128
+#     ffwd_size: 256
+#     dropout: 0.1
+
 xattention:
   encoder_params:
     name: "sequence_staggered"
     max_length: 16
     duration: 1440
-    jitter: 0.2
+    jitter: 0.1
+    fix_durations: True
   model_params:
     name: "VAESeqXAtt"
     latent_dim: 6
-    hidden_n: 1
-    heads: 1
+    hidden_n: 4
+    heads: 8
     hidden_size: 128
-    ffwd_size: 128
-    dropout: 0.6
+    ffwd_size: 512
+    dropout: 0.1
+    embedding: concat
+    position_embedding: learnt
+    time_embedding: none
+    latent_context: xattention
 
 # cnn1d:
 #   model_params:

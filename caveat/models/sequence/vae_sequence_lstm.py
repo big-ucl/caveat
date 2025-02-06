@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationEmbeddingConcat
 
 
 class VAESeqLSTM(Base):
@@ -111,7 +111,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
@@ -163,7 +163,7 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(

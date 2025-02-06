@@ -39,7 +39,7 @@ class OneHotPlusLinearEmbedding(nn.Module):
         return embedded
 
 
-class CustomDurationEmbedding(nn.Module):
+class CustomDurationEmbeddingConcat(nn.Module):
     def __init__(self, input_size, hidden_size, dropout: float = 0.1):
         """Embedding that combines activity embedding layer and duration."""
         super().__init__()
@@ -52,6 +52,42 @@ class CustomDurationEmbedding(nn.Module):
         embedded, durations = torch.split(x, [1, 1], dim=-1)
         embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
         embedded = torch.cat((embedded, durations), dim=-1)
+        return embedded
+
+
+class CustomDurationEmbeddingConcatNorm(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout: float = 0.1):
+        """Embedding that combines activity embedding layer and duration."""
+        super().__init__()
+        if hidden_size < 2:
+            raise ValueError("Hidden size must be greater than 1.")
+        self.embedding = nn.Embedding(input_size, hidden_size - 1)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        embedded, durations = torch.split(x, [1, 1], dim=-1)
+        embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
+        durations = (
+            durations - durations.mean(dim=-2)[:, :, None]
+        )  # lazy normalization
+        embedded = torch.cat((embedded, durations), dim=-1)
+        return embedded
+
+
+class CustomDurationEmbeddingAddNorm(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout: float = 0.1):
+        """Embedding that combines activity embedding layer and duration."""
+        super().__init__()
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        embedded, durations = torch.split(x, [1, 1], dim=-1)
+        embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
+        durations = (
+            durations - durations.mean(dim=-2)[:, :, None]
+        )  # lazy normalization
+        embedded = embedded + durations
         return embedded
 
 

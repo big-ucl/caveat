@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationEmbeddingConcat
 
 
 class CVAESeqLSTMDoubleNudger(Base):
@@ -180,7 +180,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.fc_hidden = nn.Linear(hidden_size, hidden_size)
@@ -250,7 +250,7 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(

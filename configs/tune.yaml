@@ -36,19 +36,23 @@ encoder_params:
   name: "sequence_staggered"
   max_length: 16
   duration: 1440
-  jitter: suggest_float(jitter, 0, 0.3)
+  jitter: 0
 
 experiment_params:
   LR: suggest_float(LR, 1e-5, 0.1, log=True)
-  weight_decay: suggest_float(weight_decay, 0, 0.1)
-  scheduler_gamma: suggest_float(scheduler_gamma, 0.95, 1)
-  kld_weight: 0.00
+  weight_decay: 0.01
+  scheduler_gamma: 0.975
+  kld_weight: 0.01
 
 model_params:
   name: VAESeqXAtt
   latent_dim: 6
-  hidden_n: suggest_int(hidden_n, 1, 6)
-  heads: suggest_int(heads, 1, 8)
-  hidden_size: suggest_categorical(hidden_size, [16, 32, 64, 128, 256, 512])
-  ffwd_size: suggest_categorical(ffwd_size, [16, 32, 64, 128, 256, 512, 1024])
+  hidden_n: suggest_int(hidden_n, 2, 6)
+  heads: suggest_int(heads, 4, 8)
+  hidden_size: suggest_categorical(hidden_size, [128, 256, 512])
+  ffwd_size: suggest_categorical(ffwd_size, [128, 256, 512, 1024])
   dropout: suggest_float(dropout, 0, 0.5)
+  embedding: suggest_categorical(embedding, [concat, add])
+  position_embedding: suggest_categorical(position_embedding, [none, fixed, learnt])
+  time_embedding: suggest_categorical(time_embedding, [none, start, remaining])
+  latent_context: suggest_categorical(latent_context, [xattention, add])

@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor, nn
 
-from caveat.models import Base, CustomDurationEmbedding, utils
+from caveat.models import Base, CustomDurationEmbeddingConcat, utils
 
 
 class VAESeqFC(Base):
@@ -74,7 +74,7 @@ class Encoder(nn.Module):
             dropout (float): dropout. Defaults to 0.1.
         """
         super(Encoder, self).__init__()
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             encoded_size, encoded_size, dropout=dropout
         )
         modules = []

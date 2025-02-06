@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import CustomDurationEmbedding
+from caveat.models import CustomDurationEmbeddingConcat
 from caveat.models.joint_vaes.experiment import JointExperiment
 
 
@@ -393,7 +393,7 @@ class ScheduleEncoder(nn.Module):
         super(ScheduleEncoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.fc_hidden = nn.Linear(hidden_size, hidden_size)
@@ -447,7 +447,7 @@ class ScheduleDecoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
