@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 import torch
 from torch import Tensor, exp, nn
 
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationEmbeddingConcat
 
 
 class CVAESeqLSTM(Base):
@@ -244,7 +244,7 @@ class Encoder(nn.Module):
             dropout (float): dropout. Defaults to 0.1.
         """
         super(Encoder, self).__init__()
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
@@ -295,7 +295,7 @@ class HiddenConditionalEncoder(nn.Module):
             nn.LeakyReLU(),
             nn.Dropout(dropout),
         )
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
@@ -358,7 +358,7 @@ class InputsConditionalEncoder(nn.Module):
             nn.LeakyReLU(),
             nn.Dropout(dropout),
         )
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
@@ -419,7 +419,7 @@ class HiddenInputsConditionalEncoder(nn.Module):
             nn.LeakyReLU(),
             nn.Dropout(dropout),
         )
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.conditionals_ff = nn.Sequential(
@@ -557,7 +557,7 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(

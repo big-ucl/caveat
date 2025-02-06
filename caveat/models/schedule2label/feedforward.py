@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from torch import Tensor, nn
 
-from caveat.models import CustomDurationEmbedding
+from caveat.models import CustomDurationEmbeddingConcat
 from caveat.models.schedule2label.experiment import LabelExperiment
 
 
@@ -113,7 +113,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         input_size = hidden_size * length

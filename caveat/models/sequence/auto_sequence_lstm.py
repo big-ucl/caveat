@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationEmbeddingConcat
 
 
 class AutoSeqLSTM(Base):
@@ -156,7 +156,7 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(

@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor, nn
 
-from caveat.models import Base, CustomDurationEmbedding, utils
+from caveat.models import Base, CustomDurationEmbeddingConcat, utils
 from caveat.models.utils import calc_output_padding_1d, conv1d_size
 
 
@@ -97,7 +97,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         print(in_shape)
         length = in_shape[0]
-        self.embedding = CustomDurationEmbedding(
+        self.embedding = CustomDurationEmbeddingConcat(
             input_encoding, encoded_size, dropout=dropout
         )
 

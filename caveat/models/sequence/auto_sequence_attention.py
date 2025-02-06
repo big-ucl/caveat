@@ -5,14 +5,10 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, exp, nn
 
-from caveat.models import (
-    Base,
-    CustomDurationEmbeddingAddNorm,
-    CustomDurationEmbeddingConcat,
-)
+from caveat.models import Base, CustomDurationEmbeddingConcat
 
 
-class VAESeqXAtt(Base):
+class AutoSeqAtt(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -26,27 +22,8 @@ class VAESeqXAtt(Base):
         self.dropout = config.get("dropout", 0.0)
         self.length, _ = self.in_shape
         self.sampling = config.get("sampling", False)
-        self.embedding = config.get("embedding", "concat")
-        print(f"Embedding: {self.embedding}")
         self.position_embedding = config.get("position_embedding", "fixed")
-        print(f"Positional embedding: {self.position_embedding}")
-        self.time_embedding = config.get("time_embedding", "none")
-        print(f"Time embedding: {self.time_embedding}")
-        self.latent_context = config.get("latent_context", "xattention")
-        print(f"Latent context: {self.latent_context}")
 
-        self.encoder = AttentionEncoder(
-            input_size=self.encodings,
-            hidden_size=self.hidden_size,
-            ffwd_size=self.ffwd_size,
-            length=self.length,
-            n_head=self.heads,
-            n_layer=self.hidden_n,
-            dropout=self.dropout,
-            embedding=self.embedding,
-            position_embedding=self.position_embedding,
-            time_embedding=self.time_embedding,
-        )
         self.decoder = AttentionDecoder(
             input_size=self.encodings,
             output_size=self.encodings + 1,
@@ -56,20 +33,8 @@ class VAESeqXAtt(Base):
             num_layers=self.hidden_n,
             length=self.length,
             dropout=self.dropout,
-            embedding=self.embedding,
             position_embedding=self.position_embedding,
-            time_embedding=self.time_embedding,
-            latent_context=self.latent_context,
         )
-        self.unflattened_shape = (self.length, self.hidden_size)
-        flat_size_encode = self.length * self.hidden_size
-        self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
-
-        if config.get("share_embed", False):
-            print("Sharing embeddings")
-            self.decoder.embedding.weight = self.encoder.embedding.weight
 
     def forward(
         self, x: Tensor, target=None, input_mask=None, **kwargs
@@ -82,51 +47,33 @@ class VAESeqXAtt(Base):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        # if input_mask is not None:
-        #     mask = torch.zeros_like(input_mask)
-        #     mask[input_mask > 0] = 1.0
-        #     mask = mask[:, None, :]
-        # else:
-        #     mask = None
-        mask = None
-
-        mu, log_var = self.encode(x, conditionals=None, mask=mask)
-        z = self.reparameterize(mu, log_var)
+        if input_mask is not None:
+            mask = torch.zeros_like(input_mask)
+            mask[input_mask > 0] = 1.0
+            mask = mask[:, None, :]
+        else:
+            mask = None
 
         if target is not None:  # training
-            log_prob_y = self.decode(z, context=x, mask=mask)
-            return [log_prob_y, mu, log_var, z]
+            log_prob = self.decode(context=x, mask=mask)
+            return [
+                log_prob,
+                torch.zeros_like(log_prob),
+                torch.zeros_like(log_prob),
+                torch.zeros_like(log_prob),
+            ]
 
         # no target so assume generating
-        log_prob = self.predict_sequences(z, current_device=z.device)
-        return [log_prob, mu, log_var, z]
-
-    def encode(
-        self,
-        input: Tensor,
-        conditionals: Optional[Tensor],
-        mask: Optional[Tensor],
-    ) -> list[Tensor]:
-        """Encodes the input by passing through the encoder network.
-
-        Args:
-            input (tensor): Input sequence batch [N, steps, acts].
-
-        Returns:
-            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
-        """
-        # [N, L, C]
-        hidden = self.encoder(input, mask)
-        # [N, flatsize]
-
-        # Split the result into mu and var components
-        mu = self.fc_mu(hidden)
-        log_var = self.fc_var(hidden)
-
-        return [mu, log_var]
+        log_prob = self.predict_sequences(current_device=self.curr_device)
+        return [
+            log_prob,
+            torch.zeros_like(log_prob),
+            torch.zeros_like(log_prob),
+            torch.zeros_like(log_prob),
+        ]
 
     def decode(
-        self, z: Tensor, context: Tensor, mask: Optional[Tensor], **kwargs
+        self, context: Tensor, mask: Optional[Tensor], **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -137,13 +84,10 @@ class VAESeqXAtt(Base):
             tensor: Output sequence batch [N, steps, acts].
         """
         # initialize hidden state as inputs
-        hidden = self.fc_hidden(z)
-        hidden = hidden.unflatten(1, self.unflattened_shape)
-        log_probs = self.decoder(hidden, context, mask)
-
+        log_probs = self.decoder(context, mask)
         return log_probs
 
-    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
+    def predict(self, z, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -153,11 +97,11 @@ class VAESeqXAtt(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        log_prob_samples = self.predict_sequences(z, device)
+        log_prob_samples = self.predict_sequences(device)
         return exp(log_prob_samples)
 
     def predict_sequences(
-        self, z: Tensor, current_device: int, **kwargs
+        self, current_device: int, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Given samples from the latent space, return the corresponding decoder space map.
 
@@ -168,14 +112,13 @@ class VAESeqXAtt(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        z = z.to(current_device)
-        B = z.shape[0]
+        B = 1024  # todo?
         log_outputs = []
-        sequence = torch.zeros(B, self.length, 2, device=z.device)
+        sequence = torch.zeros(B, self.length, 2, device=current_device)
         sequence[:, :, 0] = self.sos  # all sos with duration 0
         for i in range(self.length):
             # get the predictions
-            logits = self.decode(z, context=sequence, mask=None)
+            logits = self.decode(context=sequence, mask=None)
             # focus only on the last time step
             logits = logits[:, i, :]  # becomes (B, C)
             log_outputs.append(logits.unsqueeze(1))
@@ -223,11 +166,10 @@ class VAESeqXAtt(Base):
         Returns:
             (tensor: [N, steps, acts], tensor: [N, latent_dims]).
         """
-        log_probs_x, _, _, z = self.forward(x, input_mask=input_mask, **kwargs)
+        log_probs_x, _, _, _ = self.forward(x, input_mask=input_mask, **kwargs)
         prob_samples = exp(log_probs_x)
         prob_samples = prob_samples.to(device)
-        z = z.to(device)
-        return prob_samples, z
+        return prob_samples, torch.zeros_like(prob_samples)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         """Override the validation step to include the target during validation.
@@ -242,11 +184,8 @@ class VAESeqXAtt(Base):
         )
         val_loss = self.loss_function(
             log_probs=log_probs,
-            mu=mu,
-            log_var=log_var,
             target=y,
             mask=y_weights,
-            kld_weight=self.kld_loss_weight,
             duration_weight=self.duration_loss_weight,
             optimizer_idx=optimizer_idx,
             batch_idx=batch_idx,
@@ -261,116 +200,54 @@ class VAESeqXAtt(Base):
         )
         self.log("hp_metric", val_loss["loss"])
 
+    def loss_function(self, log_probs, target, mask, **kwargs) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        # unpack act probs and durations
+        target_acts, target_durations = self.unpack_encoding(target)
+        pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
 
-class AttentionEncoder(nn.Module):
-    def __init__(
-        self,
-        input_size,
-        hidden_size,
-        ffwd_size,
-        length,
-        n_head,
-        n_layer,
-        dropout: float = 0.0,
-        embedding: str = "concat",
-        position_embedding: str = "learnt",
-        time_embedding: str = "none",
-    ):
-        """Encoder with self-attention layers.
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
+        duration_mask = mask.clone()
+        duration_mask[:, 0] = 0.0
+        duration_mask[
+            torch.arange(duration_mask.shape[0]),
+            (mask != 0).cumsum(-1).argmax(1),
+        ] = 0.0
 
-        Args:
-            input_size (int): Number of input features.
-            hidden_size (int): Number of hidden units.
-            ffwd_size (int): Number of hidden units in the feedforward layer.
-            length (int): Length of the sequence.
-            n_head (int): Number of heads in the multi-head attention.
-            n_layer (int): Number of layers in the encoder.
-            dropout (float, optional): Dropout rate. Defaults to 0.0.
-            embedding (str, optional): Type of embedding. Defaults to "concat".
-            position_embedding (str, optional): Type of positional embedding. Defaults to "learnt".
-            time_embedding (str, optional): Type of time embedding. Defaults to "none".
-        """
-        super(AttentionEncoder, self).__init__()
-
-        self.hidden_size = hidden_size
-        self.num_layers = n_layer
-
-        if embedding.lower() == "concat":
-            self.embedding = CustomDurationEmbeddingConcat(
-                input_size, hidden_size, dropout=dropout
-            )
-        elif embedding.lower() == "add":
-            self.embedding = CustomDurationEmbeddingAddNorm(
-                input_size, hidden_size, dropout=dropout
-            )
-        else:
-            raise ValueError(
-                f"Embedding must be either 'concat' or 'add', got {embedding}"
-            )
-
-        if position_embedding.lower() == "none":
-            self.position_embedding = None
-        elif position_embedding.lower() == "learnt":
-            self.position_embedding = LearntPositionalEncoding(
-                d_model=hidden_size, dropout=0.0, length=length
-            )
-        elif position_embedding.lower() == "fixed":
-            self.position_embedding = FixedPositionalEncoding(
-                d_model=hidden_size, dropout=0.0, length=length
-            )
-        else:
-            raise ValueError(
-                f"Positional embedding must be either 'none', 'learnt' or 'fixed', got {position_embedding}"
-            )
-
-        if time_embedding.lower() == "none":
-            self.time_embedding = None
-        elif time_embedding.lower() == "start":
-            self.time_embedding = StartTimePositionEncoding(dropout=0.0)
-        elif time_embedding.lower() == "remaining":
-            self.time_embedding = RemainingTimePositionEncoding(dropout=0.0)
-        else:
-            raise ValueError(
-                f"Time embedding must be either 'none', 'start' or 'remaining', got {time_embedding}"
-            )
-
-        self.blocks = nn.ModuleList(
-            [
-                EncoderBlock(
-                    hidden_size,
-                    n_head=n_head,
-                    dropout=dropout,
-                    ffwd_size=ffwd_size,
-                )
-                for _ in range(n_layer)
-            ]
+        # activity loss
+        recon_act_nlll = self.base_NLLL(
+            pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        # better init?
-        self.apply(self._init_weights)
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
+        scheduled_act_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = scheduled_act_weight * act_recon
 
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-            if module.bias is not None:
-                torch.nn.init.zeros_(module.bias)
-        elif isinstance(module, nn.Embedding):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-        elif isinstance(module, nn.LayerNorm):
-            torch.nn.init.zeros_(module.bias)
-            torch.nn.init.ones_(module.weight)
+        # duration loss
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
+        recon_dur_mse = (recon_dur_mse * duration_mask).mean()
+        scheduled_dur_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = scheduled_dur_weight * recon_dur_mse
 
-    def forward(self, x, mask=None):
-        # idx and targets are both (B,T) tensor of integers
-        x = self.embedding(x)  # (B,T,C)
-        if self.position_embedding is not None:
-            x = self.position_embedding(x)  # (B,T,C)
-        if self.time_embedding is not None:
-            x = self.time_embedding(x)
-        for block in self.blocks:
-            x = block(x, mask=mask)  # (B,T,C)
-        x = x.flatten(1)
+        # reconstruction loss
+        w_recons_loss = w_act_recon + w_dur_recon
 
-        return x
+        # final loss
+        loss = w_recons_loss
+
+        return {
+            "loss": loss,
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "act_weight": torch.tensor([scheduled_act_weight]).float(),
+            "dur_weight": torch.tensor([scheduled_dur_weight]).float(),
+        }
 
 
 class AttentionDecoder(nn.Module):
@@ -384,94 +261,41 @@ class AttentionDecoder(nn.Module):
         num_layers,
         length,
         dropout: float = 0.0,
-        embedding: str = "concat",
         position_embedding: str = "learnt",
-        time_embedding: str = "none",
-        latent_context: str = "xattention",
         sos: int = 0,
     ) -> None:
         super().__init__()
         self.output_size = output_size
         self.max_length = length
         self.sos = sos
-
-        if embedding.lower() == "concat":
-            self.embedding = CustomDurationEmbeddingConcat(
-                input_size, hidden_size, dropout=dropout
-            )
-        elif embedding.lower() == "add":
-            self.embedding = CustomDurationEmbeddingAddNorm(
-                input_size, hidden_size, dropout=dropout
-            )
-        else:
-            raise ValueError(
-                f"Embedding must be either 'concat' or 'add', got {embedding}"
-            )
-
-        if position_embedding.lower() == "none":
-            self.position_embedding = None
-        elif position_embedding.lower() == "learnt":
+        self.embedding = CustomDurationEmbeddingConcat(
+            input_size, hidden_size, dropout=dropout
+        )
+        if position_embedding == "learnt":
             self.position_embedding = LearntPositionalEncoding(
                 d_model=hidden_size, dropout=dropout, length=length
             )
-        elif position_embedding.lower() == "fixed":
+        elif position_embedding == "fixed":
             self.position_embedding = FixedPositionalEncoding(
                 d_model=hidden_size, dropout=dropout, length=length
             )
         else:
             raise ValueError(
-                f"Positional embedding must be either 'none', 'learnt' or 'fixed', got {position_embedding}"
+                f"Positional embedding must be either 'learnt' or 'fixed', got {position_embedding}"
             )
-
-        if time_embedding.lower() == "none":
-            self.time_embedding = None
-        elif time_embedding.lower() == "start":
-            self.time_embedding = StartTimePositionEncoding(dropout=0.0)
-        elif time_embedding.lower() == "remaining":
-            self.time_embedding = RemainingTimePositionEncoding(dropout=0.0)
-        else:
-            raise ValueError(
-                f"Time embedding must be either 'none', 'start' or 'remaining', got {time_embedding}"
-            )
-
-        if (
-            latent_context.lower() == "xattention"
-            or latent_context.lower() == "xatt"
-            or latent_context.lower() == "cross_attention"
-            or latent_context.lower() == "cross_att"
-        ):
-            print("Using cross attention for latent context")
-            self.blocks = nn.ModuleList(
-                [
-                    DecoderBlockXAttention(
-                        hidden_size,
-                        n_head=num_heads,
-                        dropout=dropout,
-                        block_size=length,
-                        ffwd_size=ffwd_size,
-                    )
-                    for _ in range(num_layers)
-                ]
-            )
-        elif latent_context.lower() == "add":
-            print("Using addition for latent context")
-            self.blocks = nn.ModuleList(
-                [
-                    DecoderBlockAddAttention(
-                        hidden_size,
-                        n_head=num_heads,
-                        dropout=dropout,
-                        block_size=length,
-                        ffwd_size=ffwd_size,
-                    )
-                    for _ in range(num_layers)
-                ]
-            )
-        else:
-            raise ValueError(
-                f"Latent context must be either 'xattention' or 'addattention', got {latent_context}"
-            )
-
+        self.blocks = nn.ModuleList(
+            [
+                DecoderBlockMAskedSelfAttention(
+                    hidden_size,
+                    n_head=num_heads,
+                    dropout=dropout,
+                    block_size=length,
+                    ffwd_size=ffwd_size,
+                )
+                for _ in range(num_layers)
+            ]
+        )
+        # self.ln_f = nn.LayerNorm(hidden_size)
         self.lm_head = nn.Linear(hidden_size, output_size)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
@@ -488,16 +312,16 @@ class AttentionDecoder(nn.Module):
             torch.nn.init.zeros_(module.bias)
             torch.nn.init.ones_(module.weight)
 
-    def forward(self, hidden, target, mask=None):
+    def forward(self, target, mask=None):
         # idx and targets are both (B,T) tensor of integers
         outputs = self.embedding(target)  # (B,T,C)
-        if self.position_embedding is not None:
-            outputs = self.position_embedding(outputs)  # (B,T,C)
-        if self.time_embedding is not None:
-            outputs = self.time_embedding(outputs)
+        outputs = self.position_embedding(outputs)  # (B,T,C)
         for layer in self.blocks:
-            outputs = layer(hidden, outputs, mask)
+            outputs = layer(outputs, mask)
+
+        # outputs = self.ln_f(outputs)  # (B,T,C)
         outputs = self.lm_head(outputs)
+
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
         )
@@ -506,31 +330,31 @@ class AttentionDecoder(nn.Module):
         durations = torch.log(durations)
 
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-
         return log_prob_outputs
 
 
-class EncoderBlock(nn.Module):
-    """Transformer block: communication followed by computation"""
-
-    def __init__(self, n_embd, n_head, dropout, ffwd_size: int = None):
+class DecoderBlockMAskedSelfAttention(nn.Module):
+    def __init__(
+        self, n_embd, n_head, block_size, dropout, ffwd_size: int = None
+    ):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(
+        self.self_attention = MultiHeadMaskedAttention(
             num_heads=n_head,
             head_size=head_size,
             n_embd=n_embd,
+            block_size=block_size,
             dropout=dropout,
         )
         self.ffwd = FeedFoward(n_embd=n_embd, ffwd_size=ffwd_size)
         self.ln1 = nn.RMSNorm(n_embd)
         self.ln2 = nn.RMSNorm(n_embd)
 
-    def forward(self, x, mask=None):
-        x = x + self.sa(self.ln1(x), mask)
-        x = x + self.ffwd(self.ln2(x))
-        return x
+    def forward(self, target, mask=None):
+        target = target + self.self_attention(self.ln1(target), mask)
+        target = target + self.ffwd(self.ln2(target))
+        return target
 
 
 class AttentionHead(nn.Module):
@@ -707,66 +531,6 @@ class FeedFoward(nn.Module):
         return self.net(x)
 
 
-class DecoderBlockXAttention(nn.Module):
-    def __init__(
-        self, n_embd, n_head, block_size, dropout, ffwd_size: int = None
-    ):
-        # n_embd: embedding dimension, n_head: the number of heads we'd like
-        super().__init__()
-        head_size = n_embd // n_head
-        self.self_attention = MultiHeadMaskedAttention(
-            num_heads=n_head,
-            head_size=head_size,
-            n_embd=n_embd,
-            block_size=block_size,
-            dropout=dropout,
-        )
-        self.cross_attention = MultiHeadCrossAttention(
-            num_heads=n_head,
-            head_size=head_size,
-            n_embd=n_embd,
-            dropout=dropout,
-        )
-        self.ffwd = FeedFoward(n_embd=n_embd, ffwd_size=ffwd_size)
-        self.ln1 = nn.RMSNorm(n_embd)
-        self.ln2 = nn.RMSNorm(n_embd)
-        self.ln3 = nn.RMSNorm(n_embd)
-        self.ln4 = nn.RMSNorm(n_embd)
-
-    def forward(self, hidden, target, mask=None):
-        target = target + self.self_attention(self.ln1(target), mask)
-        target = target + self.cross_attention(
-            self.ln2(hidden), self.ln3(target), mask
-        )
-        target = target + self.ffwd(self.ln4(target))
-        return target
-
-
-class DecoderBlockAddAttention(nn.Module):
-    def __init__(
-        self, n_embd, n_head, block_size, dropout, ffwd_size: int = None
-    ):
-        # n_embd: embedding dimension, n_head: the number of heads we'd like
-        super().__init__()
-        head_size = n_embd // n_head
-        self.self_attention = MultiHeadMaskedAttention(
-            num_heads=n_head,
-            head_size=head_size,
-            n_embd=n_embd,
-            block_size=block_size,
-            dropout=dropout,
-        )
-        self.ffwd = FeedFoward(n_embd=n_embd, ffwd_size=ffwd_size)
-        self.ln1 = nn.RMSNorm(n_embd)
-        self.ln2 = nn.RMSNorm(n_embd)
-
-    def forward(self, hidden, target, mask=None):
-        target = target + self.self_attention(self.ln1(target), mask)
-        target = target + hidden
-        target = target + self.ffwd(self.ln2(target))
-        return target
-
-
 class LearntPositionalEncoding(nn.Module):
     def __init__(self, d_model: int, dropout: float = 0.0, length: int = 144):
         super().__init__()
@@ -808,46 +572,4 @@ class FixedPositionalEncoding(nn.Module):
         """
         _, T, _ = x.shape
         x = x + self.pe[:T, :]
-        return self.dropout(x)
-
-
-class StartTimePositionEncoding(nn.Module):
-    def __init__(self, dropout: float = 0.0, *args, **kwargs):
-        """Positional encoding of start times, replaces dim [:, :, -2].
-        Assumes durations are at [:, :, -1]"""
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-    def forward(self, x: Tensor) -> Tensor:
-        """
-        Arguments:
-            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
-        """
-        durations = x[:, :, -1]
-        start_times = torch.cumsum(durations, dim=-1) - durations
-        # start_times = (
-        #     start_times - start_times.mean(dim=-1)[:, None]
-        # )  # normalize
-        x[:, :, -2] = start_times
-        return self.dropout(x)
-
-
-class RemainingTimePositionEncoding(nn.Module):
-    def __init__(self, dropout: float = 0.0, *args, **kwargs):
-        """Positional encoding for remaining duration, replaces dim [:, :, -2].
-        Assumes durations are at [:, :, -1]"""
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-    def forward(self, x: Tensor) -> Tensor:
-        """
-        Arguments:
-            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
-        """
-        durations = x[:, :, -1]
-        remaining = torch.ones_like(durations) - (
-            torch.cumsum(durations, dim=-1) - durations
-        )
-        # remaining = remaining - remaining.mean(dim=-1)[:, None]  # normalize
-        x[:, :, -2] = remaining
         return self.dropout(x)

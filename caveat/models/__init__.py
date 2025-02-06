@@ -7,12 +7,17 @@ from .discrete.vae_discrete_cnn2d import VAEDiscCNN2D
 from .discrete.vae_discrete_fc import VAEDiscFC
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_xattention import VAEDiscXTrans
-from .embed import CustomDurationEmbedding, CustomDurationModeDistanceEmbedding
+from .embed import (
+    CustomDurationEmbeddingAddNorm,
+    CustomDurationEmbeddingConcat,
+    CustomDurationModeDistanceEmbedding,
+)
 from .joint_vaes.jvae_sequence import JVAESeqLSTM
 from .joint_vaes.jvae_sequence_rerouted import JVAESeqLSTMRerouted
 from .schedule2label.feedforward import Schedule2LabelFeedForward
 from .seq2score.lstm import Seq2ScoreLSTM
 from .seq2seq.lstm import Seq2SeqLSTM
+from .sequence.auto_sequence_attention import AutoSeqAtt
 from .sequence.auto_sequence_lstm import AutoSeqLSTM
 from .sequence.cond_sequence_lstm import CondSeqLSTM
 from .sequence.cvae_sequence_lstm import CVAESeqLSTM
@@ -37,6 +42,7 @@ library = {
     "CondSeqLSTM": CondSeqLSTM,  # lstm unit given attributes as input at first step
     "AutoDiscLSTM": AutoDiscLSTM,  # lstm unit input is previous output
     "AutoSeqLSTM": AutoSeqLSTM,
+    "AutoSeqAtt": AutoSeqAtt,
     "VAEDiscCNN2D": VAEDiscCNN2D,
     "VAEDiscCNN1D": VAEDiscCNN1D,
     "VAEDiscFC": VAEDiscFC,
