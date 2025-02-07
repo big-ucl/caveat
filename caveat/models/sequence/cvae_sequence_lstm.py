@@ -14,13 +14,13 @@ class CVAESeqLSTM(Base):
             raise UserWarning(
                 "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
-        self.label_embed_sizes = kwargs.get("label_embed_sizes", None)
         if self.label_embed_sizes is None:
             raise UserWarning("ConditionalLSTM requires label_embed_sizes")
         if not isinstance(self.label_embed_sizes, list):
             raise UserWarning(
                 "ConditionalLSTM requires label_embed_sizes to be a list of label embedding sizes"
             )
+        
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
@@ -100,7 +100,7 @@ class CVAESeqLSTM(Base):
             print("Label conditionality is concat")
             self.latent_block = ConcatLatent(
                 latent_dim=self.latent_dim,
-                conditionals_size=self.conditionals_size,
+                conditionals_size=self.labels_hidden_size,
                 flat_size_encode=flat_size_encode,
                 hidden_layers=self.hidden_n,
                 hidden_size=self.hidden_size,
@@ -108,7 +108,7 @@ class CVAESeqLSTM(Base):
         elif latent_conditionality == "add":
             print("Label conditionality is add")
             self.latent_block = AddLatent(
-                conditionals_size=self.conditionals_size,
+                conditionals_size=self.labels_hidden_size,
                 latent_dim=self.latent_dim,
                 flat_size_encode=flat_size_encode,
                 hidden_layers=self.hidden_n,
@@ -140,7 +140,7 @@ class CVAESeqLSTM(Base):
                 output_size=self.encodings + 1,
                 num_layers=self.hidden_n,
                 max_length=length,
-                conditionals_size=self.conditionals_size,
+                conditionals_size=self.labels_hidden_size,
                 dropout=self.dropout,
                 sos=self.sos,
             )
@@ -169,9 +169,9 @@ class CVAESeqLSTM(Base):
         """
         mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        conditioned_z = self.latent_block(z, conditionals)
+
         log_prob_y = self.decode(
-            conditioned_z, conditionals=conditionals, target=target
+            z, conditionals=conditionals, target=target
         )
         return [log_prob_y, mu, log_var, z]
 
@@ -192,7 +192,7 @@ class CVAESeqLSTM(Base):
         return [mu, log_var]
 
     def decode(
-        self, hidden: Tensor, conditionals: Tensor, target=None, **kwargs
+        self, z: Tensor, conditionals: Tensor, target=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -207,19 +207,20 @@ class CVAESeqLSTM(Base):
         batch_size = conditionals.shape[0]
 
         conditionals_hidden = self.label_encoder(conditionals)
+        conditioned_z = self.latent_block(z, conditionals_hidden)
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
             log_probs = self.decoder(
                 batch_size=batch_size,
-                hidden=hidden,
+                hidden=conditioned_z,
                 target=target,
                 conditionals=conditionals_hidden,
             )
         else:
             log_probs = self.decoder(
                 batch_size=batch_size,
-                hidden=hidden,
+                hidden=conditioned_z,
                 target=None,
                 conditionals=conditionals_hidden,
             )
@@ -242,7 +243,7 @@ class CVAESeqLSTM(Base):
         conditioned_z = self.latent_block(z, conditionals)
         prob_samples = exp(
             self.decode(
-                hidden=conditioned_z, conditionals=conditionals, **kwargs
+                z=conditioned_z, conditionals=conditionals, **kwargs
             )
         )
         return prob_samples
@@ -335,7 +336,7 @@ class HiddenConditionalEncoder(nn.Module):
 
         self.conditionals_ff = nn.Sequential(
             nn.Linear(conditionals_size, flat_size),
-            nn.LeakyReLU(),
+            # nn.LeakyReLU(),
             nn.Dropout(dropout),
         )
         self.embedding = CustomDurationEmbeddingConcat(
@@ -398,7 +399,7 @@ class InputsConditionalEncoder(nn.Module):
 
         self.inputs_ff = nn.Sequential(
             nn.Linear(conditionals_size, hidden_size),
-            nn.LeakyReLU(),
+            # nn.LeakyReLU(),
             nn.Dropout(dropout),
         )
         self.embedding = CustomDurationEmbeddingConcat(
@@ -459,7 +460,7 @@ class HiddenInputsConditionalEncoder(nn.Module):
 
         self.inputs_ff = nn.Sequential(
             nn.Linear(conditionals_size, hidden_size),
-            nn.LeakyReLU(),
+            # nn.LeakyReLU(),
             nn.Dropout(dropout),
         )
         self.embedding = CustomDurationEmbeddingConcat(
@@ -467,7 +468,7 @@ class HiddenInputsConditionalEncoder(nn.Module):
         )
         self.conditionals_ff = nn.Sequential(
             nn.Linear(conditionals_size, flat_size),
-            nn.LeakyReLU(),
+            # nn.LeakyReLU(),
             nn.Dropout(dropout),
         )
         self.lstm = nn.LSTM(

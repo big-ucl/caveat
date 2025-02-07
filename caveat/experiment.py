@@ -52,6 +52,7 @@ class Experiment(pl.LightningModule):
         self.conditionals_size = conditionals_size
         if self.conditionals_size is not None:
             print(f"Found conditionals size: {self.conditionals_size}")
+        self.label_embed_sizes = kwargs.get("label_embed_sizes", None)
         self.sos = sos
         print(f"Found start of sequence token: {self.sos}")
         self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)

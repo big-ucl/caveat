@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+import torch
 from pandas.testing import assert_frame_equal
 from torch import Tensor
 from torch.testing import assert_close
@@ -24,7 +25,7 @@ def test_encoder_nominal():
     )
     encoder = TokenAttributeEncoder(config=config)
     encoded, weights = encoder.encode(data)
-    expected = Tensor([[1], [0], [0]]).float()
+    expected = Tensor([[1], [0], [0]]).long()
     assert_close(encoded, expected)
     assert_close(weights, Tensor([[3], [3 / 2], [3 / 2]]).float())
     assert encoder.config["gender"] == {
@@ -45,7 +46,7 @@ def test_re_encoder_nominal():
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "M", "F"]}
     )
     new_encoded, weights = encoder.encode(new)
-    assert_close(new_encoded, Tensor([[1], [1], [0]]).float())
+    assert_close(new_encoded, Tensor([[1], [1], [0]]).long())
     assert_close(weights, Tensor([[3 / 2], [3 / 2], [3]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
@@ -100,7 +101,7 @@ def test_encoder_multi():
     )
     encoder = TokenAttributeEncoder(config=config)
     encoded, weights = encoder.encode(data)
-    expected = Tensor([[1, 0], [0, 0], [0, 1]]).float()
+    expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
     assert_close(
         weights, Tensor([[3, 3 / 2], [3 / 2, 3 / 2], [3 / 2, 3]]).float()
@@ -137,7 +138,7 @@ def test_re_encoder_mixed():
         }
     )
     new_encoded, _ = encoder.encode(new_data)
-    expected = Tensor([[1, 1], [1, 0], [0, 1]]).float()
+    expected = Tensor([[1, 1], [1, 0], [0, 1]]).long()
     assert_close(new_encoded, expected)
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
@@ -163,7 +164,7 @@ def test_decode_attributes():
     )
     encoder = TokenAttributeEncoder(config=config)
     encoded, _ = encoder.encode(data)
-    expected = Tensor([[1, 0], [0, 0], [0, 1]]).float()
+    expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
 
     preds = Tensor([[1, 0], [0, 0], [0, 1]])
