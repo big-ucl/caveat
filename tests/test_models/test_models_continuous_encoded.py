@@ -83,21 +83,25 @@ testdata = [
 
 @pytest.mark.parametrize("encoder,latent,decoder", testdata)
 def test_cvae_lstm_forward(encoder, latent, decoder):
-    x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
+    x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
     weights = torch.ones((3, 10))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
-    conditionals = torch.randn(3, 10)  # (batch, channels)
+    label_a = torch.randn(3, 5).argmax(dim=-1)
+    label_b = torch.randn(3, 2).argmax(dim=-1)
+    labels = torch.concat((label_a[:, None], label_b[:, None]), dim=-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
     model = CVAESeqLSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        conditionals_size=2,
         **{
+            "label_embed_sizes":[5,2],
             "hidden_n": 1,
-            "hidden_size": 2,
+            "hidden_size": 8,
+            "labels_hidden_size": 4,
             "latent_dim": 2,
             "dropout": 0.1,
             "encoder_conditionality": encoder,
@@ -105,7 +109,7 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
             "decoder_conditionality": decoder,
         },
     )
-    log_prob_y, mu, log_var, z = model(x_encoded, conditionals=conditionals)
+    log_prob_y, mu, log_var, z = model(x_encoded, conditionals=labels)
     assert log_prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
