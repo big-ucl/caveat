@@ -25,10 +25,10 @@ class VAESeqXAtt(Base):
         self.hidden_n = config["hidden_n"]
         self.dropout = config.get("dropout", 0.0)
         self.length, _ = self.in_shape
-        self.sampling = config.get("sampling", False)
+        self.sampling = config.get("sampling", "top")
         self.embedding = config.get("embedding", "concat")
         print(f"Embedding: {self.embedding}")
-        self.position_embedding = config.get("position_embedding", "fixed")
+        self.position_embedding = config.get("position_embedding", "learnt")
         print(f"Positional embedding: {self.position_embedding}")
         self.time_embedding = config.get("time_embedding", "none")
         print(f"Time embedding: {self.time_embedding}")
@@ -189,14 +189,18 @@ class VAESeqXAtt(Base):
 
     def sample(self, logits):
         acts, duration = torch.split(logits, [self.encodings, 1], dim=-1)
-        if self.sampling:
+        if self.sampling == "sample":
             # sample from the distribution
             act = torch.multinomial(torch.exp(logits), num_samples=1)  # (B, 1)
-        else:
+        elif self.sampling == "top":
             _, topi = logits.topk(1)
             act = (
                 topi.squeeze(-1).detach().unsqueeze(-1)
             )  # detach from history as input?
+        else:
+            raise ValueError(
+                f"Sampling method {self.sampling} not recognized, use 'sample' or 'top'"
+            )
         # [N, 1, encodings+1]
 
         _, topi = acts.topk(1)
@@ -828,7 +832,7 @@ class StartTimePositionEncoding(nn.Module):
         # start_times = (
         #     start_times - start_times.mean(dim=-1)[:, None]
         # )  # normalize
-        x[:, :, -2] = start_times
+        x[:, :, -1] = start_times
         return self.dropout(x)
 
 
@@ -849,5 +853,5 @@ class RemainingTimePositionEncoding(nn.Module):
             torch.cumsum(durations, dim=-1) - durations
         )
         # remaining = remaining - remaining.mean(dim=-1)[:, None]  # normalize
-        x[:, :, -2] = remaining
+        x[:, :, -1] = remaining
         return self.dropout(x)
