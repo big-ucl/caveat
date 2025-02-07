@@ -49,15 +49,15 @@ xattention:
     max_length: 16
     duration: 1440
     jitter: 0.1
-    fix_durations: True
+    fix_durations: False
   model_params:
     name: "VAESeqXAtt"
     latent_dim: 6
-    hidden_n: 4
-    heads: 8
+    hidden_n: 3
+    heads: 7
     hidden_size: 128
-    ffwd_size: 512
-    dropout: 0.1
+    ffwd_size: 256
+    dropout: 0
     embedding: concat
     position_embedding: learnt
     time_embedding: none

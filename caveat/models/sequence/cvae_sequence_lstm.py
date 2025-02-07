@@ -14,16 +14,34 @@ class CVAESeqLSTM(Base):
             raise UserWarning(
                 "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
+        self.label_embed_sizes = kwargs.get("label_embed_sizes", None)
+        if self.label_embed_sizes is None:
+            raise UserWarning("ConditionalLSTM requires label_embed_sizes")
+        if not isinstance(self.label_embed_sizes, list):
+            raise UserWarning(
+                "ConditionalLSTM requires label_embed_sizes to be a list of label embedding sizes"
+            )
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
+        self.labels_hidden_size = config.get(
+            "labels_hidden_size", self.hidden_size
+        )
+        print(f"Found label encoder hidden size = {self.labels_hidden_size}")
+
         self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
+
+        # label encoder
+        self.label_encoder = LabelEncoder(
+            label_embed_sizes=self.label_embed_sizes,
+            hidden_size=self.labels_hidden_size,
+        )
 
         # encoder
         encoder_conditionality = config.get("encoder_conditionality", "none")
@@ -41,7 +59,7 @@ class CVAESeqLSTM(Base):
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 hidden_layers=self.hidden_n,
-                conditionals_size=self.conditionals_size,
+                conditionals_size=self.labels_hidden_size,
                 dropout=self.dropout,
             )
         elif encoder_conditionality == "inputs":
@@ -50,7 +68,7 @@ class CVAESeqLSTM(Base):
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 hidden_layers=self.hidden_n,
-                conditionals_size=self.conditionals_size,
+                conditionals_size=self.labels_hidden_size,
                 max_length=length,
                 dropout=self.dropout,
             )
@@ -63,7 +81,7 @@ class CVAESeqLSTM(Base):
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 hidden_layers=self.hidden_n,
-                conditionals_size=self.conditionals_size,
+                conditionals_size=self.labels_hidden_size,
                 max_length=length,
                 dropout=self.dropout,
             )
@@ -166,7 +184,8 @@ class CVAESeqLSTM(Base):
         Returns:
             list[tensor]: Latent layer input (means and variances) [N, latent_dims].
         """
-        hidden = self.encoder(input, conditionals)
+        conditionals_hidden = self.label_encoder(conditionals)
+        hidden = self.encoder(input, conditionals_hidden)
         mu = self.fc_mu(hidden)
         log_var = self.fc_var(hidden)
 
@@ -187,20 +206,22 @@ class CVAESeqLSTM(Base):
         """
         batch_size = conditionals.shape[0]
 
+        conditionals_hidden = self.label_encoder(conditionals)
+
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
             log_probs = self.decoder(
                 batch_size=batch_size,
                 hidden=hidden,
                 target=target,
-                conditionals=conditionals,
+                conditionals=conditionals_hidden,
             )
         else:
             log_probs = self.decoder(
                 batch_size=batch_size,
                 hidden=hidden,
                 target=None,
-                conditionals=conditionals,
+                conditionals=conditionals_hidden,
             )
 
         return log_probs
@@ -225,6 +246,28 @@ class CVAESeqLSTM(Base):
             )
         )
         return prob_samples
+
+
+class LabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size):
+        """Label Encoder using token embedding.
+        Embedding outputs are the same size but use different weights so that they can be different sizes.
+        Each embedding is then stacked and summed to give single encoding."""
+        super(LabelEncoder, self).__init__()
+        self.embeds = nn.ModuleList(
+            [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
+        )
+        self.fc = nn.Linear(hidden_size, hidden_size)
+        self.activation = nn.ReLU()
+        # self.fc_out = nn.Linear(hidden_size * 4, hidden_size)
+
+    def forward(self, x):
+        x = torch.stack(
+            [embed(x[:, i]) for i, embed in enumerate(self.embeds)], dim=-1
+        ).sum(dim=-1)
+        x = self.fc(x)
+        x = self.activation(x)
+        return x
 
 
 class Encoder(nn.Module):
