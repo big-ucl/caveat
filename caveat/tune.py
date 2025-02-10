@@ -66,9 +66,9 @@ def tune_command(
             torch.set_float32_matmul_precision("medium")
         torch.cuda.empty_cache()
 
-        trial_config, hyperparameters = build_config(trial, config)
+        trial_config = build_config(trial, config)
 
-        trial_name = build_trial_name(trial.number, hyperparameters)
+        trial_name = build_trial_name(trial.number)
         logger = runners.initiate_logger(base_dir, trial_name)
 
         # encode data
@@ -97,7 +97,7 @@ def tune_command(
             )
 
         trainer = runners.build_trainer(logger, trial_config)
-        trainer.logger.log_hyperparams(hyperparameters)
+        trainer.logger.log_hyperparams(trial.params)
 
         trial.set_user_attr("config", trial_config)
 
@@ -134,8 +134,8 @@ def tune_command(
     runners.run_command(
         config, verbose=verbose, gen=gen, test=test, infer=infer
     )
-
-    print("Best params:", best_trial.params)
+    print("=============================================")
+    print(f"Best ({best_trial.value}) params: {best_trial.params}")
 
 
 def build_trail_trainer(
@@ -176,21 +176,12 @@ def best_callback(study, trial):
 def build_config(trial: optuna.Trial, config: dict) -> dict:
     """Iterate through the config leaves and parse the values"""
     new_config = copy.deepcopy(config)
-    suggestions = {}
-    new_config = build_suggestions(trial, new_config, suggestions)
-    return new_config, suggestions
+    new_config = build_suggestions(trial, new_config)
+    return new_config
 
 
-def build_trial_name(
-    number: int, suggestions: dict, include_kvs: bool = True
-) -> str:
-    number_str = str(number).zfill(4)
-    if include_kvs:
-        kv_str = "_".join(
-            [f"{skey(k)}>{svalue(v)}" for k, v in suggestions.items()]
-        )
-        number_str = f"{number_str}_{kv_str}"
-    return number_str
+def build_trial_name(number: int) -> str:
+    return str(number).zfill(4)
 
 
 def skey(key: str) -> str:
@@ -209,93 +200,102 @@ def svalue(value) -> str:
     return str(value)
 
 
-def build_suggestions(trial: optuna.Trial, config: dict, suggestions: dict):
+def build_suggestions(trial: optuna.Trial, config: dict):
     for k, v in config.copy().items():
         if isinstance(v, dict):
-            config[k] = build_suggestions(trial, v, suggestions)
+            config[k] = build_suggestions(trial, v)
         else:
-            name, suggestion = parse_suggestion(trial, v)
-            if name is not None:
-                suggestions[name] = suggestion
+            tuned, suggestion = parse_suggestion(trial, v)
+            if tuned:
                 config.pop(k)
                 config[k] = suggestion
     return config
 
 
 def parse_suggestion(trial, value: str):
-    """Parse the value and return a tuple of the name and the suggested value.
+    """Execute the value and return the suggested value.
     Or return Nones if not a suggestion.
     """
-    if not isinstance(value, str):
-        return (None, None)
-    if not value.startswith("suggest"):
-        return (None, None)
-    if value.startswith("suggest_int("):
-        return suggest_int(trial, value)
-    if value.startswith("suggest_float("):
-        return suggest_float(trial, value)
-    if value.startswith("suggest_categorical("):
-        return suggest_categorical(trial, value)
-    raise ValueError(f"Unknown suggestion type: {value}")
+    if isinstance(value, str) and value.startswith("trial.suggest"):
+        return True, eval(value)
+    else:
+        return False, None
 
 
-def suggest_int(trial: optuna.Trial, value: str):
-    args = (
-        value.strip().removeprefix("suggest_int(").removesuffix(")").split(",")
-    )
-    name = parse_name(args[0])
-    low = int(args[1])
-    high = int(args[2])
-    kwargs = {}
-    for kv in args[3:]:
-        key, value = kv.split("=")
-        kwargs[parse_value(key)] = parse_value(value)
-    return (name, trial.suggest_int(name, low, high, **kwargs))
+# def parse_suggestion(trial, value: str):
+#     """Parse the value and return a tuple of the name and the suggested value.
+#     Or return Nones if not a suggestion.
+#     """
+#     if not isinstance(value, str):
+#         return (None, None)
+#     if not value.startswith("suggest"):
+#         return (None, None)
+#     if value.startswith("suggest_int("):
+#         return suggest_int(trial, value)
+#     if value.startswith("suggest_float("):
+#         return suggest_float(trial, value)
+#     if value.startswith("suggest_categorical("):
+#         return suggest_categorical(trial, value)
+#     raise ValueError(f"Unknown suggestion type: {value}")
 
 
-def suggest_float(trial: optuna.Trial, value: str):
-    args = (
-        value.strip()
-        .removeprefix("suggest_float(")
-        .removesuffix(")")
-        .split(",")
-    )
-    name = parse_name(args[0])
-    low = float(args[1])
-    high = float(args[2])
-    kwargs = {}
-    for kv in args[3:]:
-        key, value = kv.split("=")
-        kwargs[parse_value(key)] = parse_value(value)
-    return (name, trial.suggest_float(name, low, high, **kwargs))
+# def suggest_int(trial: optuna.Trial, value: str):
+#     args = (
+#         value.strip().removeprefix("suggest_int(").removesuffix(")").split(",")
+#     )
+#     name = parse_name(args[0])
+#     low = int(args[1])
+#     high = int(args[2])
+#     kwargs = {}
+#     for kv in args[3:]:
+#         key, value = kv.split("=")
+#         kwargs[parse_value(key)] = parse_value(value)
+#     return (name, trial.suggest_int(name, low, high, **kwargs))
 
 
-def suggest_categorical(trial: optuna.Trial, value: str):
-    args = (
-        value.strip()
-        .removeprefix("suggest_categorical(")
-        .removesuffix(")")
-        .split(",", 1)
-    )
-    name = parse_name(args[0])
-    choices = args[1]
-    choices = choices.strip().removeprefix("[").removesuffix("]").split(",")
-    choices = [parse_value(c) for c in choices]
-    return (name, trial.suggest_categorical(name, choices))
+# def suggest_float(trial: optuna.Trial, value: str):
+#     args = (
+#         value.strip()
+#         .removeprefix("suggest_float(")
+#         .removesuffix(")")
+#         .split(",")
+#     )
+#     name = parse_name(args[0])
+#     low = float(args[1])
+#     high = float(args[2])
+#     kwargs = {}
+#     for kv in args[3:]:
+#         key, value = kv.split("=")
+#         kwargs[parse_value(key)] = parse_value(value)
+#     return (name, trial.suggest_float(name, low, high, **kwargs))
 
 
-def parse_name(name: str):
-    return name.strip().removeprefix('"').removesuffix('"')
+# def suggest_categorical(trial: optuna.Trial, value: str):
+#     args = (
+#         value.strip()
+#         .removeprefix("suggest_categorical(")
+#         .removesuffix(")")
+#         .split(",", 1)
+#     )
+#     name = parse_name(args[0])
+#     choices = args[1]
+#     choices = choices.strip().removeprefix("[").removesuffix("]").split(",")
+#     choices = [parse_value(c) for c in choices]
+#     return (name, trial.suggest_categorical(name, choices))
 
 
-def parse_value(value: str):
-    cleaned = value.strip()
-    if cleaned.isnumeric():
-        return int(cleaned)
-    if cleaned.replace(".", "", 1).isnumeric():
-        return float(value)
-    if cleaned == "True":
-        return True
-    if cleaned == "False":
-        return False
-    return cleaned
+# def parse_name(name: str):
+#     return name.strip().removeprefix('"').removesuffix('"')
+
+
+# def parse_value(value: str):
+#     cleaned = value.strip()
+#     if cleaned.isnumeric():
+#         return int(cleaned)
+#     if cleaned.replace(".", "", 1).isnumeric():
+#         return float(value)
+#     if cleaned == "True":
+#         return True
+#     if cleaned == "False":
+#         return False
+#     return cleaned

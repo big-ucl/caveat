@@ -2,7 +2,7 @@ seed: 12345
 
 logging_params:
   log_dir: logs
-  name: VAEContXAtt_tune
+  name: CVAESeqLSTM_tune
 
 tune:
   trials: 200
@@ -10,14 +10,16 @@ tune:
   timeout:  36000 # seconds
 
 schedules_path: tmp/nts_home_schedules.csv
-# attributes_path: tmp/nts_home_attributes_groups.csv
+attributes_path: tmp/nts_home_attributes_groups.csv
 
-# conditionals:
-#   gender: nominal
-#   age_group: nominal
-#   car_access: nominal
-#   work_status: nominal
-#   income: nominal
+attribute_encoder: "tokens"
+
+conditionals:
+  gender: nominal
+  age_group: nominal
+  car_access: nominal
+  work_status: nominal
+  income: nominal
 
 # evaluation_params:
 #   split_on: [gender, age_group, car_access, work_status, income]
@@ -33,27 +35,24 @@ trainer_params:
   patience: 10
 
 encoder_params:
-  name: "sequence_staggered"
+  name: "sequence"
   max_length: 16
   duration: 1440
-  jitter: suggest_float(jitter, 0, 0.3)
+  jitter: trial.suggest_float("jitter", 0, 0.3)
 
 experiment_params:
-  LR: suggest_float(LR, 1e-4, 0.001, log=True)
+  LR: trial.suggest_float("LR", 1e-4, 0.001, log=True)
   weight_decay: 0.01
   scheduler_gamma: 0.975
   kld_weight: 0.01
 
 model_params:
-  name: VAESeqXAtt
+  name: CVAESeqLSTM
   latent_dim: 6
-  hidden_n: suggest_int(hidden_n, 2, 6)
-  heads: suggest_int(heads, 4, 16, step=2)
-  hidden_size: suggest_categorical(hidden_size, [128, 256, 512, 1024])
-  ffwd_size: suggest_categorical(ffwd_size, [128, 256, 512, 1024, 2048])
-  dropout: suggest_float(dropout, 0, 0.3)
-  embedding: concat
-  position_embedding: suggest_categorical(position_embedding, [fixed, learnt])
-  time_embedding: none
-  latent_context: suggest_categorical(latent_context, [xattention, add])
-  sample: suggest_categorical(sample, [top, sample])
+  hidden_n: trial.suggest_int("hidden_n", 2, 6)
+  hidden_size: trial.suggest_categorical("hidden_size", [128, 256, 512, 1024])
+  labels_hidden_size: trial.suggest_categorical("labels_hidden_size", [16, 32, 64, 128, 256])
+  dropout: trial.suggest_float("dropout", 0, 0.3)
+  encoder_conditionality: both
+  latent_conditionality: concat
+  decoder_conditionality: inputs
