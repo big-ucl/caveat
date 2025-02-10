@@ -6,10 +6,20 @@ global:
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
+
+  attribute_encoder: "tokens"
+
+  conditionals:
+    gender: nominal
+    age_group: nominal
+    car_access: nominal
+    work_status: nominal
+    income: nominal
+
   loader_params:
     train_batch_size: 1024
     val_batch_size:  1024
-    num_workers: 4
+    num_workers: 8
 
   trainer_params:
     min_epochs: 10
@@ -30,7 +40,7 @@ global:
     kld_weight: 0.01
     label_loss_weight: 0.0001
 
-NoneConcatNone:
+NoneConcatNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -43,7 +53,7 @@ NoneConcatNone:
     latent_conditionality: concat
     decoder_conditionality: none
 
-NoneAddNone:
+NoneAddNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -56,7 +66,7 @@ NoneAddNone:
     latent_conditionality: add
     decoder_conditionality: none
 
-HiddenConcatNone:
+HiddenConcatNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -69,7 +79,7 @@ HiddenConcatNone:
     latent_conditionality: concat
     decoder_conditionality: none
 
-HiddenAddNone:
+HiddenAddNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -82,7 +92,7 @@ HiddenAddNone:
     latent_conditionality: add
     decoder_conditionality: none
 
-InputsConcatNone:
+InputsConcatNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -95,7 +105,7 @@ InputsConcatNone:
     latent_conditionality: concat
     decoder_conditionality: none
 
-InputsAddNone:
+InputsAddNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -108,7 +118,7 @@ InputsAddNone:
     latent_conditionality: add
     decoder_conditionality: none
 
-BothConcatNone:
+BothConcatNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -121,7 +131,7 @@ BothConcatNone:
     latent_conditionality: concat
     decoder_conditionality: none
 
-BothAddNone:
+BothAddNone2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -134,7 +144,7 @@ BothAddNone:
     latent_conditionality: add
     decoder_conditionality: none
 
-NoneConcatInputs:
+NoneConcatInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -147,7 +157,7 @@ NoneConcatInputs:
     latent_conditionality: concat
     decoder_conditionality: inputs
 
-NoneAddInputs:
+NoneAddInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -160,7 +170,7 @@ NoneAddInputs:
     latent_conditionality: add
     decoder_conditionality: inputs
 
-HiddenConcatInputs:
+HiddenConcatInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -173,7 +183,7 @@ HiddenConcatInputs:
     latent_conditionality: concat
     decoder_conditionality: inputs
 
-HiddenAddInputs:
+HiddenAddInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -186,7 +196,7 @@ HiddenAddInputs:
     latent_conditionality: add
     decoder_conditionality: inputs
 
-InputsConcatInputs:
+InputsConcatInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -199,7 +209,7 @@ InputsConcatInputs:
     latent_conditionality: concat
     decoder_conditionality: inputs
 
-InputsAddInputs:
+InputsAddInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -212,7 +222,7 @@ InputsAddInputs:
     latent_conditionality: add
     decoder_conditionality: inputs
 
-BothConcatInputs:
+BothConcatInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
@@ -225,7 +235,7 @@ BothConcatInputs:
     latent_conditionality: concat
     decoder_conditionality: inputs
 
-BothAddInputs:
+BothAddInputs2:
   model_params:
     name: "CVAESeqLSTM"
     hidden_n: 5
