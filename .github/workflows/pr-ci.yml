@@ -40,12 +40,12 @@ jobs:
       upload_to_codecov: true
       additional_mamba_args: '-c conda-forge -c pytorch -c nvidia'
 
-  memory-profile:
-    uses: fredshone/actions/.github/workflows/python-memory-profile.yml@main
-    with:
-      py3version: "11"
-      upload_flamegraph: true
-      additional_mamba_args: '-c conda-forge -c pytorch -c nvidia'
+  # memory-profile:
+  #   uses: fredshone/actions/.github/workflows/python-memory-profile.yml@main
+  #   with:
+  #     py3version: "11"
+  #     upload_flamegraph: true
+  #     additional_mamba_args: '-c conda-forge -c pytorch -c nvidia'
 
   # cruft-check:
   #   uses: fredshone/actions/.github/workflows/template-check.yml@main
