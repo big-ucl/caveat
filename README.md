@@ -20,18 +20,14 @@ Caveat is part of an ongoing research project. Overview of presented work can be
 **Generation** for up-sampling or anonymisation an observed population of activity schedules:
 - `caveat run configs/example_run.yaml` - train a generative model using an observed population of schedules, sample a new synthetic population of schedules, and evaluate it's quality.
 
-**Conditional Generation** for bias correction and simple forecasting from an observed population of schedules and attributes:
+**Conditional Generation** for bias correction and simple forecasting or modelling from an observed population of schedules and attributes:
 - `caveat run configs/example_run_conditional.yaml` - train a model using an observed population of schedules with attributes, sample a new population conditional on new person attributes, and evaluate it's quality.
-
-**Predict**
-- `caveat run configs/example_seq2score.yaml --test` - train and test a model to predict MATSim plan scores.
-- `caveat run configs/example_seq2seq.yaml --test` - train and test a model to predict an output MATSim plan from input.
 
 ## Quick Start
 
 Once [installed](#installation) get started using `caveat --help`.
 
-Caveat provides various commands to facilitate rapid and reproducible experiments. Outputs are written to the (default) `logs` directory:
+Caveat provides various commands to facilitate rapid and reproducible experiments. Outputs are written to the (default) `logs` directory.
 
 ### Run
 
@@ -69,11 +65,32 @@ As per nrun but only assesses variance from the sampling/generative process (not
 
 - `caveat ngen configs/example_run.yaml --n 3`
 
-### Reporting
+### Evaluate
 
-`caveat report --help`
+`caveat eval --help`
 
-Evaluate the outputs of an existing run (or batch using `-b`).
+Evaluate the outputs of an existing run (or batch using `-b`):
+
+- `caveat eval configs/example_run.yaml`
+- `caveat eval configs/example_batch_conditional.yaml -b` (conditional evaluation of batch)
+
+### Tune
+
+`caveat tune --help`
+
+Carry out hyper-parameter tuning using optuna. See the example config `config/example_tune.yaml`. Tuning runs are recorded in `optuna.db` and can be reviewed via [optuna-dashboard](https://optuna-dashboard.readthedocs.io/en/latest/getting-started.html).
+
+### Label, joint and multi-model models
+
+We have some fancy model variations for predicting labels from schedules, joint generation of schedules and associated labels, and multi-model runs (segmenting and training a model per label).
+
+`caveat lrun --help`
+
+`caveat jrun --help`
+
+`caveat jbatch --help`
+
+`caveat mmrun --help`
 
 ### Logging
 
