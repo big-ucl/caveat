@@ -127,7 +127,7 @@ class CVAESeqLSTM(Base):
                 conditionals_size=self.labels_hidden_size,
                 latent_dim=self.latent_dim,
                 flat_size_encode=flat_size_encode,
-                hidden_layers=self.hidden_n,
+                hidden_n=self.hidden_n,
                 hidden_size=self.hidden_size,
             )
         else:
@@ -715,11 +715,11 @@ class AddLatent(nn.Module):
         conditionals_size: int,
         latent_dim: int,
         flat_size_encode: int,
-        hidden_layers: int,
+        hidden_n: int,
         hidden_size: int,
     ):
         super(AddLatent, self).__init__()
-        self.hidden_layers = hidden_layers
+        self.hidden_n = hidden_n
         self.hidden_size = hidden_size
         self.conditionals_fc = nn.Linear(conditionals_size, latent_dim)
         self.latent_fc = nn.Linear(latent_dim, flat_size_encode)
@@ -733,13 +733,11 @@ class AddLatent(nn.Module):
         h = self.latent_fc(z)
 
         # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
-        ).permute(
+        hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
             1, 0, 2
         )  # ([2xhidden, N, layers])
         hidden = hidden.split(
-            self.hidden_layers
+            self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
         return hidden
 
