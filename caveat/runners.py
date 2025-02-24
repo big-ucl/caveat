@@ -954,7 +954,7 @@ def evaluate_synthetics(
 
     split_on = eval_params.get("split_on", [])
     if split_on:
-        print(f"Splitting evaluation on {split_on}")
+        print(f"Conditional Evaluation using: {split_on}")
         eval_attributes_path = eval_params.get("attributes_path", None)
         if eval_attributes_path:
             eval_attributes = data.load_and_validate_attributes(
@@ -982,20 +982,19 @@ def evaluate_synthetics(
             suffix="_subs",
             ranking=len(synthetic_schedules) > 1,
         )
-
-    else:
-        reports = evaluate.evaluate(
-            target_schedules=eval_schedules,
-            synthetic_schedules=synthetic_schedules,
-            report_stats=stats,
-        )
-        evaluate.report(
-            reports,
-            log_dir=write_path,
-            head=head,
-            verbose=verbose,
-            ranking=len(synthetic_schedules) > 1,
-        )
+    print("Evaluating schedules")
+    reports = evaluate.evaluate(
+        target_schedules=eval_schedules,
+        synthetic_schedules=synthetic_schedules,
+        report_stats=stats,
+    )
+    evaluate.report(
+        reports,
+        log_dir=write_path,
+        head=head,
+        verbose=verbose,
+        ranking=len(synthetic_schedules) > 1,
+    )
 
 
 def conditional_sample(

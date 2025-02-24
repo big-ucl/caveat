@@ -23,6 +23,8 @@ class CondSeqLSTM(Base):
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
+        self.label_encoder = LabelEncoder()
+
         self.decoder = Decoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
@@ -119,6 +121,28 @@ class CondSeqLSTM(Base):
         z = z.to(device)
         conditionals = conditionals.to(device)
         return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
+
+
+class LabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size):
+        """Label Encoder using token embedding.
+        Embedding outputs are the same size but use different weights so that they can be different sizes.
+        Each embedding is then stacked and summed to give single encoding."""
+        super(LabelEncoder, self).__init__()
+        self.embeds = nn.ModuleList(
+            [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
+        )
+        self.fc = nn.Linear(hidden_size, hidden_size)
+        self.activation = nn.ReLU()
+        # self.fc_out = nn.Linear(hidden_size * 4, hidden_size)
+
+    def forward(self, x):
+        x = torch.stack(
+            [embed(x[:, i]) for i, embed in enumerate(self.embeds)], dim=-1
+        ).sum(dim=-1)
+        x = self.fc(x)
+        x = self.activation(x)
+        return x
 
 
 class Decoder(nn.Module):
