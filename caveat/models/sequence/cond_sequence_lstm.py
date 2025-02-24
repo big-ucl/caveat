@@ -23,7 +23,10 @@ class CondSeqLSTM(Base):
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
-        self.label_encoder = LabelEncoder()
+        self.label_encoder = LabelEncoder(
+            label_embed_sizes=self.label_embed_sizes,
+            hidden_size=self.hidden_size,
+        )
 
         self.decoder = Decoder(
             input_size=self.encodings,
@@ -35,9 +38,10 @@ class CondSeqLSTM(Base):
             sos=self.sos,
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
+        print("UNFLATTENED SHAPE", self.unflattened_shape)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_hidden = nn.Linear(self.conditionals_size, flat_size_encode)
-        self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
+        print("FLAT SIZE", flat_size_encode)
+        self.fc_hidden = nn.Linear(self.hidden_size, flat_size_encode)
 
     def forward(
         self,
@@ -100,8 +104,11 @@ class CondSeqLSTM(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        h = self.fc_hidden(conditionals)
-        x = self.fc_x(conditionals).unsqueeze(-2)
+        batch_size = conditionals.shape[0]
+        embeds = self.label_encoder(conditionals)
+        print("EMBEDS", embeds.shape)
+        h = self.fc_hidden(embeds)
+        print("ENCODED H", h.shape)
 
         # initialize hidden state
         hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
@@ -111,7 +118,23 @@ class CondSeqLSTM(Base):
             self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
 
-        log_probs = self.decoder(hidden=hidden, x=x, target=None)
+        print("DECODE", hidden[0].shape, hidden[1].shape)
+
+        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
+            # use teacher forcing
+            log_probs = self.decoder(
+                batch_size=batch_size,
+                hidden=hidden,
+                target=target,
+                conditionals=embeds,
+            )
+        else:
+            log_probs = self.decoder(
+                batch_size=batch_size,
+                hidden=hidden,
+                target=None,
+                conditionals=embeds,
+            )
 
         return log_probs
 
@@ -190,18 +213,30 @@ class Decoder(nn.Module):
             nn.Sigmoid(), nn.LogSoftmax(dim=-2)
         )
 
-    def forward(self, hidden, x, **kwargs):
+    def forward(self, hidden, conditionals, target=None, **kwargs):
         hidden, cell = hidden
         hidden = hidden.contiguous()
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
+
+        batch_size = hidden.size(0)
+        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        decoder_input[:, :, 0] = self.sos
+
         outputs = []
 
-        for _ in range(self.max_length):
+        for i in range(self.max_length):
             decoder_output, decoder_hidden = self.forward_step(
-                x, decoder_hidden
+                decoder_input, decoder_hidden, conditionals
             )
             outputs.append(decoder_output.squeeze())
+
+            if target is not None:
+                # teacher forcing for next step
+                decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
+            else:
+                # no teacher forcing use decoder output
+                decoder_input = self.pack(decoder_output)
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
         acts_logits, durations = torch.split(
@@ -213,7 +248,20 @@ class Decoder(nn.Module):
 
         return log_prob_outputs
 
-    def forward_step(self, x, hidden):
-        output, hidden = self.lstm(x, hidden)
+    def forward_step(self, x, hidden, conditionals):
+        embedded = self.embedding(x) + conditionals
+        output, hidden = self.lstm(embedded, hidden)
         prediction = self.fc(output)
         return prediction, hidden
+
+    def pack(self, x):
+        # [N, 1, encodings+1]
+        acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
+        _, topi = acts.topk(1)
+        act = (
+            topi.squeeze(-1).detach().unsqueeze(-1)
+        )  # detach from history as input
+        duration = self.duration_activation(duration)
+        outputs = torch.cat((act, duration), dim=-1)
+        # [N, 1, 2]
+        return outputs
