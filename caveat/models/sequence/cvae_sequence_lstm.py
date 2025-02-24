@@ -81,12 +81,19 @@ class CVAESeqLSTM(Base):
                 max_length=length,
                 dropout=self.dropout,
             )
-        elif (
-            encoder_conditionality == "hidden_and_inputs"
-            or encoder_conditionality == "both"
-        ):
-            print("Using hidden and inputs encoder conditionality")
-            self.encoder = HiddenInputsConditionalEncoder(
+        elif encoder_conditionality == "both_add":
+            print("Using hidden and inputs add encoder conditionality")
+            self.encoder = HiddenInputsAddConditionalEncoder(
+                input_size=self.encodings,
+                hidden_size=self.hidden_size,
+                hidden_layers=self.hidden_n,
+                conditionals_size=self.labels_hidden_size,
+                max_length=length,
+                dropout=self.dropout,
+            )
+        elif encoder_conditionality == "both_concat":
+            print("Using hidden and inputs concat encoder conditionality")
+            self.encoder = HiddenInputsConcatConditionalEncoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 hidden_layers=self.hidden_n,
@@ -517,7 +524,7 @@ class InputsConcatConditionalEncoder(nn.Module):
         return hidden
 
 
-class HiddenInputsConditionalEncoder(nn.Module):
+class HiddenInputsAddConditionalEncoder(nn.Module):
     def __init__(
         self,
         input_size: int,
@@ -538,7 +545,7 @@ class HiddenInputsConditionalEncoder(nn.Module):
             max_length (int): max length of sequences.
             dropout (float): dropout. Defaults to 0.1.
         """
-        super(HiddenInputsConditionalEncoder, self).__init__()
+        super(HiddenInputsAddConditionalEncoder, self).__init__()
         self.hidden_size = hidden_size
         self.hidden_layers = hidden_layers
         self.max_length = max_length
@@ -583,6 +590,81 @@ class HiddenInputsConditionalEncoder(nn.Module):
         )
         embedded = self.embedding(x)
         embedded = embedded + inputs_conditionals
+        _, (h1, h2) = self.lstm(embedded, (h1, h2))
+        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
+        h1 = self.norm(h1)
+        h2 = self.norm(h2)
+        hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
+        # [N, flatsize]
+        return hidden
+
+
+class HiddenInputsConcatConditionalEncoder(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        hidden_layers: int,
+        conditionals_size: int,
+        max_length: int,
+        dropout: float = 0.1,
+        conditional_hidden_size: Optional[int] = None,
+    ):
+        super().__init__()
+        self.hidden_layers = hidden_layers
+        self.hidden_size = hidden_size
+        self.max_length = max_length
+        if conditional_hidden_size is None:
+            conditional_hidden_size = int(hidden_size / 2)
+        else:
+            conditional_hidden_size = conditional_hidden_size
+        encoding_size = hidden_size - conditional_hidden_size
+        if encoding_size < 0:
+            raise ValueError(
+                "conditional_hidden_size must be less than or equal to hidden_size"
+            )
+
+        flat_size = 2 * hidden_layers * hidden_size
+
+        self.inputs_ff = nn.Sequential(
+            nn.Linear(conditionals_size, conditional_hidden_size),
+            # nn.LeakyReLU(),
+            nn.Dropout(dropout),
+        )
+        self.embedding = CustomDurationEmbeddingConcat(
+            input_size, encoding_size, dropout=dropout
+        )
+        self.conditionals_ff = nn.Sequential(
+            nn.Linear(conditionals_size, flat_size),
+            # nn.LeakyReLU(),
+            nn.Dropout(dropout),
+        )
+        self.lstm = nn.LSTM(
+            hidden_size,
+            hidden_size,
+            hidden_layers,
+            batch_first=True,
+            bidirectional=False,
+        )
+        self.norm = nn.LayerNorm(hidden_size)
+
+    def forward(self, x, conditionals):
+        h1, h2 = (
+            self.conditionals_ff(conditionals)
+            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
+            .permute(1, 0, 2)
+            .split(self.hidden_layers)
+        )
+        h1 = h1.contiguous()
+        h2 = h2.contiguous()
+
+        inputs_conditionals = (
+            self.inputs_ff(conditionals)
+            .unsqueeze(1)
+            .repeat(1, self.max_length, 1)
+        )
+        embedded = self.embedding(x)
+        embedded = torch.concat((embedded, inputs_conditionals), dim=-1)
         _, (h1, h2) = self.lstm(embedded, (h1, h2))
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
         h1 = self.norm(h1)

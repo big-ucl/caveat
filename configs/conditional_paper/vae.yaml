@@ -1,8 +1,8 @@
 seed: 12345
 
 logging_params:
-  log_dir: "logs"
-  name: "paper_c_rnn_vae"
+  log_dir: "logs/TRB"
+  name: "vae"
 
 schedules_path: "tmp/nts_home_schedules.csv"
 
@@ -26,6 +26,7 @@ encoder_params:
   name: "sequence"
   duration: 1440
   jitter: 0
+  fix_durations: True
 
 model_params:
   name: "VAESeqLSTM"

@@ -1,8 +1,8 @@
 seed: 12345
 
 logging_params:
-  log_dir: logs
-  name: CVAESeqLSTM_tune
+  log_dir: logs/TRB
+  name: Discim_tune
 
 tune:
   trials: 200
@@ -12,7 +12,7 @@ tune:
 schedules_path: tmp/nts_home_schedules.csv
 attributes_path: tmp/nts_home_attributes_groups.csv
 
-attribute_encoder: "tokens"
+# attribute_encoder: "tokens"
 
 conditionals:
   gender: nominal
@@ -35,24 +35,21 @@ trainer_params:
   patience: 10
 
 encoder_params:
-  name: "sequence"
-  max_length: 16
+  name: "discrete"
+  step_size: 10
   duration: 1440
   jitter: trial.suggest_float("jitter", 0, 0.3)
 
 experiment_params:
-  LR: trial.suggest_float("LR", 1e-4, 0.001, log=True)
-  weight_decay: 0.01
+  LR: trial.suggest_float("LR", 1e-4, 0.01, log=True)
+  weight_decay: 0.02
   scheduler_gamma: 0.975
   kld_weight: 0.01
 
 model_params:
-  name: CVAESeqLSTM
-  latent_dim: 6
+  name: CondDiscLSTM
+  latent_dim: 0
   hidden_n: trial.suggest_int("hidden_n", 2, 6)
-  hidden_size: trial.suggest_categorical("hidden_size", [128, 256, 512, 1024])
-  labels_hidden_size: trial.suggest_categorical("labels_hidden_size", [16, 32, 64, 128, 256])
-  dropout: trial.suggest_float("dropout", 0, 0.3)
-  encoder_conditionality: both
-  latent_conditionality: concat
-  decoder_conditionality: inputs
+  hidden_size: trial.suggest_categorical("hidden_size", [64, 128, 256, 512])
+  dropout: 0
+  bidirectional: True
