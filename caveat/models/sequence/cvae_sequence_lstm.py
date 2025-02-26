@@ -900,7 +900,8 @@ class InputsAddConditionalDecoder(Decoder):
 
     def forward_step(self, x, hidden, conditionals):
         # [N, 1, 2]
-        embedded = self.embedding(x) + conditionals
+        embedded = self.embedding(x)
+        embedded = embedded + conditionals
         output, hidden = self.lstm(embedded, hidden)
         prediction = self.fc(output)
         # [N, 1, encodings+1]
