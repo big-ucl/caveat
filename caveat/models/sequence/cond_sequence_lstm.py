@@ -38,9 +38,7 @@ class CondSeqLSTM(Base):
             sos=self.sos,
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
-        print("UNFLATTENED SHAPE", self.unflattened_shape)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        print("FLAT SIZE", flat_size_encode)
         self.fc_hidden = nn.Linear(self.hidden_size, flat_size_encode)
 
     def forward(
@@ -106,9 +104,7 @@ class CondSeqLSTM(Base):
         """
         batch_size = conditionals.shape[0]
         embeds = self.label_encoder(conditionals)
-        print("EMBEDS", embeds.shape)
         h = self.fc_hidden(embeds)
-        print("ENCODED H", h.shape)
 
         # initialize hidden state
         hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
@@ -117,8 +113,6 @@ class CondSeqLSTM(Base):
         hidden = hidden.split(
             self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
-
-        print("DECODE", hidden[0].shape, hidden[1].shape)
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
@@ -206,7 +200,7 @@ class Decoder(nn.Module):
             batch_first=True,
             bidirectional=False,
         )
-        self.fc = nn.Linear(hidden_size, output_size)
+        self.fc_out = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sequential(
@@ -219,7 +213,7 @@ class Decoder(nn.Module):
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
 
-        batch_size = hidden.size(0)
+        batch_size = hidden[0].shape[0]
         decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
         decoder_input[:, :, 0] = self.sos
 
@@ -249,9 +243,10 @@ class Decoder(nn.Module):
         return log_prob_outputs
 
     def forward_step(self, x, hidden, conditionals):
-        embedded = self.embedding(x) + conditionals
+        embedded = self.embedding(x)
+        embedded = embedded + conditionals.unsqueeze(1)
         output, hidden = self.lstm(embedded, hidden)
-        prediction = self.fc(output)
+        prediction = self.fc_out(output)
         return prediction, hidden
 
     def pack(self, x):

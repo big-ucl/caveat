@@ -58,7 +58,7 @@ def test_conditional_lstm_forward():
         **{
             "label_embed_sizes": [5, 2],
             "hidden_n": 1,
-            "hidden_size": 2,
+            "hidden_size": 8,
             "latent_dim": 2,
             "dropout": 0.1,
         },
