@@ -51,18 +51,18 @@ global:
     kld_weight: 0.01
     label_loss_weight: 0.0001
 
-A:
+jvae_nrun0:
   seed: 11111
 
-B:
+jvae_nrun1:
   seed: 22222
 
-C:
+jvae_nrun2:
   seed: 33333
 
-D:
+jvae_nrun3:
   seed: 44444
 
-E:
+jvae_nrun4:
   seed: 55555
 

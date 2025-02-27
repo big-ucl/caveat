@@ -1,0 +1,57 @@
+global:
+  seed: 12345
+
+  logging_params:
+    log_dir: "logs/TRB"
+    name: "vae"
+
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes_groups.csv"
+
+  evaluation_params:
+    split_on: [gender, age_group, car_access, work_status, income]
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 50
+    max_epochs: 200
+    patience: 20
+
+  experiment_params:
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+
+  encoder_params:
+    name: "sequence"
+    duration: 1440
+    jitter: 0
+    fix_durations: True
+
+  model_params:
+    name: "VAESeqLSTM"
+    latent_dim: 6
+    hidden_n: 5
+    hidden_size: 256
+    dropout: 0
+
+vae_nrun0:
+  seed: 12345
+
+vae_nrun1:
+  seed: 54321
+
+vae_nrun2:
+  seed: 67890
+
+vae_nrun3:
+  seed: 98765
+
+vae_nrun4:  
+  seed: 13579
+
