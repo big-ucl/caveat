@@ -36,6 +36,7 @@ class CondSeqLSTM(Base):
             max_length=length,
             dropout=self.dropout,
             sos=self.sos,
+            top_sampler=config.get("top_sampler", True),
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
@@ -59,29 +60,42 @@ class CondSeqLSTM(Base):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
-        pred_durations = torch.log(pred_durations)
+        pred_durations = torch.exp(pred_durations)
+
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
+        duration_mask = mask.clone()
+        duration_mask[:, 0] = 0.0
+        duration_mask[
+            torch.arange(duration_mask.shape[0]),
+            (mask != 0).cumsum(-1).argmax(1),
+        ] = 0.0
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
+        scheduled_act_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = scheduled_act_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.duration_loss_weight * self.MSE(
-            pred_durations, target_durations
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
+        recon_dur_mse = (recon_dur_mse * duration_mask).mean()
+        scheduled_dur_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
         )
-        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+        w_dur_recon = scheduled_dur_weight * recon_dur_mse
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_dur_mse
+        w_recons_loss = w_act_recon + w_dur_recon
 
         return {
-            "loss": recons_loss,
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_dur_mse.detach(),
-            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
+            "loss": w_recons_loss,
+            "recon_act_nlll_loss": w_act_recon.detach(),
+            "recon_time_mse_loss": w_dur_recon.detach(),
         }
 
     def encode(self, input: Tensor):
@@ -172,6 +186,7 @@ class Decoder(nn.Module):
         max_length,
         dropout: float = 0.0,
         sos: int = 0,
+        top_sampler: bool = True,
     ):
         """LSTM Decoder with teacher forcing.
 
@@ -203,9 +218,14 @@ class Decoder(nn.Module):
         self.fc_out = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Sequential(
-            nn.Sigmoid(), nn.LogSoftmax(dim=-2)
-        )
+        self.duration_activation = nn.Sigmoid()
+
+        if top_sampler:
+            print("Decoder using topk sampling")
+            self.sample = self.sample_topk
+        else:
+            print("Decoder using multinomial sampling")
+            self.sample = self.sample_multinomial
 
     def forward(self, hidden, conditionals, target=None, **kwargs):
         hidden, cell = hidden
@@ -252,11 +272,20 @@ class Decoder(nn.Module):
     def pack(self, x):
         # [N, 1, encodings+1]
         acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        _, topi = acts.topk(1)
-        act = (
-            topi.squeeze(-1).detach().unsqueeze(-1)
-        )  # detach from history as input
+        act = self.sample(acts).detach()
         duration = self.duration_activation(duration)
         outputs = torch.cat((act, duration), dim=-1)
         # [N, 1, 2]
         return outputs
+
+    def sample_multinomial(self, x):
+        # [N, 1, encodings]
+        act = torch.multinomial(
+            self.activity_prob_activation(x.squeeze()), 1
+        ).unsqueeze(-1)
+        return act
+
+    def sample_topk(self, x):
+        _, topi = x.topk(1)
+        act = topi.detach()
+        return act

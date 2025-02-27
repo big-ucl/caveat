@@ -2,7 +2,7 @@ seed: 12345
 
 logging_params:
   log_dir: "logs/TRB"
-  name: "discrim"
+  name: "c_discrim"
 
 schedules_path: "tmp/nts_home_schedules.csv"
 attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -27,21 +27,25 @@ conditionals:
   age_group: nominal
   car_access: nominal
   work_status: nominal
-  income: ordinal
+  income: nominal
 
 evaluation_params:
   split_on: [gender, age_group, car_access, work_status, income]
 
+attribute_encoder: "tokens"
+
 encoder_params:
-  name: "discrete"
-  step_size: 10
-  duration: 1440
-  jitter: 0.0
+  name: "sequence"
+  max_length: 16
+  norm_duration: 1440
+  jitter: 0.3
+  fix_durations: True
   
 model_params:
-  name: "CondDiscLSTM"
+  name: "CondSeqLSTM"
   latent_dim: 0
-  hidden_n: 5
-  hidden_size: 256
-  dropout: 0
-  bidirectional: True
+  hidden_n: 4
+  hidden_size: 128
+  dropout: 0.0
+  top_sampler: True
+

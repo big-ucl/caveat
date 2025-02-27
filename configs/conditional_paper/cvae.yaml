@@ -1,6 +1,6 @@
 logging_params:
   log_dir: "logs/TRB"
-  name: "cvae"
+  name: "cvae2"
 
 schedules_path: "tmp/nts_home_schedules.csv"
 attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -21,7 +21,7 @@ encoder_params:
   name: "sequence"
   max_length: 16
   norm_duration: 1440
-  jitter: 0.1
+  jitter: 0.2
   fix_durations: True
 
 loader_params:
@@ -31,8 +31,8 @@ loader_params:
 
 trainer_params:
   min_epochs: 50
-  patience: 20
-  max_epochs: 200
+  patience: 50
+  max_epochs: 300
 
 model_params:
   name: "CVAESeqLSTM"
