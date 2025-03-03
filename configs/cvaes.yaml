@@ -1,8 +1,8 @@
 global:
-  seed: 1234
+  seed: 12345
   logging_params:
     log_dir: "logs/cvaes"
-    name: "test"
+    name: "duration_loss_weights"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -16,132 +16,145 @@ global:
     work_status: nominal
     income: nominal
 
-  evaluation_params:
-    split_on: [gender, age_group, car_access, work_status, income]
+  # evaluation_params:
+  #   split_on: [gender, age_group, car_access, work_status, income]
 
   loader_params:
     train_batch_size: 1024
     val_batch_size:  1024
     num_workers: 8
 
-  trainer_params:
-    min_epochs: 10
-    max_epochs: 200
-    patience: 10
-
   encoder_params:
     name: "sequence"
     max_length: 16
     norm_duration: 1440
-    jitter: 0.1
+    jitter: 0.0
     fix_durations: True
+    trailing_weights: True
+    weighting: count
 
+  trainer_params:
+    min_epochs: 100
+    max_epochs: 100
+    patience: 100
+
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_n: 5
+    hidden_size: 512
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both_add
+    latent_conditionality: add
+    decoder_conditionality: inputs_add
+
+
+k1:
   experiment_params:
-    LR: 0.001
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
     kld_weight: 0.01
+    duration_loss_weight: 0.1
 
-InputsConcatInputsAdd:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: inputs_add
-    latent_conditionality: concat
-    decoder_conditionality: inputs_add
+k10:
+  experiment_params:
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+    duration_loss_weight: 1
 
-InputsAddInputsAdd:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: inputs_add
-    latent_conditionality: add
-    decoder_conditionality: inputs_add
+k100:
+  experiment_params:
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.001
+    duration_loss_weight: 10
 
-InputsConcatInputsConcat:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: inputs_concat
-    latent_conditionality: concat
-    decoder_conditionality: inputs_concat
+k1000:
+  experiment_params:
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.0001
+    duration_loss_weight: 100
 
-InputsAddInputsConcat:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: inputs_concat
-    latent_conditionality: add
-    decoder_conditionality: inputs_concat
+# log:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.01
+#     fix_durations: True
+#     trailing_weights: True
+#     weighting: log
 
-BothAddConcatInputs:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both_add
-    latent_conditionality: concat
-    decoder_conditionality: inputs_add
+# n:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.01
+#     fix_durations: True
+#     trailing_weights: True
+#     weighting: count
 
-BothAddAddInputs:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both_add
-    latent_conditionality: add
-    decoder_conditionality: inputs_add
+# j02:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.02
+#     fix_durations: True
 
-BothConcatConcatInputs:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both_concat
-    latent_conditionality: concat
-    decoder_conditionality: inputs_add
+# j05:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.05
+#     fix_durations: True
 
-BothConcatAddInputs:
-  model_params:
-    name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
-    labels_hidden_size: 32
-    latent_dim: 6
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-    encoder_conditionality: both_concat
-    latent_conditionality: add
-    decoder_conditionality: inputs_add
+# j1:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.1
+#     fix_durations: True
+
+# j2:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.2
+#     fix_durations: True
+
+# j3:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.3
+#     fix_durations: True
+
+# j4:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.4
+#     fix_durations: True
+
+# j5:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.5
+#     fix_durations: True

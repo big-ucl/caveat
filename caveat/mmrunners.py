@@ -7,7 +7,7 @@ from torch.random import seed as seeder
 
 from caveat.runners import (
     build_dataloader,
-    encode_input_attributes,
+    encode_input_labels,
     encode_schedules,
     evaluate_synthetics,
     generate,
@@ -64,7 +64,7 @@ def mmrun_command(
 
     # encode data
     base_logger = initiate_logger(logger_params.get("log_dir", "logs"), name)
-    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_labels(
         base_logger.log_dir, input_attributes, config
     )
 
@@ -140,7 +140,7 @@ def mmrun_command(
         logger = initiate_logger(log_root, name)
 
         # encode data
-        attribute_encoder, encoded_labels = encode_input_attributes(
+        attribute_encoder, encoded_labels = encode_input_labels(
             logger.log_dir, sub_attributes, config
         )
 

@@ -1,5 +1,5 @@
 import numpy as np
-from torch import rand, Tensor
+from torch import Tensor, rand
 
 
 class ScheduleAugment:
@@ -23,14 +23,15 @@ class SequenceJitter(ScheduleAugment):
         self.jitter = jitter
 
     def __call__(self, sequence):
+        if self.jitter == 0:
+            return sequence
+        # ignore sos and eos (assumes 0 and 1 tokens)
         mask = sequence[:, 0] > 1
         if mask.sum() < 2:  # single activity sequences are not jittered
             return sequence
-        j = rand((sequence.shape[0]))
-        j -= self.jitter
+        j = (rand((sequence.shape[0])) - 0.5) * self.jitter
         deltas = j * sequence[:, 1]
         deltas -= mask * deltas[mask].mean()
-
         new = sequence.clone()
         new[:, 1] += deltas
         return new

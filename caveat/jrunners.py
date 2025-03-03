@@ -11,7 +11,7 @@ from torch.random import seed as seeder
 
 from caveat import data, encoding, label_encoding, samplers
 from caveat.runners import (
-    encode_input_attributes,
+    encode_input_labels,
     encode_schedules,
     evaluate_synthetics,
     initiate_logger,
@@ -63,7 +63,7 @@ def jrun_command(
     input_schedules, input_attributes, synthetic_labels = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_labels(
         logger.log_dir, input_attributes, config
     )
 
@@ -277,10 +277,8 @@ def jbatch_command(
         )
 
         # encode data
-        attribute_encoder, encoded_labels, label_weights = (
-            encode_input_attributes(
-                logger.log_dir, input_labels, combined_config
-            )
+        attribute_encoder, encoded_labels, label_weights = encode_input_labels(
+            logger.log_dir, input_labels, combined_config
         )
 
         schedule_encoder, encoded_schedules, data_loader = encode_schedules(

@@ -62,11 +62,13 @@ class Experiment(pl.LightningModule):
         self.kld_loss_weight = kwargs.get("kld_weight", 0.001)
         print(f"Found KLD weight: {self.kld_loss_weight}")
 
-        self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
-        print(f"Found activity loss weight: {self.activity_loss_weight}")
-
-        self.duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
-        print(f"Found duration loss weight: {self.duration_loss_weight}")
+        activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
+        duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
+        total_recon_weight = activity_loss_weight + duration_loss_weight
+        self.activity_loss_weight = activity_loss_weight / total_recon_weight
+        self.duration_loss_weight = duration_loss_weight / total_recon_weight
+        print(f"Calculated activity loss weight: {self.activity_loss_weight}")
+        print(f"Calculated duration loss weight: {self.duration_loss_weight}")
 
         self.label_loss_weight = kwargs.get("label_loss_weight", 0.0001)
         print(f"Found labels loss weight: {self.label_loss_weight}")
@@ -101,7 +103,7 @@ class Experiment(pl.LightningModule):
         return super().on_validation_epoch_end()
 
     def training_step(self, batch, batch_idx):
-        (x, x_weights), (y, y_weights), (labels, _) = batch
+        (x, x_weights), (y, y_weights), (labels, l_weights) = batch
 
         self.curr_device = x.device
         log_probs, mu, log_var, z = self.forward(
@@ -113,8 +115,9 @@ class Experiment(pl.LightningModule):
             log_var=log_var,
             target=y,
             mask=y_weights,
-            kld_weight=self.kld_loss_weight,
-            duration_weight=self.duration_loss_weight,
+            label_weights=l_weights,
+            # kld_weight=self.kld_loss_weight,
+            # duration_weight=self.duration_loss_weight,
             batch_idx=batch_idx,
         )
         self.log_dict(

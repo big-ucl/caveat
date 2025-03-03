@@ -54,7 +54,7 @@ def run_command(
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_labels(
         logger.log_dir, input_attributes, config
     )
 
@@ -173,10 +173,8 @@ def batch_command(
         )
 
         # encode data
-        attribute_encoder, encoded_labels, label_weights = (
-            encode_input_attributes(
-                logger.log_dir, input_attributes, combined_config
-            )
+        attribute_encoder, encoded_labels, label_weights = encode_input_labels(
+            logger.log_dir, input_attributes, combined_config
         )
 
         schedule_encoder, encoded_schedules, data_loader = encode_schedules(
@@ -284,7 +282,7 @@ def nrun_command(
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_labels(
         log_dir, input_attributes, config
     )
 
@@ -389,7 +387,7 @@ def ngen_command(
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_labels(
         log_dir, input_attributes, config
     )
 
@@ -686,7 +684,7 @@ def encode_schedules(
     return (schedule_encoder, encoded_schedules, data_loader)
 
 
-def encode_input_attributes(
+def encode_input_labels(
     log_dir: Path, input_attributes: Optional[DataFrame], config: dict
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule, Tensor]:
     attribute_encoder = None
