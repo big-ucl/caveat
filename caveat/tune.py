@@ -73,7 +73,7 @@ def tune_command(
 
         # encode data
         label_encoder, encoded_labels, label_weights = (
-            runners.encode_input_attributes(
+            runners.encode_input_labels(
                 logger.log_dir, input_attributes, trial_config
             )
         )

@@ -7,9 +7,9 @@ from pytorch_lightning import Trainer
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import label_encoding, data, encoding
+from caveat import data, encoding, label_encoding
 from caveat.runners import (
-    encode_input_attributes,
+    encode_input_labels,
     encode_schedules,
     initiate_logger,
     load_data,
@@ -53,7 +53,7 @@ def label_run_command(
     input_schedules, input_labels, _ = load_data(config)
 
     # encode data
-    label_encoder, encoded_labels, label_weights = encode_input_attributes(
+    label_encoder, encoded_labels, label_weights = encode_input_labels(
         logger.log_dir, input_labels, config
     )
 
