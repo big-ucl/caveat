@@ -2,10 +2,19 @@ from typing import Union
 
 import numpy as np
 import torch
-from torch import tensor
+from torch import Tensor, tensor
 from torch.optim.lr_scheduler import _LRScheduler
 
 from caveat import current_device
+
+
+def duration_mask(mask: Tensor) -> Tensor:
+    duration_mask = mask.clone()
+    duration_mask[:, 0] = 0.0
+    duration_mask[
+        torch.arange(duration_mask.shape[0]), (mask != 0).cumsum(-1).argmax(1)
+    ] = 0.0
+    return duration_mask
 
 
 def hot_argmax(batch: tensor, axis: int = -1) -> tensor:
