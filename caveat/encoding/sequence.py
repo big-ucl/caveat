@@ -26,7 +26,13 @@ class SequenceEncoder(BaseEncoder):
         self.jitter = kwargs.get("jitter", 0)
         self.fix_durations = kwargs.get("fix_durations", False)
         self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
-        self.weighting = kwargs.get("weighting", "count")
+        self.act_weighting = kwargs.get("act_weighting", "count")
+        self.seq_weighting = kwargs.get(
+            "seq_weighting", "independent"
+        )  # independent, joint or max
+        self.label_weighting = kwargs.get(
+            "label_weighting", "independent"
+        )  # move to label encoder
         self.trailing_weights = kwargs.get("trailing_weights", False)
         print(
             f"""Sequence Encoder initialised with:
@@ -34,7 +40,7 @@ class SequenceEncoder(BaseEncoder):
         norm_duration: {self.norm_duration}
         jitter: {self.jitter}
         fix_durations: {self.fix_durations}
-        weighting: {self.weighting}
+        weighting: {self.act_weighting}
         trailing_weights: {self.trailing_weights}
         """
         )
@@ -98,15 +104,15 @@ class SequenceEncoder(BaseEncoder):
     ) -> Tuple[Tensor, Tensor]:
 
         # calc weightings
-        if self.weighting == "unit":
+        if self.act_weighting == "unit":
             act_weights = self._unit_weights(self.encodings)
-        elif self.weighting == "count":
+        elif self.act_weighting == "count":
             act_weights = self._count_weights(data)
-        elif self.weighting == "log":
+        elif self.act_weighting == "log":
             act_weights = self._log_weights(data)
         else:
             raise ValueError(
-                f"Unknown Sequence Encoder weighting: {self.weighting}"
+                f"Unknown Sequence Encoder weighting: {self.act_weighting}"
             )
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration

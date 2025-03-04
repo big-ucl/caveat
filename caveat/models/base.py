@@ -5,6 +5,7 @@ from pytorch_lightning import LightningModule
 from torch import Tensor, exp, nn
 
 from caveat.experiment import Experiment
+from caveat.models import utils
 
 
 class BaseEncoder(LightningModule):
@@ -100,12 +101,12 @@ class Base(Experiment):
             dict: Losses.
         """
 
-        return self.weighted_seq_loss(
+        return self.seq_loss(
             log_probs=log_probs,
             mu=mu,
             log_var=log_var,
             target=target,
-            mask=mask,
+            act_weights=mask,
             **kwargs,
         )
 
@@ -209,104 +210,120 @@ class Base(Experiment):
         z = z.to(device)
         return prob_samples, z
 
-    def unweighted_seq_loss(
-        self, log_probs, mu, log_var, target, mask, **kwargs
-    ) -> dict:
+    # def unweighted_seq_loss(
+    #     self, log_probs, mu, log_var, target, mask, **kwargs
+    # ) -> dict:
+    #     """Loss function for sequence encoding [N, L, 2]."""
+
+    #     # unpack act probs and durations
+    #     target_acts, target_durations = self.unpack_encoding(target)
+    #     pred_acts, pred_durations = self.unpack_encoding(log_probs)
+    #     pred_durations = torch.exp(pred_durations)
+
+    #     if self.use_mask:  # default is to use masking
+    #         flat_mask = mask.view(-1).bool()
+    #     else:
+    #         flat_mask = torch.ones_like(target_acts).view(-1).bool()
+
+    #     # activity loss
+    #     act_recon = self.NLLL(
+    #         pred_acts.view(-1, self.encodings)[flat_mask],
+    #         target_acts.view(-1).long()[flat_mask],
+    #     )
+    #     act_scheduled_weight = (
+    #         self.activity_loss_weight * self.scheduled_act_weight
+    #     )
+    #     w_act_recon = act_scheduled_weight * act_recon
+
+    #     # duration loss
+    #     dur_recon = self.duration_loss_weight * self.MSE(
+    #         pred_durations.view(-1)[flat_mask],
+    #         target_durations.view(-1)[flat_mask],
+    #     )
+    #     dur_scheduled_weight = (
+    #         self.duration_loss_weight * self.scheduled_dur_weight
+    #     )
+    #     w_dur_recon = dur_scheduled_weight * dur_recon
+
+    #     # reconstruction loss
+    #     w_recons_loss = act_recon + dur_recon
+
+    #     # # hamming distance
+    #     # recon_argmax = torch.argmax(pred_acts, dim=-1)
+    #     # recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
+
+    #     # kld loss
+    #     kld_loss = self.kld(mu, log_var)
+    #     scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+    #     w_kld_loss = scheduled_kld_weight * kld_loss
+
+    #     # final loss
+    #     loss = w_recons_loss + w_kld_loss
+
+    #     return {
+    #         "loss": loss,
+    #         "KLD": w_kld_loss.detach(),
+    #         "recon_loss": w_recons_loss.detach(),
+    #         "act_recon": w_act_recon.detach(),
+    #         "dur_recon": w_dur_recon.detach(),
+    #         "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+    #         "act_weight": torch.tensor([act_scheduled_weight]).float(),
+    #         "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
+    #     }
+
+    def act_seq_loss(self, pred_acts, target_acts, mask, **kwargs) -> Tensor:
         """Loss function for sequence encoding [N, L, 2]."""
-
-        # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(target)
-        pred_acts, pred_durations = self.unpack_encoding(log_probs)
-        pred_durations = torch.exp(pred_durations)
-
-        if self.use_mask:  # default is to use masking
-            flat_mask = mask.view(-1).bool()
-        else:
-            flat_mask = torch.ones_like(target_acts).view(-1).bool()
-
-        # activity loss
-        act_recon = self.NLLL(
-            pred_acts.view(-1, self.encodings)[flat_mask],
-            target_acts.view(-1).long()[flat_mask],
-        )
-        act_scheduled_weight = (
-            self.activity_loss_weight * self.scheduled_act_weight
-        )
-        w_act_recon = act_scheduled_weight * act_recon
-
-        # duration loss
-        dur_recon = self.duration_loss_weight * self.MSE(
-            pred_durations.view(-1)[flat_mask],
-            target_durations.view(-1)[flat_mask],
-        )
-        dur_scheduled_weight = (
-            self.duration_loss_weight * self.scheduled_dur_weight
-        )
-        w_dur_recon = dur_scheduled_weight * dur_recon
-
-        # reconstruction loss
-        w_recons_loss = act_recon + dur_recon
-
-        # # hamming distance
-        # recon_argmax = torch.argmax(pred_acts, dim=-1)
-        # recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
-
-        # kld loss
-        kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
-        w_kld_loss = scheduled_kld_weight * kld_loss
-
-        # final loss
-        loss = w_recons_loss + w_kld_loss
-
-        return {
-            "loss": loss,
-            "KLD": w_kld_loss.detach(),
-            "recon_loss": w_recons_loss.detach(),
-            "act_recon": w_act_recon.detach(),
-            "dur_recon": w_dur_recon.detach(),
-            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
-            "act_weight": torch.tensor([act_scheduled_weight]).float(),
-            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
-        }
-
-    def weighted_seq_loss(
-        self, log_probs, mu, log_var, target, mask, **kwargs
-    ) -> dict:
-        """Loss function for sequence encoding [N, L, 2]."""
-        # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(target)
-        pred_acts, pred_durations = self.unpack_encoding(log_probs)
-        pred_durations = torch.exp(pred_durations)
-
-        # normalise mask weights
-        # todo, should this be mean or sum?
-        mask = mask / mask.mean(-1).unsqueeze(-1)
-
-        duration_mask = mask.clone()
-        duration_mask[:, 0] = 0.0
-        duration_mask[
-            torch.arange(duration_mask.shape[0]),
-            (mask != 0).cumsum(-1).argmax(1),
-        ] = 0.0
-
-        # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        act_recon = (recon_act_nlll * mask.view(-1)).mean()
+        return (recon_act_nlll * mask.view(-1)).mean()
+
+    def dur_seq_loss(
+        self, pred_durations, target_durations, mask, **kwargs
+    ) -> Tensor:
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
+        return (recon_dur_mse * mask).mean()
+    
+    def noop(self, mask):
+        return mask
+    
+    def joint(self, mask):
+        n = mask.shape[1]
+        return mask.prod(dim=1).repeat(n, 1).t()
+    
+    def max(self, mask):
+        n = mask.shape[1]
+        return mask.max(dim=1).repeat(n, 1).t()
+
+    def seq_loss(
+        self, log_probs, mu, log_var, target, act_weights, label_weights, **kwargs
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        # unpack act probs and durations
+        target_acts, target_durs = self.unpack_encoding(target)
+        pred_acts, pred_durs = self.unpack_encoding(log_probs)
+        pred_durs = torch.exp(pred_durs)
+
+        # normalise mask weights
+        # todo, should this be mean or sum?
+        act_weights = act_weights / act_weights.mean(-1).unsqueeze(-1)
+        
+        label_weights = label_weights / label_weights.mean(-1).unsqueeze(-1)
+        d_mask = utils.duration_mask(act_weights)
+
+        # activity loss
         scheduled_act_weight = (
             self.activity_loss_weight * self.scheduled_act_weight
         )
+        act_recon = self.act_seq_loss(pred_acts, target_acts, act_weights, **kwargs)
         w_act_recon = scheduled_act_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.MSE(pred_durations, target_durations)
-        recon_dur_mse = (recon_dur_mse * duration_mask).mean()
         scheduled_dur_weight = (
             self.duration_loss_weight * self.scheduled_dur_weight
         )
-        w_dur_recon = scheduled_dur_weight * recon_dur_mse
+        dur_recon = self.dur_seq_loss(pred_durs, target_durs, d_mask, **kwargs)
+        w_dur_recon = scheduled_dur_weight * dur_recon
 
         # reconstruction loss
         w_recons_loss = w_act_recon + w_dur_recon
