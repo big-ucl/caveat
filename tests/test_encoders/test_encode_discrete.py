@@ -74,9 +74,9 @@ def test_encoded_weights():
     expected_weights = expected_weights / steps
     expected_mask = torch.tensor([1.0, 1.0, 1.0])
     encoder = discrete.DiscreteEncoder(length, step)
-    encoded = encoder.encode(traces, None, None)
+    encoded = encoder.encode(traces, None, (None, None))
     assert torch.equal(encoded.encoding_weights, expected_weights)
-    assert torch.equal(encoded[0][0][1], expected_mask)
+    assert torch.equal(encoded[0][0][1][0], expected_mask)
 
 
 def test_encoded_with_jitter():
@@ -94,7 +94,7 @@ def test_encoded_with_jitter():
     length = 6
     step = 2
     encoder = discrete.DiscreteEncoder(length, step, jitter=0.2)
-    encoded = encoder.encode(traces, None, None)
+    encoded = encoder.encode(traces, None, (None, None))
     for _ in range(10):
         for i in range(len(encoded)):
             (left, _), (right, _), _ = encoded[i]
@@ -128,9 +128,9 @@ def test_padded_encoder():
     )
     encoded = encoder.encode(traces, None)
     assert torch.equal(encoded.schedules, encode)
-    assert torch.equal(encoded.schedule_weights, masks)
+    assert torch.equal(encoded.act_weights, masks)
     assert torch.equal(encoded.encoding_weights, weights)
-    (left, mask_left), (right, mask_right), _ = encoded[0]
+    (left, (mask_left, _)), (right, (mask_right, _)), _ = encoded[0]
     assert torch.equal(left, pad_left[0])
     assert torch.equal(mask_left, mask)
     assert torch.equal(right, pad_right[0])

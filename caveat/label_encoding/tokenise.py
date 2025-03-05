@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
-from caveat.label_encoding.base import BaseLabelEncoder, row_probs, tokenize
+from caveat.label_encoding.base import BaseLabelEncoder, tokenize
 
 
 class TokenAttributeEncoder(BaseLabelEncoder):
@@ -65,23 +65,22 @@ class TokenAttributeEncoder(BaseLabelEncoder):
 
     def _encode(self, data: pd.DataFrame) -> Tensor:
         encoded = []
-        weights = []
         for k, v in self.config.items():
             if k not in data.columns:
                 raise UserWarning(f"Conditional '{k}' not found in attributes")
             nominal_encoded, _ = tokenize(data[k], v["nominal"])
             encoded.append(nominal_encoded)
-            freq = row_probs(data[k])
-            inv_freq = 1 / freq
-            weights.append(inv_freq)
 
         if not encoded:
             raise UserWarning("No attribute encoding found.")
 
-        return (
-            torch.stack(encoded, dim=-1).long(),
-            torch.stack(weights, dim=-1).float(),
-        )
+        encoded = torch.stack(encoded, dim=-1).long()
+
+        # weighting
+        weights = self.label_weighter(encoded)
+        joint_weights = self.joint_weighter(encoded)
+
+        return (encoded, (weights, joint_weights))
 
     def decode(self, data: List[Tensor]) -> pd.DataFrame:
         decoded = {"pid": list(range(data.shape[0]))}

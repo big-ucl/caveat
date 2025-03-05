@@ -249,7 +249,7 @@ class VAESeqXAtt(Base):
             mu=mu,
             log_var=log_var,
             target=y,
-            mask=y_weights,
+            weights=y_weights,
             kld_weight=self.kld_loss_weight,
             duration_weight=self.duration_loss_weight,
             optimizer_idx=optimizer_idx,

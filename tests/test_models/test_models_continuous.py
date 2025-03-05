@@ -17,12 +17,13 @@ from caveat.models.sequence.vae_sequence_lstm import VAESeqLSTM
 
 def test_auto_lstm_forward():
     x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    conditionals = torch.randn(3, 10)  # (batch, channels)
+    labels = torch.randn(3, 10)  # (batch, channels)
+    label_weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     model = AutoSeqLSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
@@ -30,17 +31,20 @@ def test_auto_lstm_forward():
         conditionals_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob_y, _, _, _ = model(x_encoded, conditionals=conditionals)
+    log_prob_y, _, _, _ = model(x_encoded, labels=labels)
     assert log_prob_y.shape == x.shape
     losses = model.loss_function(
-        log_probs=log_prob_y, target=x_encoded, mask=weights
+        log_probs=log_prob_y,
+        target=x_encoded,
+        weights=weights,
+        label_weights=label_weights,
     )
     assert "loss" in losses
 
 
 def test_conditional_lstm_forward():
     x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
@@ -49,6 +53,8 @@ def test_conditional_lstm_forward():
     label_a = torch.randn(3, 5).argmax(dim=-1)
     label_b = torch.randn(3, 2).argmax(dim=-1)
     labels = torch.concat((label_a[:, None], label_b[:, None]), dim=-1)
+
+    label_weights = (torch.ones((3, 2)), torch.ones((3, 1)))
 
     model = CondSeqLSTM(
         in_shape=x_encoded[0].shape,
@@ -63,10 +69,13 @@ def test_conditional_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, _, _, _ = model(x_encoded, conditionals=labels)
+    log_prob_y, _, _, _ = model(x_encoded, labels=labels)
     assert log_prob_y.shape == x.shape
     losses = model.loss_function(
-        log_probs=log_prob_y, target=x_encoded, mask=weights
+        log_probs=log_prob_y,
+        target=x_encoded,
+        weights=weights,
+        label_weights=label_weights,
     )
     assert "loss" in losses
 
@@ -114,13 +123,14 @@ testdata = [
 @pytest.mark.parametrize("encoder,latent,decoder", testdata)
 def test_cvae_lstm_forward(encoder, latent, decoder):
     x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
     label_a = torch.randn(3, 5).argmax(dim=-1)
     label_b = torch.randn(3, 2).argmax(dim=-1)
     labels = torch.concat((label_a[:, None], label_b[:, None]), dim=-1)
+    label_weights = (torch.ones((3, 2)), torch.ones((3, 1)))
     x_encoded = torch.cat([acts_max, durations], dim=-1)
     model = CVAESeqLSTM(
         in_shape=x_encoded[0].shape,
@@ -149,7 +159,8 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
         mu=mu,
         log_var=log_var,
         target=x_encoded,
-        mask=weights,
+        weights=weights,
+        label_weights=label_weights,
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -157,7 +168,7 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
 
 def test_cvae_lstm_nudger_forward():
     x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
@@ -180,7 +191,7 @@ def test_cvae_lstm_nudger_forward():
         mu=mu,
         log_var=log_var,
         target=x_encoded,
-        mask=weights,
+        weights=weights,
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -195,7 +206,7 @@ def test_adv_discriminator_forward():
 
 def test_cvae_adv_forward():
     x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
@@ -218,7 +229,7 @@ def test_cvae_adv_forward():
 
 def test_lstm_forward():
     x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
@@ -239,7 +250,7 @@ def test_lstm_forward():
         mu=mu,
         log_var=log_var,
         target=x_encoded,
-        mask=weights,
+        weights=weights,
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -247,7 +258,7 @@ def test_lstm_forward():
 
 def test_cnn_forward():
     x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
@@ -267,7 +278,7 @@ def test_cnn_forward():
         mu=mu,
         log_var=log_var,
         target=x_encoded,
-        mask=weights,
+        weights=weights,
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -289,7 +300,7 @@ def test_cnn_forward():
 def test_cnn1d_forward(length, encodings, kernel, stride, padding):
     N = 3
     x = torch.randn(N, length, encodings + 1)  # (batch, steps, acts+1)
-    weights = torch.ones((N, length))
+    weights = (torch.ones((N, length)), torch.ones((N, 1)))
     acts, durations = x.split([encodings, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
@@ -316,7 +327,7 @@ def test_cnn1d_forward(length, encodings, kernel, stride, padding):
         mu=mu,
         log_var=log_var,
         target=x_encoded,
-        mask=weights,
+        weights=weights,
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -324,7 +335,7 @@ def test_cnn1d_forward(length, encodings, kernel, stride, padding):
 
 def test_fc_forward():
     x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
-    weights = torch.ones((3, 10))
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
@@ -344,7 +355,7 @@ def test_fc_forward():
         mu=mu,
         log_var=log_var,
         target=x_encoded,
-        mask=weights,
+        weights=weights,
     )
     assert "loss" in losses
     assert "recon_loss" in losses

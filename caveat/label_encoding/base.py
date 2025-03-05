@@ -4,12 +4,51 @@ import pandas as pd
 import torch
 from torch import Tensor
 
+from caveat.label_encoding.label_weighting import (
+    inverse_weight,
+    inverse_weights,
+    max_weight,
+    unit_weight,
+    unit_weights,
+)
+
+label_weights_library = {"unit": unit_weights, "inverse": inverse_weights}
+
+joint_label_weights_library = {
+    "unit": unit_weight,
+    "inverse": inverse_weight,
+    "max": max_weight,
+}
+
 
 class BaseLabelEncoder:
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: dict, **kwargs) -> None:
         """Base Attribute Encoder class."""
         self.config = config.copy()
         self.label_kwargs = {}
+        self.weighting = kwargs.get("weighting", "unit")
+        self.joint_weighting = kwargs.get("joint_weighting", "unit")
+
+        self.label_weighter = label_weights_library.get(self.weighting, None)
+        if self.label_weighter is None:
+            raise ValueError(
+                f"Unknown Label Encoder weighting: {self.label_weighting}, should be one of: {label_weights_library.keys()}"
+            )
+
+        self.joint_weighter = joint_label_weights_library.get(
+            self.joint_weighting, None
+        )
+        if self.joint_weighter is None:
+            raise ValueError(
+                f"Unknown Label Encoder weighting: {self.joint_weighting}, should be one of: {joint_label_weights_library.keys()}"
+            )
+
+        print(
+            f"""Label Encoder initialised with:
+            Label weighting: {self.weighting}
+            Joint weighting: {self.joint_weighting}
+            """
+        )
 
     def encode(self, data: pd.DataFrame) -> Tensor:
         raise NotImplementedError
@@ -42,12 +81,6 @@ def tokenize(data: pd.Series, encodings: Optional[dict] = None) -> Tensor:
         encodings = {e: i for i, e in enumerate(nominals.categories)}
     nominals = torch.tensor(nominals.codes).int()
     return nominals, encodings
-
-
-def row_probs(data: pd.Series) -> Tensor:
-    freq = data.value_counts(normalize=True).to_dict()
-    weights = torch.tensor(data.map(freq).values)
-    return weights.float()
 
 
 def onehot_encode(data: pd.Series, encodings: Optional[dict] = None) -> Tensor:

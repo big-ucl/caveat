@@ -2,12 +2,15 @@ global:
   seed: 12345
   logging_params:
     log_dir: "logs/cvaes"
-    name: "duration_loss_weights"
+    name: "klds"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
 
-  attribute_encoder: "tokens"
+  attribute_encoder:
+    name: "tokens"
+    weighting: "unit"
+    joint_weighting: "unit"
 
   conditionals:
     gender: nominal
@@ -31,7 +34,8 @@ global:
     jitter: 0.0
     fix_durations: True
     trailing_weights: True
-    weighting: count
+    weighting: unit
+    joint_weighting: unit
 
   trainer_params:
     min_epochs: 100
@@ -51,110 +55,34 @@ global:
     decoder_conditionality: inputs_add
 
 
-k1:
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 0.1
-
-k10:
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 1
-
-k100:
+kld0_001d100:
   experiment_params:
     LR: 0.0005
     weight_decay: 0.02
     scheduler_gamma: 0.975
     kld_weight: 0.001
-    duration_loss_weight: 10
+    duration_loss_weight: 100
 
-k1000:
+kld0_002d100:
   experiment_params:
     LR: 0.0005
     weight_decay: 0.02
     scheduler_gamma: 0.975
-    kld_weight: 0.0001
+    kld_weight: 0.002
     duration_loss_weight: 100
 
-# log:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.01
-#     fix_durations: True
-#     trailing_weights: True
-#     weighting: log
+kld0_004d100:
+  experiment_params:
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.004
+    duration_loss_weight: 100
 
-# n:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.01
-#     fix_durations: True
-#     trailing_weights: True
-#     weighting: count
-
-# j02:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.02
-#     fix_durations: True
-
-# j05:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.05
-#     fix_durations: True
-
-# j1:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.1
-#     fix_durations: True
-
-# j2:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.2
-#     fix_durations: True
-
-# j3:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.3
-#     fix_durations: True
-
-# j4:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.4
-#     fix_durations: True
-
-# j5:
-#   encoder_params:
-#     name: "sequence"
-#     max_length: 16
-#     norm_duration: 1440
-#     jitter: 0.5
-#     fix_durations: True
+kld0_008d100:
+  experiment_params:
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.008
+    duration_loss_weight: 100

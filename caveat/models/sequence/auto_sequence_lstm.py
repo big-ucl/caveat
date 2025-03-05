@@ -39,55 +39,30 @@ class AutoSeqLSTM(Base):
     def forward(
         self,
         x: Tensor,
-        conditionals: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
         target: Optional[Tensor] = None,
         **kwargs,
     ) -> List[Tensor]:
 
-        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        log_probs = self.decode(z=x, labels=labels, target=target)
         return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
-        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
+        self,
+        log_probs: Tensor,
+        target: Tensor,
+        weights: Tuple[Tensor, Tensor],
+        **kwargs,
     ) -> dict:
-        """Loss function for sequence encoding [N, L, 2]."""
-        # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(target)
-        pred_acts, pred_durations = self.unpack_encoding(log_probs)
-        pred_durations = torch.log(pred_durations)
-
-        # activity loss
-        recon_act_nlll = self.base_NLLL(
-            pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
+        return self.seq_loss_no_kld(
+            log_probs=log_probs, target=target, weights=weights, **kwargs
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
-
-        # duration loss
-        recon_dur_mse = self.duration_loss_weight * self.MSE(
-            pred_durations, target_durations
-        )
-        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
-
-        # reconstruction loss
-        recons_loss = recon_act_nlll + recon_dur_mse
-
-        return {
-            "loss": recons_loss,
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_dur_mse.detach(),
-            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
-        }
 
     def encode(self, input: Tensor):
         return None
 
     def decode(
-        self,
-        z: None,
-        conditionals: Tensor,
-        target: Optional[Tensor] = None,
-        **kwargs,
+        self, z: None, labels: Tensor, target: Optional[Tensor] = None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -97,7 +72,7 @@ class AutoSeqLSTM(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        h = self.fc_hidden(conditionals)
+        h = self.fc_hidden(labels)
 
         # initialize hidden state
         hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
@@ -125,7 +100,7 @@ class AutoSeqLSTM(Base):
     ) -> Tensor:
         z = z.to(device)
         conditionals = conditionals.to(device)
-        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
+        return exp(self.decode(z=z, labels=conditionals, kwargs=kwargs))
 
 
 class Decoder(nn.Module):

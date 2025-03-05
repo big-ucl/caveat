@@ -11,9 +11,8 @@ from caveat import current_device
 def duration_mask(mask: Tensor) -> Tensor:
     duration_mask = mask.clone()
     duration_mask[:, 0] = 0.0
-    duration_mask[
-        torch.arange(duration_mask.shape[0]), (mask != 0).cumsum(-1).argmax(1)
-    ] = 0.0
+    idxs = torch.arange(duration_mask.shape[0])
+    duration_mask[idxs, (mask != 0).cumsum(-1).argmax(1)] = 0.0
     return duration_mask
 
 

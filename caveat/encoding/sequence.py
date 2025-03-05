@@ -6,7 +6,13 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import SequenceJitter
-from caveat.encoding import BaseDataset, BaseEncoder, StaggeredDataset
+from caveat.encoding import (
+    BaseDataset,
+    BaseEncoder,
+    StaggeredDataset,
+    act_weight_library,
+    seq_weight_library,
+)
 
 
 class SequenceEncoder(BaseEncoder):
@@ -26,22 +32,31 @@ class SequenceEncoder(BaseEncoder):
         self.jitter = kwargs.get("jitter", 0)
         self.fix_durations = kwargs.get("fix_durations", False)
         self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
-        self.act_weighting = kwargs.get("act_weighting", "count")
-        self.seq_weighting = kwargs.get(
-            "seq_weighting", "independent"
-        )  # independent, joint or max
-        self.label_weighting = kwargs.get(
-            "label_weighting", "independent"
-        )  # move to label encoder
-        self.trailing_weights = kwargs.get("trailing_weights", False)
+        self.weighting = kwargs.get("weighting", "unit")
+        self.joint_weighting = kwargs.get("joint_weighting", "unit")
+        self.trim_eos = kwargs.get("trim_eos", True)
+
+        self.weighter = act_weight_library.get(self.weighting, None)
+        if self.weighter is None:
+            raise ValueError(
+                f"Unknown Sequence Encoder weighting: {self.weighting}, should be one of: {act_weight_library.keys()}"
+            )
+
+        self.joint_weighter = seq_weight_library.get(self.joint_weighting, None)
+        if self.joint_weighter is None:
+            raise ValueError(
+                f"Unknown Sequence Encoder weighting: {self.joint_weighting}, should be one of: {seq_weight_library.keys()}"
+            )
+
         print(
             f"""Sequence Encoder initialised with:
         max_length: {self.max_length}
         norm_duration: {self.norm_duration}
         jitter: {self.jitter}
         fix_durations: {self.fix_durations}
-        weighting: {self.act_weighting}
-        trailing_weights: {self.trailing_weights}
+        (act) weighting: {self.weighting}
+        (seq) joint weighting: {self.joint_weighting}
+        trim eos: {self.trim_eos}
         """
         )
 
@@ -74,7 +89,7 @@ class SequenceEncoder(BaseEncoder):
         self,
         schedules: pd.DataFrame,
         labels: Optional[Tensor],
-        label_weights: Optional[Tensor],
+        label_weights: Optional[Tuple[Tensor, Tensor]],
     ) -> dataset:
         # prepare schedules dataframe
         schedules = schedules.copy()
@@ -82,85 +97,58 @@ class SequenceEncoder(BaseEncoder):
         schedules.act = schedules.act.map(self.acts_to_index).astype(int)
 
         # encode
-        encoded_schedules, masks = self._encode_sequences(
-            schedules, self.max_length
+        encoded_schedules = self._encode_sequences(schedules, self.max_length)
+
+        # weights
+        act_weights = self.weighter(
+            sequences=encoded_schedules,
+            sos_idx=self.sos,
+            eos_idx=self.eos,
+            trim_eos=self.trim_eos,
         )
+        seq_weights = self.joint_weighter(sequences=encoded_schedules)
+
+        # unpack label weights
+        label_weights, joint_weights = label_weights
 
         # augment
         augment = SequenceJitter(self.jitter) if self.jitter else None
 
         return self.dataset(
             schedules=encoded_schedules,
-            schedule_weights=masks,
+            act_weights=act_weights,
+            seq_weights=seq_weights,
             activity_encodings=len(self.index_to_acts),
             activity_weights=None,
             augment=augment,
             labels=labels,
             label_weights=label_weights,
+            joint_weights=joint_weights,
         )
 
     def _encode_sequences(
         self, data: pd.DataFrame, max_length: int
     ) -> Tuple[Tensor, Tensor]:
 
-        # calc weightings
-        if self.act_weighting == "unit":
-            act_weights = self._unit_weights(self.encodings)
-        elif self.act_weighting == "count":
-            act_weights = self._count_weights(data)
-        elif self.act_weighting == "log":
-            act_weights = self._log_weights(data)
-        else:
-            raise ValueError(
-                f"Unknown Sequence Encoder weighting: {self.act_weighting}"
-            )
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
 
         encoded = np.zeros(
             (persons, max_length, encoding_width), dtype=np.float32
         )
-        weights = np.zeros((persons, max_length), dtype=np.float32)
 
         for pid, (_, trace) in enumerate(data.groupby("pid")):
-            seq_encoding, seq_weights = encode_sequence(
+            seq_encoding = encode_sequence(
                 acts=list(trace.act),
                 durations=list(trace.duration),
                 max_length=max_length,
                 encoding_width=encoding_width,
-                act_weights=act_weights,
                 sos=self.sos,
                 eos=self.eos,
-                trailing_weights=self.trailing_weights,
             )
             encoded[pid] = seq_encoding  # [N, L, W]
-            weights[pid] = seq_weights  # [N, L]
 
-        return (torch.from_numpy(encoded), torch.from_numpy(weights))
-
-    def _unit_weights(self, n: int) -> np.ndarray:
-        return np.array([1 for _ in range(n)])
-
-    def _act_counts(self, data: pd.DataFrame) -> np.ndarray:
-        act_weights = data.act.value_counts().to_dict()
-        n = data.pid.nunique()
-        act_weights.update({self.sos: n, self.eos: n})
-        for act in self.index_to_acts.keys():
-            if act not in act_weights:
-                act_weights[act] = n
-        act_weights = np.array(
-            [act_weights[k] for k in range(len(act_weights))]
-        )
-        return act_weights
-
-    def _count_weights(self, data: pd.DataFrame) -> np.ndarray:
-        act_weights = self._act_counts(data)
-        return 1 / act_weights
-
-    def _log_weights(self, data: pd.DataFrame) -> np.ndarray:
-        act_weights = self._act_counts(data)
-        act_weights = np.log(act_weights)
-        return 1 / act_weights
+        return torch.from_numpy(encoded)
 
     def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
@@ -231,10 +219,8 @@ def encode_sequence(
     durations: list[float],
     max_length: int,
     encoding_width: int,
-    act_weights: np.ndarray,
     sos: int,
     eos: int,
-    trailing_weights: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Create sequence encoding from ranges.
 
@@ -243,36 +229,25 @@ def encode_sequence(
         durations (Iterable[float]): _description_
         max_length (int): _description_
         encoding_width (dict): _description_
-        act_weights (dict): _description_
         sos (int): _description_
         eos (int): _description_
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: _description_
+        np.ndarray: _description_
     """
     encoding = np.zeros((max_length, encoding_width), dtype=np.float32)
-    weights = np.zeros((max_length), dtype=np.float32)
-    # SOS
     encoding[0][0] = sos
-    # mask includes sos
-    weights[0] = act_weights[sos]
 
     for i in range(1, max_length):
         if i < len(acts) + 1:
             encoding[i][0] = acts[i - 1]
             encoding[i][1] = durations[i - 1]
-            weights[i] = act_weights[acts[i - 1]]
         elif i < len(acts) + 2:
             encoding[i][0] = eos
-            # mask includes first eos
-            weights[i] = act_weights[eos]
         else:
             encoding[i][0] = eos
-            if trailing_weights:
-                weights[i] = act_weights[eos]
-            # act weights are 0 for padding eos
 
-    return encoding, weights
+    return encoding
 
 
 def fix_end_durations(data: pd.DataFrame, end_duration: int) -> pd.DataFrame:
