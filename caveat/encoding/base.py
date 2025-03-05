@@ -30,21 +30,25 @@ class BaseDataset(Dataset):
     def __init__(
         self,
         schedules: Tensor,
-        schedule_weights: Optional[Tensor],
+        act_weights: Optional[Tensor],
+        seq_weights: Optional[Tensor],
         activity_encodings: int,
         activity_weights: Optional[Tensor],
         augment: Optional[ScheduleAugment],
         labels: Optional[Tensor],
         label_weights: Optional[Tensor],
+        joint_weights: Optional[Tensor],
     ):
         super(BaseDataset, self).__init__()
         self.schedules = schedules
-        self.schedule_weights = schedule_weights
+        self.act_weights = act_weights
+        self.seq_weights = seq_weights
         self.activity_encodings = activity_encodings
         self.encoding_weights = activity_weights
         self.augment = augment
         self.labels = labels
         self.label_weights = label_weights
+        self.joint_weights = joint_weights
         self.labels_shape = labels.shape[-1] if labels is not None else None
 
     def shape(self):
@@ -58,10 +62,15 @@ class BaseDataset(Dataset):
         if self.augment:
             sample = self.augment(sample)
 
-        if self.schedule_weights is not None:
-            weights = self.schedule_weights[idx]
+        if self.act_weights is not None:
+            weights = self.act_weights[idx]
         else:
             weights = None
+
+        if self.seq_weights is not None:
+            seq_weights = self.seq_weights[idx]
+        else:
+            seq_weights = Tensor([])
 
         if self.labels is not None:
             labels = self.labels[idx]
@@ -73,7 +82,16 @@ class BaseDataset(Dataset):
         else:
             label_weights = Tensor([])
 
-        return (sample, weights), (sample, weights), (labels, label_weights)
+        if self.joint_weights is not None:
+            joint_weights = self.joint_weights[idx]
+        else:
+            joint_weights = Tensor([])
+
+        return (
+            (sample, (weights, seq_weights)),
+            (sample, (weights, seq_weights)),
+            (labels, (label_weights, joint_weights)),
+        )
 
 
 class PaddedDatatset(BaseDataset):
@@ -87,10 +105,15 @@ class PaddedDatatset(BaseDataset):
         if self.augment:
             sample = self.augment(sample)
 
-        if self.schedule_weights is not None:
-            weights = self.schedule_weights[idx]
+        if self.act_weights is not None:
+            weights = self.act_weights[idx]
         else:
             weights = None
+
+        if self.seq_weights is not None:
+            seq_weights = self.seq_weights[idx]
+        else:
+            seq_weights = Tensor([])
 
         if self.labels is not None:
             label = self.labels[idx]
@@ -98,16 +121,21 @@ class PaddedDatatset(BaseDataset):
             label = Tensor([])
 
         if self.label_weights is not None:
-            label_weight = self.label_weights[idx]
+            label_weights = self.label_weights[idx]
         else:
-            label_weight = Tensor([])
+            label_weights = Tensor([])
+
+        if self.joint_weights is not None:
+            joint_weights = self.joint_weights[idx]
+        else:
+            joint_weights = Tensor([])
 
         pad_left = pad(sample, (1, 0))
         pad_right = pad(sample, (0, 1))
         return (
-            (pad_left, weights),
-            (pad_right, weights),
-            (label, label_weight),
+            (pad_left, (weights, seq_weights)),
+            (pad_right, (weights, seq_weights)),
+            (label, (label_weights, joint_weights)),
         )
 
 
@@ -121,10 +149,15 @@ class StaggeredDataset(BaseDataset):
         if self.augment:
             sample = self.augment(sample)
 
-        if self.schedule_weights is not None:
-            weights = self.schedule_weights[idx]
+        if self.act_weights is not None:
+            weights = self.act_weights[idx]
         else:
             weights = None
+
+        if self.seq_weights is not None:
+            seq_weights = self.seq_weights[idx]
+        else:
+            seq_weights = Tensor([])
 
         if self.labels is not None:
             label = self.labels[idx]
@@ -132,14 +165,19 @@ class StaggeredDataset(BaseDataset):
             label = Tensor([])
 
         if self.label_weights is not None:
-            label_weight = self.label_weights[idx]
+            label_weights = self.label_weights[idx]
         else:
-            label_weight = Tensor([])
+            label_weights = Tensor([])
+
+        if self.joint_weights is not None:
+            joint_weights = self.joint_weights[idx]
+        else:
+            joint_weights = Tensor([])
 
         return (
-            (sample[:-1, :], weights[:-1]),
-            (sample[1:, :], weights[1:]),
-            (label, label_weight),
+            (sample[:-1, :], (weights[:-1], seq_weights)),
+            (sample[1:, :], (weights[1:], seq_weights)),
+            (label, (label_weights, joint_weights)),
         )
 
 

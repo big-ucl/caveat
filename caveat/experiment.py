@@ -62,13 +62,10 @@ class Experiment(pl.LightningModule):
         self.kld_loss_weight = kwargs.get("kld_weight", 0.001)
         print(f"Found KLD weight: {self.kld_loss_weight}")
 
-        activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
-        duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
-        total_recon_weight = activity_loss_weight + duration_loss_weight
-        self.activity_loss_weight = activity_loss_weight / total_recon_weight
-        self.duration_loss_weight = duration_loss_weight / total_recon_weight
-        print(f"Calculated activity loss weight: {self.activity_loss_weight}")
-        print(f"Calculated duration loss weight: {self.duration_loss_weight}")
+        self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
+        self.duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
+        print(f"Found activity loss weight: {self.activity_loss_weight}")
+        print(f"Found duration loss weight: {self.duration_loss_weight}")
 
         self.label_loss_weight = kwargs.get("label_loss_weight", 0.0001)
         print(f"Found labels loss weight: {self.label_loss_weight}")
@@ -114,11 +111,9 @@ class Experiment(pl.LightningModule):
             mu=mu,
             log_var=log_var,
             target=y,
-            mask=y_weights,
+            weights=y_weights,
             label_weights=l_weights,
-            # kld_weight=self.kld_loss_weight,
-            # duration_weight=self.duration_loss_weight,
-            batch_idx=batch_idx,
+            # batch_idx=batch_idx,
         )
         self.log_dict(
             {key: val.item() for key, val in train_loss.items()}, sync_dist=True
@@ -127,7 +122,7 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, x_weights), (y, y_weights), (labels, _) = batch
+        (x, x_weights), (y, y_weights), (labels, l_weights) = batch
         self.curr_device = x.device
 
         log_probs, mu, log_var, z = self.forward(
@@ -138,11 +133,10 @@ class Experiment(pl.LightningModule):
             mu=mu,
             log_var=log_var,
             target=y,
-            mask=y_weights,
-            kld_weight=self.kld_loss_weight,
-            duration_weight=self.duration_loss_weight,
-            optimizer_idx=optimizer_idx,
-            batch_idx=batch_idx,
+            weights=y_weights,
+            label_weights=l_weights,
+            # optimizer_idx=optimizer_idx,
+            # batch_idx=batch_idx,
         )
 
         self.log_dict(
@@ -161,21 +155,20 @@ class Experiment(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         if self.test:
-            (x, x_weights), (y, y_weights), conditionals = batch
+            (x, x_weights), (y, y_weights), (labels, l_weights) = batch
             self.curr_device = x.device
 
             log_probs_x, mu, log_var, z = self.forward(
-                x, conditionals=conditionals, input_mask=x_weights
+                x, conditionals=labels, input_mask=x_weights
             )
             test_loss = self.loss_function(
                 log_probs_x=log_probs_x,
                 mu=mu,
                 log_var=log_var,
                 target=y,
-                mask=y_weights,
-                kld_weight=self.kld_loss_weight,
-                duration_weight=self.duration_loss_weight,
-                batch_idx=batch_idx,
+                weights=y_weights,
+                label_weights=l_weights,
+                # batch_idx=batch_idx,
             )
 
             self.log_dict(

@@ -45,68 +45,30 @@ class CondSeqLSTM(Base):
     def forward(
         self,
         x: Tensor,
-        conditionals: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
         target: Optional[Tensor] = None,
         **kwargs,
     ) -> List[Tensor]:
 
-        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        log_probs = self.decode(z=x, labels=labels, target=target)
         return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
-        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
+        self,
+        log_probs: Tensor,
+        target: Tensor,
+        weights: Tuple[Tensor, Tensor],
+        **kwargs,
     ) -> dict:
-        """Loss function for sequence encoding [N, L, 2]."""
-        # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(target)
-        pred_acts, pred_durations = self.unpack_encoding(log_probs)
-        pred_durations = torch.exp(pred_durations)
-
-        # normalise mask weights
-        mask = mask / mask.mean(-1).unsqueeze(-1)
-        duration_mask = mask.clone()
-        duration_mask[:, 0] = 0.0
-        duration_mask[
-            torch.arange(duration_mask.shape[0]),
-            (mask != 0).cumsum(-1).argmax(1),
-        ] = 0.0
-
-        # activity loss
-        recon_act_nlll = self.base_NLLL(
-            pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
+        return self.seq_loss_no_kld(
+            log_probs=log_probs, target=target, weights=weights, **kwargs
         )
-        act_recon = (recon_act_nlll * mask.view(-1)).mean()
-        scheduled_act_weight = (
-            self.activity_loss_weight * self.scheduled_act_weight
-        )
-        w_act_recon = scheduled_act_weight * act_recon
-
-        # duration loss
-        recon_dur_mse = self.MSE(pred_durations, target_durations)
-        recon_dur_mse = (recon_dur_mse * duration_mask).mean()
-        scheduled_dur_weight = (
-            self.duration_loss_weight * self.scheduled_dur_weight
-        )
-        w_dur_recon = scheduled_dur_weight * recon_dur_mse
-
-        # reconstruction loss
-        w_recons_loss = w_act_recon + w_dur_recon
-
-        return {
-            "loss": w_recons_loss,
-            "recon_act_nlll_loss": w_act_recon.detach(),
-            "recon_time_mse_loss": w_dur_recon.detach(),
-        }
 
     def encode(self, input: Tensor):
         return None
 
     def decode(
-        self,
-        z: None,
-        conditionals: Tensor,
-        target: Optional[Tensor] = None,
-        **kwargs,
+        self, z: None, labels: Tensor, target: Optional[Tensor] = None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -116,8 +78,8 @@ class CondSeqLSTM(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        batch_size = conditionals.shape[0]
-        embeds = self.label_encoder(conditionals)
+        batch_size = labels.shape[0]
+        embeds = self.label_encoder(labels)
         h = self.fc_hidden(embeds)
 
         # initialize hidden state
@@ -151,7 +113,7 @@ class CondSeqLSTM(Base):
     ) -> Tensor:
         z = z.to(device)
         conditionals = conditionals.to(device)
-        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
+        return exp(self.decode(z=z, labels=conditionals, kwargs=kwargs))
 
 
 class LabelEncoder(nn.Module):

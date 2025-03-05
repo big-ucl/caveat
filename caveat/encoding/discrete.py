@@ -1,4 +1,4 @@
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -57,8 +57,10 @@ class DiscreteEncoder(BaseEncoder):
         self,
         schedules: pd.DataFrame,
         labels: Optional[Tensor],
-        label_weights: Optional[Tensor],
+        label_weights: Optional[Tuple[Tensor, Tensor]],
     ) -> BaseDataset:
+
+        label_weights, joint_weights = label_weights
 
         schedules = schedules.copy()
         schedules.act = schedules.act.map(self.acts_to_index)
@@ -67,7 +69,6 @@ class DiscreteEncoder(BaseEncoder):
         encoded = discretise_population(
             schedules, duration=self.duration, step_size=self.step_size
         )
-        masks = torch.ones(encoded.shape)
 
         augment = (
             DiscreteJitter(self.step_size, self.jitter) if self.jitter else None
@@ -75,12 +76,14 @@ class DiscreteEncoder(BaseEncoder):
 
         return BaseDataset(
             schedules=encoded.long(),
-            schedule_weights=masks,
+            act_weights=torch.ones(encoded.shape),
+            seq_weights=torch.ones(encoded.shape[0], 1),
             activity_encodings=activity_encodings,
             activity_weights=self.encoding_weights,
             augment=augment,
             labels=labels,
             label_weights=label_weights,
+            joint_weights=joint_weights,
         )
 
     def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
@@ -175,12 +178,14 @@ class DiscreteEncoderPadded(BaseEncoder):
 
         return PaddedDatatset(
             schedules=encoded.long(),
-            schedule_weights=masks,
+            act_weights=masks,
+            seq_weights=torch.ones(encoded.shape[0], 1),
             activity_encodings=activity_encodings,
             activity_weights=activity_weights,
             augment=augment,
             labels=conditionals,
             label_weights=None,
+            joint_weights=None,
         )
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:

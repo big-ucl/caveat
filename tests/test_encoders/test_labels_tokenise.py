@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-import torch
 from pandas.testing import assert_frame_equal
 from torch import Tensor
 from torch.testing import assert_close
@@ -23,11 +22,12 @@ def test_encoder_nominal():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = TokenAttributeEncoder(config=config)
-    encoded, weights = encoder.encode(data)
+    encoder = TokenAttributeEncoder(config=config, weighting="inverse")
+    encoded, (weights, joint_weights) = encoder.encode(data)
     expected = Tensor([[1], [0], [0]]).long()
     assert_close(encoded, expected)
-    assert_close(weights, Tensor([[3], [3 / 2], [3 / 2]]).float())
+    assert_close(weights, Tensor([[1], [1 / 2], [1 / 2]]).float())
+    assert_close(joint_weights, Tensor([[1], [1], [1]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
@@ -40,14 +40,15 @@ def test_re_encoder_nominal():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = TokenAttributeEncoder(config=config)
+    encoder = TokenAttributeEncoder(config=config, weighting="inverse")
     _ = encoder.encode(data)
     new = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "M", "F"]}
     )
-    new_encoded, weights = encoder.encode(new)
+    new_encoded, (weights, joint_weights) = encoder.encode(new)
     assert_close(new_encoded, Tensor([[1], [1], [0]]).long())
-    assert_close(weights, Tensor([[3 / 2], [3 / 2], [3]]).float())
+    assert_close(weights, Tensor([[1 / 2], [1 / 2], [1]]).float())
+    assert_close(joint_weights, Tensor([[1], [1], [1]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
@@ -99,13 +100,14 @@ def test_encoder_multi():
             "gender": ["M", "F", "F"],
         }
     )
-    encoder = TokenAttributeEncoder(config=config)
-    encoded, weights = encoder.encode(data)
+    encoder = TokenAttributeEncoder(config=config, weighting="inverse")
+    encoded, (weights, joint_weights) = encoder.encode(data)
     expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
     assert_close(
-        weights, Tensor([[3, 3 / 2], [3 / 2, 3 / 2], [3 / 2, 3]]).float()
+        weights, Tensor([[1, 1 / 2], [1 / 2, 1 / 2], [1 / 2, 1]]).float()
     )
+    assert_close(joint_weights, Tensor([[1], [1], [1]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,

@@ -668,7 +668,7 @@ def encode_schedules(
     log_dir: Path,
     schedules: DataFrame,
     attributes: Optional[Tensor],
-    label_weights: Optional[Tensor],
+    label_weights: Optional[Tuple[Tensor, Tensor]],
     config: dict,
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule]:
 
@@ -697,10 +697,10 @@ def encode_input_labels(
             raise UserWarning(
                 "You have specified input attributes/labels, config must contain conditionals configuration."
             )
-
-        encoder_name = config.get("attribute_encoder", "onehot")
+        encoder_config = config.get("attribute_encoder", {})
+        encoder_name = encoder_config.get("name", "onehot")
         attribute_encoder = label_encoding.library[encoder_name](
-            conditionals_config
+            config=conditionals_config, **encoder_config
         )
         encoded_attributes, weights = attribute_encoder.encode(input_attributes)
 
