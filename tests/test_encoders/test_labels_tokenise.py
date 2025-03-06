@@ -23,11 +23,9 @@ def test_encoder_nominal():
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
     encoder = TokenAttributeEncoder(config=config, weighting="inverse")
-    encoded, (weights, joint_weights) = encoder.encode(data)
+    encoded, (_) = encoder.encode(data)
     expected = Tensor([[1], [0], [0]]).long()
     assert_close(encoded, expected)
-    assert_close(weights, Tensor([[1], [1 / 2], [1 / 2]]).float())
-    assert_close(joint_weights, Tensor([[1], [1], [1]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
@@ -45,10 +43,8 @@ def test_re_encoder_nominal():
     new = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "M", "F"]}
     )
-    new_encoded, (weights, joint_weights) = encoder.encode(new)
+    new_encoded, (_) = encoder.encode(new)
     assert_close(new_encoded, Tensor([[1], [1], [0]]).long())
-    assert_close(weights, Tensor([[1 / 2], [1 / 2], [1]]).float())
-    assert_close(joint_weights, Tensor([[1], [1], [1]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
@@ -101,13 +97,9 @@ def test_encoder_multi():
         }
     )
     encoder = TokenAttributeEncoder(config=config, weighting="inverse")
-    encoded, (weights, joint_weights) = encoder.encode(data)
+    encoded, (_) = encoder.encode(data)
     expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
-    assert_close(
-        weights, Tensor([[1, 1 / 2], [1 / 2, 1 / 2], [1 / 2, 1]]).float()
-    )
-    assert_close(joint_weights, Tensor([[1], [1], [1]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,

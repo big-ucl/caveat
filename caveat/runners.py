@@ -685,24 +685,24 @@ def encode_schedules(
 
 
 def encode_input_labels(
-    log_dir: Path, input_attributes: Optional[DataFrame], config: dict
+    log_dir: Path, input_labels: Optional[DataFrame], config: dict
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule, Tensor]:
     attribute_encoder = None
     # optionally encode attributes
     encoded_attributes = None
     weights = None
-    if input_attributes is not None:
-        conditionals_config = config.get("conditionals", None)
-        if conditionals_config is None:
-            raise UserWarning(
-                "You have specified input attributes/labels, config must contain conditionals configuration."
-            )
-        encoder_config = config.get("attribute_encoder", {})
+    if input_labels is not None:
+        encoder_config = config.get("labels_encoder", {})
         encoder_name = encoder_config.get("name", "onehot")
+        labels_config = encoder_config.get("labels", None)
+        if labels_config is None:
+            raise UserWarning(
+                "You have specified input labels, config must contain label encoder configuration with labels defined."
+            )
         attribute_encoder = label_encoding.library[encoder_name](
-            config=conditionals_config, **encoder_config
+            config=labels_config, **encoder_config
         )
-        encoded_attributes, weights = attribute_encoder.encode(input_attributes)
+        encoded_attributes, weights = attribute_encoder.encode(input_labels)
 
     pickle.dump(
         attribute_encoder, open(f"{log_dir}/attribute_encoder.pkl", "wb")

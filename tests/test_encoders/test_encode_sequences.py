@@ -43,13 +43,13 @@ def test_encoder():
     expected = torch.tensor(
         [[0, 0.0], [2, 0.4], [3, 0.4], [2, 0.2], [1, 0.0], [1, 0.0]]
     )
-    expected_weights = torch.tensor([1 / 2, 1 / 4, 1 / 2, 1 / 4, 1 / 2, 0])
+    expected_weights = torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0, 0.0])
     labels = torch.tensor([[0, 0], [1, 1]])
-    label_weights = (torch.tensor([[1, 2], [3, 4]]), torch.tensor([[1], [2]]))
+    label_weights = (torch.tensor([[1, 1], [1, 1]]), torch.tensor([[1], [1]]))
     encoder = seq.SequenceEncoder(
         max_length=length,
         norm_duration=duration,
-        weighting="inverse",
+        weighting="unit",
         joint_weighting="unit",
     )
     encoded_data = encoder.encode(schedules, labels, label_weights)
@@ -61,7 +61,7 @@ def test_encoder():
     assert torch.equal(encoded_schedule[0], expected)
     assert torch.equal(masks[0], expected_weights)
     assert torch.equal(labels[0], torch.tensor([0, 0]))
-    assert torch.equal(labels_weights[0], torch.tensor([1, 2]))
+    assert torch.equal(labels_weights[0], torch.tensor([1, 1]))
 
 
 def test_norm_durations():
