@@ -5,9 +5,12 @@ import torch
 from torch import Tensor
 
 from caveat.label_encoding.label_weighting import (
+    inverse_log_weight,
     inverse_weight,
     inverse_weights,
+    log_inverse_weight,
     max_weight,
+    product_weight,
     unit_weight,
     unit_weights,
 )
@@ -17,7 +20,10 @@ label_weights_library = {"unit": unit_weights, "inverse": inverse_weights}
 joint_label_weights_library = {
     "unit": unit_weight,
     "inverse": inverse_weight,
-    "max": max_weight,
+    "log_inverse": log_inverse_weight,
+    "inverse_log": inverse_log_weight,
+    "max_inverse": max_weight,
+    "prod_inverse": product_weight,
 }
 
 
