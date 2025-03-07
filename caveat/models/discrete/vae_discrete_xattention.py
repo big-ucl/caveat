@@ -69,7 +69,7 @@ class VAEDiscXTrans(Base):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x, conditionals=None)
+        mu, log_var = self.encode(x, labels=None)
         z = self.reparameterize(mu, log_var)
 
         if target is not None:  # training

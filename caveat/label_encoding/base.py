@@ -50,7 +50,7 @@ class BaseLabelEncoder:
             )
 
         print(
-            f"""Label Encoder initialised with:
+            f"""Label Encoder {self.__class__.__name__} initialised with:
             Label weighting: {self.weighting}
             Joint weighting: {self.joint_weighting}
             """

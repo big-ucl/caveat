@@ -109,6 +109,8 @@ class SequenceEncoder(BaseEncoder):
         seq_weights = self.joint_weighter(sequences=encoded_schedules)
 
         # unpack label weights
+        if label_weights is None:
+            label_weights = (None, None)
         label_weights, joint_weights = label_weights
 
         # augment

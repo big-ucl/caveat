@@ -21,7 +21,7 @@ def test_seq2seq_forward():
         in_shape=x_encoded[0].shape,
         encodings=(A, M),
         encoding_weights=None,
-        conditionals_size=4,
+        labels_size=4,
         **{"hidden_n": 1, "hidden_size": 12, "latent_dim": 2, "dropout": 0.1},
     )
     log_probs = model(x_encoded, conditionals=conditionals)
@@ -49,7 +49,7 @@ def test_seq2score_forward():
         in_shape=x_encoded[0].shape,
         encodings=(A, M),
         encoding_weights=None,
-        conditionals_size=4,
+        labels_size=4,
         **{"hidden_n": 1, "hidden_size": 12, "latent_dim": 2, "dropout": 0.1},
     )
     score = model(x_encoded, conditionals=conditionals)

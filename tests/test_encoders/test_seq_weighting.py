@@ -36,14 +36,15 @@ def test_act_inverse_weights():
     ).unsqueeze(-1)
     weights = act_inverse_weights(seq, trim_eos=False)
     assert weights.shape == (4, 6)
-    target = torch.tensor(
+    freqs = torch.tensor(
         [
-            [0.25, 0.125, 1 / 3, 0.125, 0.25, 0.25],
-            [0.25, 0.125, 1 / 3, 0.125, 0.25, 0.25],
-            [0.25, 0.125, 0.125, 0.25, 0.25, 0.25],
-            [0.25, 0.125, 1 / 3, 1, 0.125, 0.25],
+            [8, 8, 3, 8, 8, 8],
+            [8, 8, 3, 8, 8, 8],
+            [8, 8, 8, 8, 8, 8],
+            [8, 8, 3, 1, 8, 8],
         ]
     )
+    target = 1 / freqs
     target = target / target.mean()
     assert torch.allclose(weights, target)
 
@@ -59,14 +60,19 @@ def test_act_inverse_weights_with_trim_eos():
     ).unsqueeze(-1)
     weights = act_inverse_weights(seq, trim_eos=True)
     assert weights.shape == (4, 6)
-    target = torch.tensor(
+    freqs = torch.tensor(
         [
-            [0.25, 0.125, 1 / 3, 0.125, 0.25, 0],
-            [0.25, 0.125, 1 / 3, 0.125, 0.25, 0],
-            [0.25, 0.125, 0.125, 0.25, 0, 0],
-            [0.25, 0.125, 1 / 3, 1, 0.125, 0.25],
+            [8, 8, 3, 8, 8, 8],
+            [8, 8, 3, 8, 8, 8],
+            [8, 8, 8, 8, 8, 8],
+            [8, 8, 3, 1, 8, 8],
         ]
     )
+    target = 1 / freqs
+    target[0, -1] = 0
+    target[1, -1] = 0
+    target[2, -1] = 0
+    target[2, -2] = 0
     target = target / target.mean()
     assert torch.allclose(weights, target)
 
@@ -109,7 +115,7 @@ def test_act_and_dur_inverse_weights():
     seq = torch.stack([acts, durs], dim=-1)
     weights = act_and_dur_inverse_weights(seq, trim_eos=False)
     assert weights.shape == (2, 6)
-    target = torch.tensor([[2, 3, 1, 1, 2, 2], [2, 3, 1, 3, 2, 2]])
+    target = torch.tensor([[3, 3, 1, 1, 3, 3], [3, 3, 1, 3, 3, 3]])
     target = 1 / target
     target = target / target.mean()
     assert torch.allclose(weights, target)
@@ -121,7 +127,7 @@ def test_act_and_dur_inverse_weights_with_eos_trim():
     seq = torch.stack([acts, durs], dim=-1)
     weights = act_and_dur_inverse_weights(seq, trim_eos=True)
     assert weights.shape == (2, 6)
-    target = torch.tensor([[2, 3, 1, 1, 2, 2], [2, 3, 1, 3, 2, 2]])
+    target = torch.tensor([[3, 3, 1, 1, 3, 3], [3, 3, 1, 3, 3, 3]])
     target = 1 / target
     target[:, -1] = 0
     target = target / target.mean()

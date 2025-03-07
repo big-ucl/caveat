@@ -70,22 +70,22 @@ class BaseDataset(Dataset):
         if self.seq_weights is not None:
             seq_weights = self.seq_weights[idx]
         else:
-            seq_weights = Tensor([])
+            seq_weights = Tensor([1])
 
         if self.labels is not None:
             labels = self.labels[idx]
         else:
-            labels = Tensor([])
+            labels = Tensor([1])
 
         if self.label_weights is not None:
             label_weights = self.label_weights[idx]
         else:
-            label_weights = Tensor([])
+            label_weights = Tensor([1])
 
         if self.joint_weights is not None:
             joint_weights = self.joint_weights[idx]
         else:
-            joint_weights = Tensor([])
+            joint_weights = Tensor([1])
 
         return (
             (sample, (weights, seq_weights)),
@@ -113,22 +113,22 @@ class PaddedDatatset(BaseDataset):
         if self.seq_weights is not None:
             seq_weights = self.seq_weights[idx]
         else:
-            seq_weights = Tensor([])
+            seq_weights = Tensor([1])
 
         if self.labels is not None:
             label = self.labels[idx]
         else:
-            label = Tensor([])
+            label = Tensor([1])
 
         if self.label_weights is not None:
             label_weights = self.label_weights[idx]
         else:
-            label_weights = Tensor([])
+            label_weights = Tensor([1])
 
         if self.joint_weights is not None:
             joint_weights = self.joint_weights[idx]
         else:
-            joint_weights = Tensor([])
+            joint_weights = Tensor([1])
 
         pad_left = pad(sample, (1, 0))
         pad_right = pad(sample, (0, 1))

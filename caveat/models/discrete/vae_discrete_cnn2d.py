@@ -67,10 +67,10 @@ class VAEDiscCNN2D(Base):
         return log_probs
 
     def loss_function(
-        self, log_probs, mu, log_var, target, mask, *args, **kwargs
+        self, log_probs, mu, log_var, target, weights, *args, **kwargs
     ) -> dict:
         return self.discretized_loss(
-            log_probs, mu, log_var, target, mask, *args, **kwargs
+            log_probs, mu, log_var, target, weights, *args, **kwargs
         )
 
 

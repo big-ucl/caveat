@@ -54,11 +54,7 @@ class Base(Experiment):
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
 
     def forward(
-        self,
-        x: Tensor,
-        conditionals: Optional[Tensor] = None,
-        target=None,
-        **kwargs,
+        self, x: Tensor, labels: Optional[Tensor] = None, target=None, **kwargs
     ) -> List[Tensor]:
         """Forward pass, also return latent parameterization.
 
@@ -68,9 +64,9 @@ class Base(Experiment):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x, conditionals)
+        mu, log_var = self.encode(x, labels)
         z = self.reparameterize(mu, log_var)
-        log_probs_x = self.decode(z, conditionals=conditionals, target=target)
+        log_probs_x = self.decode(z, labels=labels, target=target)
         return [log_probs_x, mu, log_var, z]
 
     def loss_function(
@@ -130,9 +126,7 @@ class Base(Experiment):
             -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
-    def encode(
-        self, input: Tensor, conditionals: Optional[Tensor]
-    ) -> list[Tensor]:
+    def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
 
         Args:
@@ -274,7 +268,7 @@ class Base(Experiment):
     def act_seq_loss(
         self, preds, targets, weights, seq_weights, joint_weights
     ) -> Tensor:
-        """Loss function for sequence encoding [B, L]."""
+        """Loss function for activity encoding [B, L]."""
         B, L, _ = targets.shape
         losses = self.base_NLLL(
             preds.view(-1, self.encodings), targets.view(-1).long()
@@ -288,6 +282,7 @@ class Base(Experiment):
     def dur_seq_loss(
         self, preds, targets, weights, seq_weights, joint_weights
     ) -> Tensor:
+        """Loss function for durations [B, L]."""
         losses = self.MSE(preds, targets)
         losses = losses * weights * seq_weights
         if joint_weights is not None:
@@ -542,7 +537,7 @@ class Base(Experiment):
         }
 
     def discretized_loss(
-        self, log_probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, weights, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss

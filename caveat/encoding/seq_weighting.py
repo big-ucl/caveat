@@ -23,8 +23,12 @@ def act_inverse_weights(
     _, locs, ws = torch.unique(
         activities, return_counts=True, return_inverse=True
     )
-    # set eos weight to sos weight (ignore trailing eos)
-    ws[eos_idx] = ws[sos_idx]
+    # set sos and eos weights
+    ws[sos_idx] = 0
+    ws[eos_idx] = 0
+    max_act_weight = ws.max()
+    ws[eos_idx] = max_act_weight
+    ws[sos_idx] = max_act_weight
 
     weights = 1 / ws[locs].float()
 
@@ -47,8 +51,12 @@ def act_and_dur_inverse_weights(
     _, locs, ws = torch.unique(
         combined.view(-1, 2), dim=0, return_counts=True, return_inverse=True
     )
-    # set eos weight to sos weight (ignore trailing eos)
-    ws[eos_idx] = ws[sos_idx]  # this relies on sorted output of unique
+    # set sos and eos weights
+    ws[sos_idx] = 0
+    ws[eos_idx] = 0
+    max_act_weight = ws.max()
+    ws[eos_idx] = max_act_weight
+    ws[sos_idx] = max_act_weight
 
     weights = 1 / ws[locs]
     weights = weights.view(sequences.shape[0], -1)
@@ -58,7 +66,6 @@ def act_and_dur_inverse_weights(
         weights = weights * eos_mask  # apply to weights
 
     weights = weights / weights.mean()
-
     return weights
 
 

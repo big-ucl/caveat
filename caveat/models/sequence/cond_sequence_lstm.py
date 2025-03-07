@@ -11,7 +11,7 @@ class CondSeqLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)
-        if self.conditionals_size is None:
+        if self.labels_size is None:
             raise UserWarning(
                 "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
@@ -109,11 +109,11 @@ class CondSeqLSTM(Base):
         return log_probs
 
     def predict(
-        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
+        self, z: Tensor, labels: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
-        conditionals = conditionals.to(device)
-        return exp(self.decode(z=z, labels=conditionals, kwargs=kwargs))
+        labels = labels.to(device)
+        return exp(self.decode(z=z, labels=labels, kwargs=kwargs))
 
 
 class LabelEncoder(nn.Module):

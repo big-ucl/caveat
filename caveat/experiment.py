@@ -16,7 +16,7 @@ class Experiment(pl.LightningModule):
         in_shape: tuple,
         encodings: int,
         encoding_weights: Optional[Tensor] = None,
-        conditionals_size: Optional[tuple] = None,
+        labels_size: Optional[tuple] = None,
         sos: int = 0,
         gen: bool = False,
         test: bool = False,
@@ -38,7 +38,7 @@ class Experiment(pl.LightningModule):
             in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
             encodings (int): Number of activity encodings.
             encoding_weights (tensor): Weights for activity encodings.
-            conditionals_size (int, optional): Size of conditionals encoding. Defaults to None.
+            labels_size (int, optional): Size of labels encoding. Defaults to None.
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
@@ -49,9 +49,9 @@ class Experiment(pl.LightningModule):
         print(f"Found encodings: {self.encodings}")
         self.encoding_weights = encoding_weights
         print(f"Found encoding weights: {self.encoding_weights}")
-        self.conditionals_size = conditionals_size
-        if self.conditionals_size is not None:
-            print(f"Found conditionals size: {self.conditionals_size}")
+        self.labels_size = labels_size
+        if self.labels_size is not None:
+            print(f"Found labels size: {self.labels_size}")
         self.label_embed_sizes = kwargs.get("label_embed_sizes", None)
         self.sos = sos
         print(f"Found start of sequence token: {self.sos}")
@@ -104,7 +104,7 @@ class Experiment(pl.LightningModule):
 
         self.curr_device = x.device
         log_probs, mu, log_var, z = self.forward(
-            x, conditionals=labels, target=y, input_mask=x_weights
+            x, labels=labels, target=y, input_mask=x_weights
         )
         train_loss = self.loss_function(
             log_probs=log_probs,
@@ -126,7 +126,7 @@ class Experiment(pl.LightningModule):
         self.curr_device = x.device
 
         log_probs, mu, log_var, z = self.forward(
-            x, conditionals=labels, input_mask=x_weights
+            x, labels=labels, input_mask=x_weights
         )
         val_loss = self.loss_function(
             log_probs=log_probs,
@@ -159,7 +159,7 @@ class Experiment(pl.LightningModule):
             self.curr_device = x.device
 
             log_probs_x, mu, log_var, z = self.forward(
-                x, conditionals=labels, input_mask=x_weights
+                x, labels=labels, input_mask=x_weights
             )
             test_loss = self.loss_function(
                 log_probs_x=log_probs_x,
@@ -187,7 +187,7 @@ class Experiment(pl.LightningModule):
         y = y.to(self.curr_device)
         labels = labels.to(self.curr_device)
         self.regenerate_batch(
-            x, target=y, name="reconstructions", conditionals=labels
+            x, target=y, name="reconstructions", labels=labels
         )
 
     def regenerate_batch(
@@ -195,11 +195,9 @@ class Experiment(pl.LightningModule):
         x: Tensor,
         target: Tensor,
         name: str,
-        conditionals: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
     ):
-        probs, _ = self.infer(
-            x, conditionals=conditionals, device=self.curr_device
-        )
+        probs, _ = self.infer(x, labels=labels, device=self.curr_device)
         probs = probs.squeeze()
         image = unpack(target, probs, self.curr_device)
         div = torch.ones_like(probs)
@@ -222,7 +220,7 @@ class Experiment(pl.LightningModule):
         )
         labels = labels.to(self.curr_device)
         z = torch.randn(len(labels), self.latent_dim)
-        y_probs = self.predict(z, conditionals=labels, device=self.curr_device)
+        y_probs = self.predict(z, labels=labels, device=self.curr_device)
         vutils.save_image(
             pre_process(y_probs.cpu().data),
             Path(
@@ -278,12 +276,12 @@ class Experiment(pl.LightningModule):
             zs, labels = batch
             return (
                 labels,
-                self.predict(zs, conditionals=labels, device=self.curr_device),
+                self.predict(zs, labels=labels, device=self.curr_device),
                 zs,
             )
         # inference process
         (x, _), (_, _), (labels, _) = batch
-        preds, zs = self.infer(x, conditionals=labels, device=self.curr_device)
+        preds, zs = self.infer(x, labels=labels, device=self.curr_device)
         return x, preds, zs, labels
 
 

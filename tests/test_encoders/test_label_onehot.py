@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
-from torch import Tensor, ones_like
+from torch import Tensor, ones, ones_like
 from torch.testing import assert_close
 
 from caveat.label_encoding.onehot import OneHotAttributeEncoder
@@ -13,10 +13,11 @@ def test_encoder_ordinal():
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
     encoder = OneHotAttributeEncoder(config=config)
-    encoded, weights = encoder.encode(data)
+    encoded, (weights, joint_weights) = encoder.encode(data)
     expected = Tensor([[0.34], [0.96], [0.15]]).float()
     assert_close(encoded, expected)
     assert_close(weights, ones_like(encoded))
+    assert_close(joint_weights, ones(encoded.shape[0], 1))
     assert encoder.config["age"] == {
         "ordinal": [0, 100],
         "location": 0,
@@ -30,15 +31,17 @@ def test_re_encoder_ordinal():
         {"pid": [0, 1, 2], "age": [10, 50, 20], "gender": ["M", "F", "F"]}
     )
     encoder = OneHotAttributeEncoder(config={"age": "ordinal"})
-    encoded, weights = encoder.encode(data)
+    encoded, (weights, joint_weights) = encoder.encode(data)
     expected = Tensor([[0.0], [1.0], [0.25]]).float()
     assert_close(encoded, expected)
     assert_close(weights, ones_like(encoded))
+    assert_close(joint_weights, ones(encoded.shape[0], 1))
     new_data = pd.DataFrame({"pid": [0, 1, 2], "age": [20, 30, 40]})
-    new_encoded, weights = encoder.encode(new_data)
+    new_encoded, (weights, joint_weights) = encoder.encode(new_data)
     new_expected = Tensor([[0.25], [0.5], [0.75]]).float()
     assert_close(new_encoded, new_expected)
     assert_close(weights, ones_like(encoded))
+    assert_close(joint_weights, ones(encoded.shape[0], 1))
     assert encoder.config["age"] == {
         "ordinal": [10, 50],
         "location": 0,

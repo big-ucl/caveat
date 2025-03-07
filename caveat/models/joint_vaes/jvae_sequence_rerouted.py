@@ -57,9 +57,7 @@ class JVAESeqLSTMRerouted(JointExperiment):
 
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_conditionals = nn.Linear(
-            self.conditionals_size, flat_size_encode
-        )
+        self.fc_conditionals = nn.Linear(self.labels_size, flat_size_encode)
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_attributes = nn.Linear(flat_size_encode, self.latent_dim)

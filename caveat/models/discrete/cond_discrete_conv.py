@@ -11,7 +11,7 @@ class CondDiscCNN2D(Base):
     def __init__(self, *args, **kwargs):
         """Convolution based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
-        if self.conditionals_size is None:
+        if self.labels_size is None:
             raise UserWarning(
                 "Model requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
@@ -57,7 +57,7 @@ class CondDiscCNN2D(Base):
             padding=padding,
         )
 
-        self.fc_hidden = nn.Linear(self.conditionals_size, self.flat_size)
+        self.fc_hidden = nn.Linear(self.labels_size, self.flat_size)
 
     def forward(
         self,

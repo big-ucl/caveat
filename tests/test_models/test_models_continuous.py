@@ -28,7 +28,7 @@ def test_auto_lstm_forward():
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_encoded, labels=labels)
@@ -60,7 +60,7 @@ def test_conditional_lstm_forward():
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        labels_size=10,
         **{
             "label_embed_sizes": [5, 2],
             "hidden_n": 1,
@@ -136,7 +136,7 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=2,
+        labels_size=2,
         **{
             "label_embed_sizes": [5, 2],
             "hidden_n": 1,
@@ -149,7 +149,7 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
             "decoder_conditionality": decoder,
         },
     )
-    log_prob_y, mu, log_var, z = model(x_encoded, conditionals=labels)
+    log_prob_y, mu, log_var, z = model(x_encoded, labels=labels)
     assert log_prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
@@ -172,16 +172,16 @@ def test_cvae_lstm_nudger_forward():
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
-    conditionals = torch.randn(3, 10)  # (batch, channels)
+    labels = torch.randn(3, 10)  # (batch, channels)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
     model = CVAESeqLSTMNudger(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob_y, mu, log_var, z = model(x_encoded, conditionals=conditionals)
+    log_prob_y, mu, log_var, z = model(x_encoded, labels=labels)
     assert log_prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
@@ -217,13 +217,13 @@ def test_cvae_adv_forward():
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
-    x_out, preds, zs, conditionals_out = model.predict_step(batch)
+    x_out, preds, zs, labels_out = model.predict_step(batch)
     assert x_out.shape == (3, 10, 2)
     assert preds.shape == (3, 10, 6)
-    assert conditionals_out.shape == (3, 10)
+    assert labels_out.shape == (3, 10)
     assert zs.shape == (3, 2)
 
 

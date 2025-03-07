@@ -205,8 +205,8 @@ def build_suggestions(trial: optuna.Trial, config: dict):
         if isinstance(v, dict):
             config[k] = build_suggestions(trial, v)
         else:
-            tuned, suggestion = parse_suggestion(trial, v)
-            if tuned:
+            found, suggestion = parse_suggestion(trial, v)
+            if found:
                 config.pop(k)
                 config[k] = suggestion
     return config

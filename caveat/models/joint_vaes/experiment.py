@@ -21,7 +21,11 @@ class JointExperiment(Experiment):
         super().__init__(*args, **kwargs)
 
     def training_step(self, batch, batch_idx):
-        (x, _), (y, y_mask), (labels, label_mask) = batch
+        (
+            (x, _),
+            (y, (y_weights, y_joint)),
+            (labels, (label_weights, label_joint)),
+        ) = batch
 
         self.curr_device = x.device
 
@@ -33,7 +37,7 @@ class JointExperiment(Experiment):
             mu=mu,
             log_var=log_var,
             targets=(y, labels),
-            masks=(y_mask, label_mask),
+            masks=(y_weights, label_weights),
             kld_weight=self.kld_loss_weight,
             duration_weight=self.duration_loss_weight,
             batch_idx=batch_idx,
@@ -45,7 +49,11 @@ class JointExperiment(Experiment):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, _), (y, y_weights), (labels, label_weights) = batch
+        (
+            (x, _),
+            (y, (y_weights, y_joint)),
+            (labels, (label_weights, label_joint)),
+        ) = batch
         self.curr_device = x.device
 
         log_probs, mu, log_var, z = self.forward(x, conditionals=labels)
@@ -76,7 +84,11 @@ class JointExperiment(Experiment):
 
     def test_step(self, batch, batch_idx):
         if self.test:
-            (x, _), (y, y_weights), (labels, label_weights) = batch
+            (
+                (x, _),
+                (y, (y_weights, y_joint)),
+                (labels, (label_weights, label_joint)),
+            ) = batch
             self.curr_device = x.device
 
             log_probs, mu, log_var, z = self.forward(x, conditionals=labels)
