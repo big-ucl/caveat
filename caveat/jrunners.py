@@ -39,15 +39,16 @@ def jrun_command(
     Returns:
         None
     """
-    attribute_encoder = config.get("attribute_encoder", None)
-    if attribute_encoder is None or attribute_encoder != "tokens":
+    labels_encoder_config = config.get("labels_encoder", {})
+    labels_encoder = labels_encoder_config.get("name", None)
+    if labels_encoder is None or labels_encoder != "tokens":
         raise ValueError(
             "Joint model requires attribute_encoder to be configured as 'tokens'."
         )
 
-    conditionals = config.get("conditionals", None)
-    if conditionals is None:
-        raise ValueError("No conditionals provided in the config.")
+    labels_config = labels_encoder_config.get("labels", None)
+    if labels_config is None:
+        raise ValueError("No labels provided in the labels_encoder config.")
 
     logger_params = config.get("logging_params", {})
     log_dir = Path(logger_params.get("log_dir", "logs"))
@@ -60,11 +61,11 @@ def jrun_command(
     seed = config.pop("seed", seeder())
 
     # load data
-    input_schedules, input_attributes, synthetic_labels = load_data(config)
+    input_schedules, input_labels, synthetic_labels = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_labels, label_weights = encode_input_labels(
-        logger.log_dir, input_attributes, config
+    labels_encoder, encoded_labels, label_weights = encode_input_labels(
+        logger.log_dir, input_labels, config
     )
 
     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
@@ -76,7 +77,7 @@ def jrun_command(
         name=name,
         data_loader=data_loader,
         encoded_schedules=encoded_schedules,
-        label_encoder=attribute_encoder,
+        label_encoder=labels_encoder,
         config=config,
         test=test,
         gen=gen,
@@ -100,7 +101,7 @@ def jrun_command(
         test_inference(
             trainer=trainer,
             schedule_encoder=schedule_encoder,
-            attribute_encoder=attribute_encoder,
+            attribute_encoder=labels_encoder,
             write_dir=test_infer_path,
             seed=seed,
         )
@@ -114,12 +115,12 @@ def jrun_command(
 
         if sample:
             synthetic_labels, synthetic_schedules = target_sample(
-                conditionals=list(conditionals.keys()),
+                conditionals=list(labels_config.keys()),
                 patience=patience,
                 synthetic_population=synthetic_population,
                 trainer=trainer,
                 schedule_encoder=schedule_encoder,
-                attribute_encoder=attribute_encoder,
+                attribute_encoder=labels_encoder,
                 config=config,
                 log_dir=Path(logger.log_dir),
                 seed=seed,
@@ -132,7 +133,7 @@ def jrun_command(
                 trainer=trainer,
                 population=synthetic_population,
                 schedule_encoder=schedule_encoder,
-                attribute_encoder=attribute_encoder,
+                attribute_encoder=labels_encoder,
                 config=config,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
@@ -143,7 +144,7 @@ def jrun_command(
             synthetic_schedules={name: synthetic_schedules},
             synthetic_attributes={name: synthetic_labels},
             default_eval_schedules=input_schedules,
-            default_eval_attributes=input_attributes,
+            default_eval_attributes=input_labels,
             write_path=Path(logger.log_dir),
             eval_params=config.get("evaluation_params", {}),
             stats=False,

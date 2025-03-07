@@ -11,7 +11,7 @@ class CondDiscLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)
-        if self.conditionals_size is None:
+        if self.labels_size is None:
             raise UserWarning(
                 "Model requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
@@ -42,8 +42,8 @@ class CondDiscLSTM(Base):
             flat_size_encode = self.hidden_n * self.hidden_size * 2
             self.adjusted_layers = self.hidden_n
             self.unflatten_shape = (2 * self.hidden_n, self.hidden_size)
-        self.fc_hidden = nn.Linear(self.conditionals_size, flat_size_encode)
-        self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
+        self.fc_hidden = nn.Linear(self.labels_size, flat_size_encode)
+        self.fc_x = nn.Linear(self.labels_size, self.hidden_size)
 
     def forward(
         self,

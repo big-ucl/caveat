@@ -1,4 +1,4 @@
-from caveat.jrun import jrun_command
+from caveat.jrunners import jrun_command
 from caveat.runners import (
     batch_command,
     ngen_command,

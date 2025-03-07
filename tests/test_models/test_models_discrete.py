@@ -19,7 +19,7 @@ def test_discrete_auto_lstm_forward():
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob, _, _, _ = model(x_max, conditionals=conditionals)
@@ -36,7 +36,7 @@ def test_discrete_conditional_conv_forward():
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        labels_size=10,
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_max, conditionals=conditionals)
@@ -53,7 +53,7 @@ def test_discrete_conditional_lstm_forward():
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
-        conditionals_size=10,
+        labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_max, conditionals=conditionals)
@@ -77,7 +77,7 @@ def test_discrete_vae_conv_forward():
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
+        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, weights=None
     )
     assert "loss" in losses
     assert "recon_loss" in losses

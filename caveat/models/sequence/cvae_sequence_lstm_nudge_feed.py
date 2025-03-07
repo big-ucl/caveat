@@ -31,7 +31,7 @@ class CVAESeqLSTMNudgeFeed(Base):
         Adds latent layer to decoder instead of concatenating.
         """
         super().__init__(*args, **kwargs)
-        if self.conditionals_size is None:
+        if self.labels_size is None:
             raise UserWarning(
                 "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
@@ -43,7 +43,7 @@ class CVAESeqLSTMNudgeFeed(Base):
         self.dropout = config["dropout"]
         length, _ = self.in_shape
         self.label_network = LabelNetwork(
-            input_size=self.conditionals_size,
+            input_size=self.labels_size,
             hidden_size=self.hidden_size,
             output_size=self.latent_dim,
         )
@@ -64,13 +64,11 @@ class CVAESeqLSTMNudgeFeed(Base):
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_conditionals = nn.Linear(
-            self.conditionals_size, flat_size_encode
-        )
+        self.fc_conditionals = nn.Linear(self.labels_size, flat_size_encode)
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
-        self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
+        self.fc_x = nn.Linear(self.labels_size, self.hidden_size)
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
@@ -192,12 +190,12 @@ class CVAESeqLSTMNudgeFeedPre(CVAESeqLSTMNudgeFeed):
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_layers,
-            conditionals_size=self.conditionals_size,
+            conditionals_size=self.labels_size,
             max_length=length,
             dropout=self.dropout,
         )
         self.label_network = LabelNetwork(
-            input_size=self.conditionals_size,
+            input_size=self.labels_size,
             hidden_size=self.hidden_size,
             output_size=self.latent_dim,
         )
@@ -212,13 +210,11 @@ class CVAESeqLSTMNudgeFeedPre(CVAESeqLSTMNudgeFeed):
         )
         self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
-        self.fc_conditionals = nn.Linear(
-            self.conditionals_size, flat_size_encode
-        )
+        self.fc_conditionals = nn.Linear(self.labels_size, flat_size_encode)
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
-        self.fc_x = nn.Linear(self.conditionals_size, self.hidden_size)
+        self.fc_x = nn.Linear(self.labels_size, self.hidden_size)
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight

@@ -2,7 +2,7 @@ global:
   seed: 12345
   logging_params:
     log_dir: "logs/cvaes"
-    name: "d_iuu"
+    name: "iuu"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -16,7 +16,7 @@ global:
     num_workers: 8
 
   trainer_params:
-    min_epochs: 50
+    min_epochs: 100
     max_epochs: 200
     patience: 50
   
@@ -56,152 +56,48 @@ global:
     norm_duration: 1440
     jitter: 0.0
     fix_durations: True
-    trailing_weights: True
+    trim_eos: True
     weighting: unit
     joint_weighting: unit
 
-
-d100kld1000:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.0001
-    duration_loss_weight: 100
-
-d100kld200:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.005
-    duration_loss_weight: 100
-
-d100kld100:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.001
-    duration_loss_weight: 100
-
-d100kld10:
-
+kld100:
   experiment_params:
     LR: 0.0005
     weight_decay: 0.02
     scheduler_gamma: 0.975
     kld_weight: 0.01
-    duration_loss_weight: 100
+    duration_loss_weight: 200
 
-d50kld1000:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.0001
-    duration_loss_weight: 50
-
-d50kld200:
-
+kld200:
   experiment_params:
     LR: 0.0005
     weight_decay: 0.02
     scheduler_gamma: 0.975
     kld_weight: 0.005
-    duration_loss_weight: 50
+    duration_loss_weight: 200
 
-d50kld100:
+kld500:
+  experiment_params:
+    LR: 0.0005
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.002
+    duration_loss_weight: 200
 
+kld1000:
   experiment_params:
     LR: 0.0005
     weight_decay: 0.02
     scheduler_gamma: 0.975
     kld_weight: 0.001
-    duration_loss_weight: 50
+    duration_loss_weight: 200
 
-d50kld10:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 50
-
-d20kld1000:
-
+kld10000:
   experiment_params:
     LR: 0.0005
     weight_decay: 0.02
     scheduler_gamma: 0.975
     kld_weight: 0.0001
-    duration_loss_weight: 20
+    duration_loss_weight: 200
 
-d20kld200:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.005
-    duration_loss_weight: 20
-
-d20kld100:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.001
-    duration_loss_weight: 20
-
-d20kld10:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 20
-
-d10kld1000:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.0001
-    duration_loss_weight: 10
-
-d10kld200:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.005
-    duration_loss_weight: 10
-
-d10kld100:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.001
-    duration_loss_weight: 10
-
-d10kld10:
-
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 10
 

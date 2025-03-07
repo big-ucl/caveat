@@ -1,28 +1,16 @@
 seed: 12345
 
 logging_params:
-  log_dir: logs/TRB
-  name: c_discrim_tune
+  log_dir: logs/cvaes
+  name: tune
 
 tune:
-  trials: 200
+  trials: 400
   prune: True
-  timeout:  36000 # seconds
+  timeout:  72000 # seconds
 
 schedules_path: tmp/nts_home_schedules.csv
 attributes_path: tmp/nts_home_attributes_groups.csv
-
-attribute_encoder: "tokens"
-
-conditionals:
-  gender: nominal
-  age_group: nominal
-  car_access: nominal
-  work_status: nominal
-  income: nominal
-
-# evaluation_params:
-#   split_on: [gender, age_group, car_access, work_status, income]
 
 loader_params:
   train_batch_size: 1024
@@ -30,25 +18,49 @@ loader_params:
   num_workers: 8
 
 trainer_params:
-  min_epochs: 20
+  min_epochs: 100
   max_epochs: 200
-  patience: 10
+  patience: 50
+
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: inverse
+  labels:
+    gender: nominal
+    age_group: nominal
+    car_access: nominal
+    work_status: nominal
+    income: nominal
+
+# evaluation_params:
+#   split_on: [gender, age_group, car_access, work_status, income]
 
 encoder_params:
   name: "sequence"
   max_length: 16
   norm_duration: 1440
   jitter: trial.suggest_float("jitter", 0, 0.3)
-  fix_durations: True
+  fix_durations: trial.suggest_categorical("fix_durations", [True, False])
+  trim_eos: trial.suggest_categorical("trim_eos", [True, False])
+  weighting: unit
+  joint_weighting: unit
 
 experiment_params:
   LR: trial.suggest_float("LR", 1e-4, 0.01, log=True)
   weight_decay: 0.02
   scheduler_gamma: 0.975
+  kld_weight: 0.005
+  duration_loss_weight: 200
 
 model_params:
-  name: CondSeqLSTM
-  latent_dim: 0
+  name: "CVAESeqLSTM"
   hidden_n: trial.suggest_int("hidden_n", 2, 6)
   hidden_size: trial.suggest_categorical("hidden_size", [64, 128, 256, 512])
+  labels_hidden_size: trial.suggest_categorical("labels_hidden_size", [8, 16, 32, 64])
+  latent_dim: 6
   dropout: trial.suggest_float("dropout", 0, 0.3)
+  teacher_forcing_ratio: 0.5
+  encoder_conditionality: trial.suggest_categorical("encoder_conditionality", ["both_add", "both_concat"])
+  latent_conditionality: trial.suggest_categorical("latent_conditionality", ["add", "concat"])
+  decoder_conditionality: trial.suggest_categorical("decoder_conditionality", ["inputs_add", "inputs_concat"])

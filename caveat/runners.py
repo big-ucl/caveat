@@ -1045,7 +1045,7 @@ def build_model(
         in_shape=dataset.shape(),
         encodings=dataset.activity_encodings,
         encoding_weights=dataset.encoding_weights,
-        conditionals_size=dataset.labels_shape,
+        labels_size=dataset.labels_shape,
         **config["model_params"],
         test=test,
         gen=gen,

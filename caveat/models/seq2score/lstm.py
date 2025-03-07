@@ -10,7 +10,7 @@ class Seq2ScoreLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with conditionality."""
         super().__init__(*args, **kwargs)
-        if self.conditionals_size is None:
+        if self.labels_size is None:
             raise UserWarning(
                 "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
@@ -46,7 +46,7 @@ class Seq2ScoreLSTM(Base):
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
         self.fc_hidden = nn.Linear(
-            flat_size_encode + self.conditionals_size, flat_size_encode
+            flat_size_encode + self.labels_size, flat_size_encode
         )
         self.score_layer = nn.Linear(flat_size_encode, 1)
 

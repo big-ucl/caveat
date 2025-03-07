@@ -20,7 +20,7 @@ def test_jvae_lstm_forward():
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=None,
-        conditionals_size=10,
+        labels_size=10,
         **{
             "hidden_n": 1,
             "hidden_size": 2,

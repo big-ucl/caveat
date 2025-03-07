@@ -59,7 +59,8 @@ class DiscreteEncoder(BaseEncoder):
         labels: Optional[Tensor],
         label_weights: Optional[Tuple[Tensor, Tensor]],
     ) -> BaseDataset:
-
+        if label_weights is None:
+            label_weights = (None, None)
         label_weights, joint_weights = label_weights
 
         schedules = schedules.copy()

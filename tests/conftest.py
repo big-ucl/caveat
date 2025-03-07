@@ -48,7 +48,7 @@ def config_discrete_conv(tmp_path):
         "trainer_params": {"max_epochs": 1, "min_epochs": 1},
         "seed": 1234,
         "model_params": {
-            "name": "VAEDiscConv",
+            "name": "VAEDiscCNN2D",
             "hidden_layers": [64, 64],
             "latent_dim": 2,
             "dropout": 0.1,
@@ -82,7 +82,7 @@ def config_vae_lstm(tmp_path):
         "seed": 1234,
         "model_params": {
             "name": "VAESeqLSTM",
-            "hidden_layers": 2,
+            "hidden_n": 2,
             "hidden_size": 8,
             "latent_dim": 2,
             "teacher_forcing_ratio": 0.5,
@@ -97,9 +97,11 @@ def config_jvae_lstm(tmp_path):
     return {
         "schedules_path": "tests/fixtures/test_schedules.csv",
         "attributes_path": "tests/fixtures/test_attributes.csv",
-        "conditionals": {"car": "nominal", "gender": "nominal"},
         "logging_params": {"log_dir": tmp_path, "name": "test"},
-        "attribute_encoder": "tokens",
+        "labels_encoder": {
+            "name": "tokens",
+            "labels": {"car": "nominal", "gender": "nominal"},
+        },
         "encoder_params": {
             "name": "sequence",
             "max_length": 4,
@@ -121,7 +123,7 @@ def config_jvae_lstm(tmp_path):
         "seed": 1234,
         "model_params": {
             "name": "JVAESeqLSTM",
-            "hidden_layers": 2,
+            "hidden_n": 2,
             "hidden_size": 8,
             "latent_dim": 2,
             "teacher_forcing_ratio": 0.5,
@@ -136,7 +138,10 @@ def config_cvae_lstm(tmp_path):
     return {
         "schedules_path": "tests/fixtures/test_schedules.csv",
         "attributes_path": "tests/fixtures/test_attributes.csv",
-        "conditionals": {"age": {"ordinal": [0, 100]}, "gender": "nominal"},
+        "labels_encoder": {
+            "name": "tokens",
+            "labels": {"age": "nominal", "gender": "nominal"},
+        },
         "logging_params": {"log_dir": tmp_path, "name": "test"},
         "encoder_params": {
             "name": "sequence",
@@ -159,11 +164,10 @@ def config_cvae_lstm(tmp_path):
         "seed": 1234,
         "model_params": {
             "name": "CVAESeqLSTM",
-            "hidden_layers": 2,
+            "hidden_n": 2,
             "hidden_size": 8,
             "latent_dim": 2,
             "teacher_forcing_ratio": 0.5,
-            "use_mask": True,
             "dropout": 0.1,
         },
     }
@@ -174,7 +178,10 @@ def config_c_lstm(tmp_path):
     return {
         "schedules_path": "tests/fixtures/test_schedules.csv",
         "attributes_path": "tests/fixtures/test_attributes.csv",
-        "conditionals": {"age": {"ordinal": [0, 100]}, "gender": "nominal"},
+        "labels_encoder": {
+            "name": "tokens",
+            "labels": {"age": "nominal", "gender": "nominal"},
+        },
         "logging_params": {"log_dir": tmp_path, "name": "test"},
         "encoder_params": {
             "name": "sequence",
@@ -197,11 +204,10 @@ def config_c_lstm(tmp_path):
         "seed": 1234,
         "model_params": {
             "name": "CondSeqLSTM",
-            "hidden_layers": 2,
+            "hidden_n": 2,
             "hidden_size": 8,
             "latent_dim": 2,
             "teacher_forcing_ratio": 0.5,
-            "use_mask": True,
             "dropout": 0.1,
         },
     }
@@ -235,7 +241,7 @@ def batch_config(tmp_path):
                 "duration": 1440,
             },
             "model_params": {
-                "name": "VAEDiscConv",
+                "name": "VAEDiscCNN2D",
                 "hidden_layers": [64, 64],
                 "latent_dim": 2,
                 "dropout": 0.1,
@@ -249,7 +255,7 @@ def batch_config(tmp_path):
             },
             "model_params": {
                 "name": "VAESeqLSTM",
-                "hidden_layers": 2,
+                "hidden_n": 2,
                 "hidden_size": 8,
                 "latent_dim": 2,
                 "teacher_forcing_ratio": 0.5,
