@@ -1,0 +1,1 @@
+::: caveat.models.discrete.vae_discrete_cnn2d
