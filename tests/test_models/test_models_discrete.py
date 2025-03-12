@@ -14,7 +14,7 @@ from caveat.models.discrete.vae_discrete_xattention import VAEDiscXTrans
 def test_discrete_auto_lstm_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
-    conditionals = torch.randn(3, 10)  # (batch, channels)
+    labels = torch.randn(3, 10)  # (batch, channels)
     model = AutoDiscLSTM(
         in_shape=x_max[0].shape,
         encodings=5,
@@ -22,16 +22,16 @@ def test_discrete_auto_lstm_forward():
         labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob, _, _, _ = model(x_max, conditionals=conditionals)
+    log_prob, _, _, _ = model(x_max, labels=labels)
     assert log_prob.shape == torch.Size([3, 144, 5])
-    losses = model.loss_function(log_probs=log_prob, target=x_max, mask=None)
+    losses = model.loss_function(log_probs=log_prob, target=x_max, weights=None)
     assert "loss" in losses
 
 
 def test_discrete_conditional_conv_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
-    conditionals = torch.randn(3, 10)  # (batch, channels)
+    labels = torch.randn(3, 10)  # (batch, channels)
     model = CondDiscCNN2D(
         in_shape=x_max[0].shape,
         encodings=5,
@@ -39,7 +39,7 @@ def test_discrete_conditional_conv_forward():
         labels_size=10,
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob_y, _, _, _ = model(x_max, conditionals=conditionals)
+    log_prob_y, _, _, _ = model(x_max, labels=labels)
     assert log_prob_y.shape == x.shape
     losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
     assert "loss" in losses
@@ -48,7 +48,7 @@ def test_discrete_conditional_conv_forward():
 def test_discrete_conditional_lstm_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
-    conditionals = torch.randn(3, 10)  # (batch, channels)
+    labels = torch.randn(3, 10)  # (batch, channels)
     model = CondDiscLSTM(
         in_shape=x_max[0].shape,
         encodings=5,
@@ -56,7 +56,7 @@ def test_discrete_conditional_lstm_forward():
         labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob_y, _, _, _ = model(x_max, conditionals=conditionals)
+    log_prob_y, _, _, _ = model(x_max, labels=labels)
     assert log_prob_y.shape == x.shape
     losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
     assert "loss" in losses

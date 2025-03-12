@@ -37,13 +37,13 @@ def mmrun_command(
         None
     """
 
-    conditionals = config.get("conditionals", None)
+    labels = config.get("labels_encoder", {}).get("labels", None)
 
-    if conditionals is None:
+    if labels is None:
         raise ValueError("No conditionals provided in the config.")
 
     # check conditional encodings
-    for cond, encoding in conditionals.items():
+    for cond, encoding in labels.items():
         if not encoding == "nominal":
             raise ValueError(
                 f"{cond} encoding not supported. Only nominal encoding is supported for conditional multi-model training."
@@ -77,7 +77,6 @@ def mmrun_command(
     )
 
     if warm_start:
-
         logger = initiate_logger(log_root, "warm_start")
 
         # train
@@ -114,7 +113,7 @@ def mmrun_command(
                 seed=seed,
             )
 
-    columns = list(conditionals.keys())
+    columns = list(labels.keys())
     attributes_filtered = filter_attributes_on_conditionals(
         input_attributes, columns
     )
@@ -128,7 +127,6 @@ def mmrun_command(
 
     # loop through sub models
     for keys, sub_attributes in attributes_filtered.items():
-
         name = "_".join([f"{k}-{v}" for k, v in zip(columns, keys)])
         sub_schedules = filter_schedules_on_attributes(
             sub_attributes, input_schedules.copy()
@@ -140,12 +138,14 @@ def mmrun_command(
         logger = initiate_logger(log_root, name)
 
         # encode data
-        attribute_encoder, encoded_labels = encode_input_labels(
+        attribute_encoder, encoded_labels, label_weights = encode_input_labels(
             logger.log_dir, sub_attributes, config
         )
 
         encoded_schedules = schedule_encoder.encode(
-            schedules=sub_schedules, labels=encoded_labels
+            schedules=sub_schedules,
+            labels=encoded_labels,
+            label_weights=label_weights,
         )
         data_loader = build_dataloader(config, encoded_schedules)
 

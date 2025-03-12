@@ -13,7 +13,7 @@ class CondDiscCNN2D(Base):
         super().__init__(*args, **kwargs)
         if self.labels_size is None:
             raise UserWarning(
-                "Model requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
+                "Model requires labels_size, please check you have configures a compatible encoder and labels attributes"
             )
 
     def build(self, **config):
@@ -62,12 +62,11 @@ class CondDiscCNN2D(Base):
     def forward(
         self,
         x: Tensor,
-        conditionals: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
         target: Optional[Tensor] = None,
         **kwargs,
     ) -> List[Tensor]:
-
-        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        log_probs = self.decode(z=x, labels=labels, target=target)
         return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
@@ -86,7 +85,7 @@ class CondDiscCNN2D(Base):
         return None
 
     def decode(
-        self, z: Tensor, conditionals: Tensor, **kwargs
+        self, z: Tensor, labels: Tensor, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -97,17 +96,17 @@ class CondDiscCNN2D(Base):
             tensor: Output sequence batch [N, steps, acts].
         """
         # initialize hidden state as inputs
-        hidden = self.fc_hidden(conditionals)
+        hidden = self.fc_hidden(labels)
         hidden = hidden.view(self.shape_before_flattening)
         log_probs = self.decoder(hidden)
         return log_probs
 
     def predict(
-        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
+        self, z: Tensor, labels: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
-        conditionals = conditionals.to(device)
-        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
+        labels = labels.to(device)
+        return exp(self.decode(z=z, labels=labels, kwargs=kwargs))
 
 
 class Encoder(nn.Module):
