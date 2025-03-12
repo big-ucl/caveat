@@ -1,0 +1,39 @@
+logging_params:
+  log_dir: logs
+  name: test_tune
+
+seed: 1234
+
+schedules_path: examples/data/synthetic_schedules.csv
+
+tune:
+  trials: 2
+  prune: True
+  timeout: 10 # seconds
+
+encoder_params:
+  name: "discrete"
+  duration: 1440
+  step_size: 10
+
+model_params:
+  name: "VAEDiscCNN2D"
+  hidden_n: trial.suggest_int("hidden_n", 1, 2)
+  hidden_size: trial.suggest_int("hidden_size", 16, 32, step=16)
+  latent_dim: trial.suggest_int("latent_dim", 2, 6, step=2)
+  dropout: trial.suggest_categorical("dropout", [0, 0.1, 0.2, 0.3])
+  stride: [2,2]
+
+loader_params:
+  train_batch_size: 32
+  val_batch_size:  32
+  num_workers: 3
+
+experiment_params:
+  LR: 0.01
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.00025
+
+trainer_params:
+  max_epochs: 2

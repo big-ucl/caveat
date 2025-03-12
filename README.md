@@ -4,8 +4,8 @@
 
 Deep learning for modelling human activity schedules.
 
-[![Daily CI Build](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg)](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml)
-[![Documentation](https://github.com/fredshone/caveat/actions/workflows/pages/pages-build-deployment/badge.svg)](https://fredshone.github.io/caveat)
+[![Daily CI Build](https://github.com/big-ucl/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg)](https://github.com/big-ucl/caveat/actions/workflows/daily-scheduled-ci.yml)
+[![Documentation](https://github.com/big-ucl/caveat/actions/workflows/pages/pages-build-deployment/badge.svg)](https://big-ucl.github.io/caveat)
 
 Caveat is for building and evaluating models of human activity schedules. Activity schedules are a useful representation of human behaviours, used for modelling transport, energy and epidemiological systems.
 
@@ -13,7 +13,7 @@ Activity scheduling is required component of activity-based models. But Caveat a
 
 ## Research
 
-Caveat is part of an ongoing research project. Overview of presented work can be found in the [papers](https://github.com/fredshone/caveat/blob/main/papers/README.md) module, including key information allowing presented results to be **reproduced**.
+Caveat is part of an ongoing research project. Overview of presented work can be found in the [papers](https://github.com/big-ucl/caveat/blob/main/papers/README.md) module, including key information allowing presented results to be **reproduced**.
 
 ## Example Applications
 
@@ -98,7 +98,7 @@ Caveat writes tensorboard logs to a (default) `logs/` directory. Monitor or revi
 
 ## Configuration
 
-For help with configuration refer to our [documentation](https://fredshone.github.io/caveat/latest/configuration).
+For help with configuration refer to our [documentation](https://big-ucl.github.io/caveat/latest/configuration).
 
 ## Installation
 
@@ -106,7 +106,7 @@ To install caveat, we recommend using the [mamba](https://mamba.readthedocs.io/e
 
 <!--- --8<-- [start:docs-install-dev] -->
 ``` shell
-git clone git@github.com:fredshone/caveat.git
+git clone git@github.com:big-ucl/caveat.git
 cd caveat
 mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch --file requirements/base.txt --file requirements/dev.txt
 mamba activate caveat
@@ -126,19 +126,21 @@ mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia
 ```
 Or lake a look [here](https://pytorch.org/get-started/locally/). Note that you need to have the right version of python.
 <!--- --8<-- [end:docs-install-dev] -->
-For more detailed instructions, see our [documentation](https://fredshone.github.io/caveat/latest/installation/).
+For more detailed instructions, see our [documentation](https://big-ucl.github.io/caveat/latest/installation/).
 
 ### Optuna
 Optuna is also a bit finickety. Specifically it seems to be ahead of the grpcio version available on conda-forge. Breaking the mamba build. Current work around is to pip install within the mamba env `pip install grpcio==1.70.0`. To make sure that this version is used, make sure to use the dev build which includes a conda-forge pip, ensuring everything is discovered correctly.
 
 ## Contributing
 
-See our [documentation](https://fredshone.github.io/caveat/latest/contributing/).
+Note that caveat is work in progress, we maintain example config files but these can be affected by breaking changes. If you find an issue with an example config please report it.
+
+See our [documentation](https://big-ucl.github.io/caveat/latest/contributing/) for additional guides on contribution inclusing reporting problems.
 
 ## Building the documentation
 
 If you are unable to access the online documentation, you can build the documentation locally.
-First, [install a development environment of caveat](https://fredshone.github.io/caveat/latest/installation/), then deploy the documentation using [mike](https://github.com/jimporter/mike):
+First, [install a development environment of caveat](https://big-ucl.github.io/caveat/latest/installation/), then deploy the documentation using [mike](https://github.com/jimporter/mike):
 
 ```
 mike deploy develop

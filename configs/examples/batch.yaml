@@ -1,0 +1,40 @@
+global:
+  schedules_path: "examples/data/synthetic_schedules.csv"
+  logging_params:
+    log_dir: "logs"
+    name: "toy_batch"
+  seed: 1234
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 3
+
+  experiment_params:
+    LR: 0.005
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.00025
+
+  trainer_params:
+    max_epochs: 2
+
+2d_latent:
+  model_params:
+    name: "VAEDiscCNN2D"
+    hidden_layers: [64,64]
+    latent_dim: 2
+    stride: [2,2]
+
+3d_latent:
+  model_params:
+    name: "VAEDiscCNN2D"
+    hidden_layers: [64,64]
+    latent_dim: 3
+    stride: [2,2]
+
+

@@ -13,7 +13,7 @@ class CondDiscLSTM(Base):
         super().__init__(*args, **kwargs)
         if self.labels_size is None:
             raise UserWarning(
-                "Model requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
+                "Model requires labels_size, please check you have configures a compatible encoder and condition attributes"
             )
 
     def build(self, **config):
@@ -48,12 +48,11 @@ class CondDiscLSTM(Base):
     def forward(
         self,
         x: Tensor,
-        conditionals: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
         target: Optional[Tensor] = None,
         **kwargs,
     ) -> List[Tensor]:
-
-        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        log_probs = self.decode(z=x, labels=labels, target=target)
         return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
@@ -72,7 +71,7 @@ class CondDiscLSTM(Base):
         return None
 
     def decode(
-        self, z: None, conditionals: Tensor, **kwargs
+        self, z: None, labels: Tensor, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -82,8 +81,8 @@ class CondDiscLSTM(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        h = self.fc_hidden(conditionals)
-        x = self.fc_x(conditionals).unsqueeze(-2)
+        h = self.fc_hidden(labels)
+        x = self.fc_x(labels).unsqueeze(-2)
 
         # initialize hidden state
         hidden = h.unflatten(1, self.unflatten_shape).permute(
@@ -98,11 +97,11 @@ class CondDiscLSTM(Base):
         return log_probs
 
     def predict(
-        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
+        self, z: Tensor, labels: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
-        conditionals = conditionals.to(device)
-        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
+        labels = labels.to(device)
+        return exp(self.decode(z=z, labels=labels, kwargs=kwargs))
 
 
 class Decoder(nn.Module):
@@ -119,7 +118,7 @@ class Decoder(nn.Module):
     ):
         """LSTM Decoder.
         No teacher forcing.
-        LSTM unit input is conditionals.
+        LSTM unit input is labels.
 
         Args:
             input_size (int): lstm input size.

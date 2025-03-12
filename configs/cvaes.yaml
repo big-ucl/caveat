@@ -2,13 +2,13 @@ global:
   seed: 12345
   logging_params:
     log_dir: "logs/cvaes"
-    name: "iuu"
+    name: "jw"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
 
-  # evaluation_params:
-  #   split_on: [gender, age_group, car_access, work_status, income]
+  evaluation_params:
+    split_on: [gender, age_group, car_access, work_status, income]
 
   loader_params:
     train_batch_size: 1024
@@ -21,23 +21,23 @@ global:
     patience: 50
   
   experiment_params:
-    LR: 0.0005
+    LR: 0.002
     weight_decay: 0.02
     scheduler_gamma: 0.975
-    kld_weight: 0.001
-    duration_loss_weight: 100
+    kld_weight: 0.005
+    duration_loss_weight: 200
 
   model_params:
     name: "CVAESeqLSTM"
-    hidden_n: 5
-    hidden_size: 512
+    hidden_n: 6
+    hidden_size: 256
     labels_hidden_size: 32
     latent_dim: 6
-    dropout: 0
+    dropout: 0.1
     teacher_forcing_ratio: 0.5
-    encoder_conditionality: both_add
+    encoder_conditionality: both_concat
     latent_conditionality: add
-    decoder_conditionality: inputs_add
+    decoder_conditionality: inputs_concat
 
   labels_encoder:
     name: "tokens"
@@ -50,6 +50,73 @@ global:
       work_status: nominal
       income: nominal
 
+j0invd:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.0
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_dur_inverse
+
+j1invd:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.1
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_dur_inverse
+
+j2invd:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_dur_inverse
+
+j0inv:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.0
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_inverse
+
+j1inv:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.1
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_inverse
+
+j2inv:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_inverse
+
+j0unit:
   encoder_params:
     name: "sequence"
     max_length: 16
@@ -60,44 +127,28 @@ global:
     weighting: unit
     joint_weighting: unit
 
-kld100:
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 200
+j1unit:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.1
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: unit
 
-kld200:
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.005
-    duration_loss_weight: 200
+j2unit:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: unit
 
-kld500:
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.002
-    duration_loss_weight: 200
 
-kld1000:
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.001
-    duration_loss_weight: 200
-
-kld10000:
-  experiment_params:
-    LR: 0.0005
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.0001
-    duration_loss_weight: 200
 
 

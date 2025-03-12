@@ -1,0 +1,85 @@
+global:
+  seed: 1234
+
+  logging_params:
+    log_dir: "logs"
+    name: "conditionals_toy_batch"
+
+  schedules_path: "examples/data/synthetic_schedules.csv"
+  attributes_path: "examples/data/synthetic_attributes.csv"
+
+  loader_params:
+    train_batch_size: 32
+    val_batch_size:  32
+    num_workers: 12
+
+  trainer_params:
+    max_epochs: 2
+    patience: 1
+
+  evaluation_params:
+    split_on: [employment]
+
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+
+conditional_only:
+  labels_encoder:
+    name: "onehot"
+    labels:
+      gender: nominal
+      age: nominal
+      employment: nominal
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 60
+    jitter: 0.1
+  model_params:
+    name: "AutoDiscLSTM"
+    hidden_n: 1
+    hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+
+standard_vae:
+  labels_encoder:
+    name: "tokens"
+    labels:
+      gender: nominal
+      age: nominal
+      employment: nominal
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.3
+  model_params:
+    name: "VAESeqLSTM"
+    hidden_n: 4
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.3
+    kld_weight: 0.001
+
+conditional_vae:
+  labels_encoder:
+    name: "tokens"
+    labels:
+      gender: nominal
+      age: nominal
+      employment: nominal
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_n: 4
+    hidden_size: 512
+    latent_dim: 6
+    dropout: 0.3
+    kld_weight: 0.001

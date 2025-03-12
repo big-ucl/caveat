@@ -13,7 +13,7 @@ class AutoDiscLSTM(Base):
         super().__init__(*args, **kwargs)
         if self.labels_size is None:
             raise UserWarning(
-                "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
+                "ConditionalLSTM requires labels_size, please check you have configures a compatible encoder and condition attributes"
             )
 
     def build(self, **config):
@@ -50,16 +50,15 @@ class AutoDiscLSTM(Base):
     def forward(
         self,
         x: Tensor,
-        conditionals: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
         target: Optional[Tensor] = None,
         **kwargs,
     ) -> List[Tensor]:
-
-        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        log_probs = self.decode(z=x, labels=labels, target=target)
         return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
-        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
+        self, log_probs: Tensor, target: Tensor, weights: Tensor, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss
@@ -74,11 +73,7 @@ class AutoDiscLSTM(Base):
         return None
 
     def decode(
-        self,
-        z: None,
-        conditionals: Tensor,
-        target: Optional[Tensor] = None,
-        **kwargs,
+        self, z: None, labels: Tensor, target: Optional[Tensor] = None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -88,7 +83,7 @@ class AutoDiscLSTM(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        h = self.fc_hidden(conditionals)
+        h = self.fc_hidden(labels)
 
         # initialize hidden state
         hidden = h.unflatten(1, self.unflatten_shape).permute(
@@ -112,11 +107,11 @@ class AutoDiscLSTM(Base):
         return log_probs
 
     def predict(
-        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
+        self, z: Tensor, labels: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
-        conditionals = conditionals.to(device)
-        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
+        labels = labels.to(device)
+        return exp(self.decode(z=z, labels=labels, kwargs=kwargs))
 
 
 class Decoder(nn.Module):

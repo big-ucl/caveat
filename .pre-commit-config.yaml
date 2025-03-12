@@ -6,7 +6,7 @@ repos:
     rev: v4.4.0
     hooks:
       - id: check-added-large-files
-        args: ["--maxkb=1000"]
+        args: ["--maxkb=10000"]
 
   - repo: https://github.com/psf/black
     rev: 23.7.0
@@ -14,12 +14,12 @@ repos:
       - id: black
 
   - repo: https://github.com/astral-sh/ruff-pre-commit  # https://beta.ruff.rs/docs/usage/#github-action
-    rev: v0.0.282
+    rev: v0.9.10
     hooks:
       - id: ruff
         args: [ --fix, --exit-non-zero-on-fix ]
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.7.0
+    rev: 1.9.1
     hooks:
       - id: nbqa-black
       - id: nbqa-ruff
