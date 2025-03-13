@@ -52,12 +52,12 @@ standard_vae:
       age: nominal
       employment: nominal
   encoder_params:
-    name: "sequence"
+    name: "continuous"
     max_length: 16
     norm_duration: 1440
     jitter: 0.3
   model_params:
-    name: "VAESeqLSTM"
+    name: "VAEContLSTM"
     hidden_n: 4
     hidden_size: 128
     latent_dim: 6
@@ -72,12 +72,12 @@ conditional_vae:
       age: nominal
       employment: nominal
   encoder_params:
-    name: "sequence"
+    name: "continuous"
     max_length: 16
     norm_duration: 1440
     jitter: 0.2
   model_params:
-    name: "CVAESeqLSTM"
+    name: "CVAEContLSTM"
     hidden_n: 4
     hidden_size: 512
     latent_dim: 6

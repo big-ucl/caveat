@@ -4,10 +4,27 @@ import torch
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbeddingConcat
+from caveat.models import Base
+from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class CVAESeqLSTMDoubleNudger(Base):
+class LabelNetwork(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(LabelNetwork, self).__init__()
+        self.fc = nn.Linear(input_size, hidden_size)
+        self.activation = nn.ReLU()
+        self.fc_mu = nn.Linear(hidden_size, output_size)
+        self.fc_var = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        x = self.fc(x)
+        x = self.activation(x)
+        mu = self.fc_mu(x)
+        log_var = self.fc_var(x)
+        return mu, log_var
+
+
+class CVAEContLSTMNudgeFeed(Base):
     def __init__(self, *args, **kwargs):
         """
         RNN based encoder and decoder with encoder embedding layer and conditionality.
@@ -26,16 +43,16 @@ class CVAESeqLSTMDoubleNudger(Base):
         self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
+        self.label_network = LabelNetwork(
+            input_size=self.labels_size,
+            hidden_size=self.hidden_size,
+            output_size=self.latent_dim,
+        )
         self.encoder = Encoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_n,
             dropout=self.dropout,
-        )
-        self.label_network = LabelNetwork(
-            input_size=self.labels_size,
-            hidden_size=self.hidden_size,
-            output_size=self.latent_dim,
         )
         self.decoder = Decoder(
             input_size=self.encodings,
@@ -51,8 +68,8 @@ class CVAESeqLSTMDoubleNudger(Base):
         self.fc_conditionals = nn.Linear(self.labels_size, flat_size_encode)
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_attributes = nn.Linear(self.labels_size, self.latent_dim)
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+        self.fc_x = nn.Linear(self.labels_size, self.hidden_size)
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
@@ -73,9 +90,17 @@ class CVAESeqLSTMDoubleNudger(Base):
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
         mu, log_var = self.encode(x, conditionals)
+
         z = self.reparameterize(mu, log_var)
+
         log_prob_y = self.decode(z, conditionals=conditionals, target=target)
         return [log_prob_y, mu, log_var, z]
+
+    def nudge(
+        self, conditionals: Optional[Tensor] = None, **kwargs
+    ) -> Tuple[Tensor, Tensor]:
+        # encode labels
+        return self.label_network(conditionals)
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -86,16 +111,26 @@ class CVAESeqLSTMDoubleNudger(Base):
         Returns:
             list[tensor]: Latent layer input (means and variances) [N, latent_dims].
         """
-        # encode labels
-        label_mu, label_var = self.label_network(conditionals)
+        # encode labels for hidden state
+        h1, h2 = (
+            self.fc_conditionals(conditionals)
+            .unflatten(1, (2 * self.hidden_n, self.hidden_size))
+            .permute(1, 0, 2)
+            .split(self.hidden_n)  # ([hidden, N, layers, [hidden, N, layers]])
+        )
+        h1 = h1.contiguous()
+        h2 = h2.contiguous()
+        # [N, L, C]
+        hidden = self.encoder(input, (h1, h2))
+        # [N, flatsize]
 
-        hidden = self.encoder(input)
-        conditionals = self.fc_conditionals(conditionals)
-        hidden = hidden + conditionals
+        mu = self.fc_mu(hidden)
+        log_var = self.fc_var(hidden)
 
-        # Split the result into mu and var components
-        mu = self.fc_mu(hidden) + label_mu
-        log_var = self.fc_var(hidden) * label_var
+        # nudge z using label encoding
+        mu_nudge, var_nudge = self.nudge(conditionals)
+        mu = mu + mu_nudge
+        log_var = log_var + var_nudge
 
         return [mu, log_var]
 
@@ -110,14 +145,15 @@ class CVAESeqLSTMDoubleNudger(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        # encode labels
-        label_mu, label_var = self.label_network(conditionals)
-        # manipulate z using label encoding
-        z = (z / label_var) - label_mu
-        # z = z - label_mu
+        # un-nudge z using label encoding
+        mu_nudge, var_nudge = self.nudge(conditionals)
+        std_nudge = torch.exp(0.5 * var_nudge)
+        z = (z - mu_nudge) / std_nudge
 
         # initialize hidden state as inputs
         h = self.fc_hidden(z)
+        # initialize step inputs
+        x = self.fc_x(conditionals).unsqueeze(-2)
 
         # initialize hidden state
         hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
@@ -126,19 +162,83 @@ class CVAESeqLSTMDoubleNudger(Base):
         hidden = hidden.split(
             self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
-        batch_size = z.shape[0]
 
-        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
-            # use teacher forcing
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=target
-            )
-        else:
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=None
-            )
+        log_probs = self.decoder(hidden=hidden, x=x, target=None)
 
-        return log_probs  # modified z removed to simplify refactor
+        # TODO: add forcing back?
+        # if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
+        #     # use teacher forcing
+        #     log_probs, probs = self.decoder(
+        #         batch_size=batch_size, hidden=hidden, target=target
+        #     )
+        # else:
+        #     log_probs, probs = self.decoder(
+        #         batch_size=batch_size, hidden=hidden, target=None
+        #     )
+
+        return log_probs
+
+
+class CVAESeqLSTMNudgeFeedPre(CVAEContLSTMNudgeFeed):
+    def build(self, **config):
+        self.latent_dim = config["latent_dim"]
+        self.hidden_size = config["hidden_size"]
+        self.hidden_layers = config["hidden_layers"]
+        self.dropout = config["dropout"]
+        length, _ = self.in_shape
+        self.encoder = ConditionalEncoder(
+            input_size=self.encodings,
+            hidden_size=self.hidden_size,
+            num_layers=self.hidden_layers,
+            conditionals_size=self.labels_size,
+            max_length=length,
+            dropout=self.dropout,
+        )
+        self.label_network = LabelNetwork(
+            input_size=self.labels_size,
+            hidden_size=self.hidden_size,
+            output_size=self.latent_dim,
+        )
+        self.decoder = Decoder(
+            input_size=self.encodings,
+            hidden_size=self.hidden_size,
+            output_size=self.encodings + 1,
+            num_layers=self.hidden_layers,
+            max_length=length,
+            dropout=self.dropout,
+            sos=self.sos,
+        )
+        self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
+        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        self.fc_conditionals = nn.Linear(self.labels_size, flat_size_encode)
+        self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
+        self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
+        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+        self.fc_x = nn.Linear(self.labels_size, self.hidden_size)
+
+        if config.get("share_embed", False):
+            self.decoder.embedding.weight = self.encoder.embedding.weight
+
+    def encode(
+        self, input: Tensor, conditionals: Optional[Tensor]
+    ) -> list[Tensor]:
+        h1, h2 = (
+            self.fc_conditionals(conditionals)
+            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
+            .permute(1, 0, 2)
+            .split(self.hidden_layers)
+        )
+        h1 = h1.contiguous()
+        h2 = h2.contiguous()
+        hidden = self.encoder(input, (h1, h2), conditionals)
+        mu = self.fc_mu(hidden)
+        log_var = self.fc_var(hidden)
+
+        # nudge z using label encoding
+        mu_nudge, var_nudge = self.nudge(conditionals)
+        mu = mu + mu_nudge
+        log_var = log_var + var_nudge
+        return [mu, log_var]
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
@@ -192,9 +292,9 @@ class Encoder(nn.Module):
         self.norm = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, hidden):
         embedded = self.embedding(x)
-        _, (h1, h2) = self.lstm(embedded)
+        _, (h1, h2) = self.lstm(embedded, hidden)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
         h1 = self.norm(h1)
         h2 = self.norm(h2)
@@ -203,20 +303,59 @@ class Encoder(nn.Module):
         return hidden
 
 
-class LabelNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(LabelNetwork, self).__init__()
-        self.fc = nn.Linear(input_size, hidden_size)
-        self.activation = nn.ReLU()
-        self.fc_mu = nn.Linear(hidden_size, output_size)
-        self.fc_var = nn.Linear(hidden_size, output_size)
+class ConditionalEncoder(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        num_layers: int,
+        conditionals_size: int,
+        max_length: int,
+        dropout: float = 0.1,
+    ):
+        """LSTM Encoder.
 
-    def forward(self, x):
-        x = self.fc(x)
-        x = self.activation(x)
-        mu = self.fc_mu(x)
-        log_var = self.fc_var(x)
-        return mu, log_var
+        Args:
+            input_size (int): lstm input size.
+            hidden_size (int): lstm hidden size.
+            num_layers (int): number of lstm layers.
+            dropout (float): dropout. Defaults to 0.1.
+        """
+        super(ConditionalEncoder, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.max_length = max_length
+        self.embedding = CustomDurationEmbeddingConcat(
+            input_size, hidden_size, dropout=dropout
+        )
+        self.fc_hidden = nn.Linear(hidden_size, hidden_size)
+        self.lstm = nn.LSTM(
+            hidden_size,
+            hidden_size,
+            num_layers,
+            batch_first=True,
+            bidirectional=False,
+        )
+        self.norm = nn.LayerNorm(hidden_size)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(conditionals_size, hidden_size)
+        self.nl = nn.LeakyReLU()
+
+    def forward(self, x, hidden, conditionals):
+        conditionals = (
+            self.nl(self.fc(conditionals))
+            .unsqueeze(1)
+            .repeat(1, self.max_length, 1)
+        )
+        embedded = self.embedding(x)
+        embedded = embedded + conditionals
+        _, (h1, h2) = self.lstm(embedded, hidden)
+        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
+        h1 = self.norm(h1)
+        h2 = self.norm(h2)
+        hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
+        # [N, flatsize]
+        return hidden
 
 
 class Decoder(nn.Module):
@@ -259,37 +398,23 @@ class Decoder(nn.Module):
             bidirectional=False,
         )
         self.fc = nn.Linear(hidden_size, output_size)
-        self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
-        if top_sampler:
-            print("Decoder using topk sampling")
-            self.sample = self.topk
-        else:
-            print("Decoder using multinomial sampling")
-            self.sample = self.multinomial
 
-    def forward(self, batch_size, hidden, target=None, **kwargs):
+    def forward(self, hidden, x, **kwargs):
         hidden, cell = hidden
-        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
-        decoder_input[:, :, 0] = self.sos  # set as SOS
+        # decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        # decoder_input[:, :, 0] = self.sos  # set as SOS
         hidden = hidden.contiguous()
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
         outputs = []
 
-        for i in range(self.max_length):
+        for _ in range(self.max_length):
             decoder_output, decoder_hidden = self.forward_step(
-                decoder_input, decoder_hidden
+                x, decoder_hidden
             )
             outputs.append(decoder_output.squeeze())
-
-            if target is not None:
-                # teacher forcing for next step
-                decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
-            else:
-                # no teacher forcing use decoder output
-                decoder_input = self.pack(decoder_output)
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
 
@@ -304,29 +429,8 @@ class Decoder(nn.Module):
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]
-        embedded = self.embedding(x)
-        output, hidden = self.lstm(embedded, hidden)
+        # embedded = self.embedding(x)
+        output, hidden = self.lstm(x, hidden)
         prediction = self.fc(output)
         # [N, 1, encodings+1]
         return prediction, hidden
-
-    def pack(self, x):
-        # [N, 1, encodings+1]
-        acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        act = self.sample(acts)
-        duration = self.duration_activation(duration)
-        outputs = torch.cat((act, duration), dim=-1)
-        # [N, 1, 2]
-        return outputs
-
-    def multinomial(self, x):
-        # [N, 1, encodings]
-        acts = torch.multinomial(self.activity_prob_activation(x.squeeze()), 1)
-        # DETACH?
-        return acts
-
-    def topk(self, x):
-        _, topi = x.topk(1)
-        act = topi.detach()  # detach from history as input
-        # DETACH?
-        return act

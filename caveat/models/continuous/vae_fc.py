@@ -3,10 +3,11 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor, nn
 
-from caveat.models import Base, CustomDurationEmbeddingConcat, utils
+from caveat.models import Base, utils
+from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class VAESeqFC(Base):
+class VAEContFC(Base):
     def __init__(self, *args, **kwargs):
         """Fully connected encoder and decoder with embedding layer."""
         super().__init__(*args, **kwargs)

@@ -4,10 +4,11 @@ import torch
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbeddingConcat
+from caveat.models import Base
+from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class CondSeqLSTM(Base):
+class AutoContLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)
@@ -23,11 +24,6 @@ class CondSeqLSTM(Base):
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
-        self.label_encoder = LabelEncoder(
-            label_embed_sizes=self.label_embed_sizes,
-            hidden_size=self.hidden_size,
-        )
-
         self.decoder = Decoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
@@ -36,11 +32,10 @@ class CondSeqLSTM(Base):
             max_length=length,
             dropout=self.dropout,
             sos=self.sos,
-            top_sampler=config.get("top_sampler", True),
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_hidden = nn.Linear(self.hidden_size, flat_size_encode)
+        self.fc_hidden = nn.Linear(self.labels_size, flat_size_encode)
 
     def forward(
         self,
@@ -49,7 +44,6 @@ class CondSeqLSTM(Base):
         target: Optional[Tensor] = None,
         **kwargs,
     ) -> List[Tensor]:
-
         log_probs = self.decode(z=x, labels=labels, target=target)
         return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
@@ -78,9 +72,7 @@ class CondSeqLSTM(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        batch_size = labels.shape[0]
-        embeds = self.label_encoder(labels)
-        h = self.fc_hidden(embeds)
+        h = self.fc_hidden(labels)
 
         # initialize hidden state
         hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
@@ -89,53 +81,26 @@ class CondSeqLSTM(Base):
         hidden = hidden.split(
             self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
+        batch_size = z.shape[0]
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
             log_probs = self.decoder(
-                batch_size=batch_size,
-                hidden=hidden,
-                target=target,
-                conditionals=embeds,
+                batch_size=batch_size, hidden=hidden, target=target
             )
         else:
             log_probs = self.decoder(
-                batch_size=batch_size,
-                hidden=hidden,
-                target=None,
-                conditionals=embeds,
+                batch_size=batch_size, hidden=hidden, target=None
             )
 
         return log_probs
 
     def predict(
-        self, z: Tensor, labels: Tensor, device: int, **kwargs
+        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
-        labels = labels.to(device)
-        return exp(self.decode(z=z, labels=labels, kwargs=kwargs))
-
-
-class LabelEncoder(nn.Module):
-    def __init__(self, label_embed_sizes, hidden_size):
-        """Label Encoder using token embedding.
-        Embedding outputs are the same size but use different weights so that they can be different sizes.
-        Each embedding is then stacked and summed to give single encoding."""
-        super(LabelEncoder, self).__init__()
-        self.embeds = nn.ModuleList(
-            [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
-        )
-        self.fc = nn.Linear(hidden_size, hidden_size)
-        self.activation = nn.ReLU()
-        # self.fc_out = nn.Linear(hidden_size * 4, hidden_size)
-
-    def forward(self, x):
-        x = torch.stack(
-            [embed(x[:, i]) for i, embed in enumerate(self.embeds)], dim=-1
-        ).sum(dim=-1)
-        x = self.fc(x)
-        x = self.activation(x)
-        return x
+        conditionals = conditionals.to(device)
+        return exp(self.decode(z=z, labels=conditionals, kwargs=kwargs))
 
 
 class Decoder(nn.Module):
@@ -148,7 +113,6 @@ class Decoder(nn.Module):
         max_length,
         dropout: float = 0.0,
         sos: int = 0,
-        top_sampler: bool = True,
     ):
         """LSTM Decoder with teacher forcing.
 
@@ -177,33 +141,23 @@ class Decoder(nn.Module):
             batch_first=True,
             bidirectional=False,
         )
-        self.fc_out = nn.Linear(hidden_size, output_size)
+        self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
 
-        if top_sampler:
-            print("Decoder using topk sampling")
-            self.sample = self.sample_topk
-        else:
-            print("Decoder using multinomial sampling")
-            self.sample = self.sample_multinomial
-
-    def forward(self, hidden, conditionals, target=None, **kwargs):
+    def forward(self, batch_size, hidden, target=None, **kwargs):
         hidden, cell = hidden
+        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        decoder_input[:, :, 0] = self.sos  # set as SOS
         hidden = hidden.contiguous()
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
-
-        batch_size = hidden[0].shape[0]
-        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
-        decoder_input[:, :, 0] = self.sos
-
         outputs = []
 
         for i in range(self.max_length):
             decoder_output, decoder_hidden = self.forward_step(
-                decoder_input, decoder_hidden, conditionals
+                decoder_input, decoder_hidden
             )
             outputs.append(decoder_output.squeeze())
 
@@ -212,9 +166,10 @@ class Decoder(nn.Module):
                 decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
             else:
                 # no teacher forcing use decoder output
-                decoder_input = self.pack(decoder_output)
+                decoder_input = self.sample(decoder_output)
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
+
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
         )
@@ -224,30 +179,25 @@ class Decoder(nn.Module):
 
         return log_prob_outputs
 
-    def forward_step(self, x, hidden, conditionals):
+    def forward_step(self, x, hidden):
+        # [N, 1, 2]
         embedded = self.embedding(x)
-        embedded = embedded + conditionals.unsqueeze(1)
         output, hidden = self.lstm(embedded, hidden)
-        prediction = self.fc_out(output)
+        prediction = self.fc(output)
+        # [N, 1, encodings+1]
         return prediction, hidden
 
-    def pack(self, x):
+    def sample(self, x):
         # [N, 1, encodings+1]
         acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        act = self.sample(acts).detach()
+        act = torch.multinomial(
+            self.activity_prob_activation(acts.squeeze()), 1
+        ).unsqueeze(-2)
+        # _, topi = acts.topk(1)
+        # act = (
+        #     topi.squeeze(-1).detach().unsqueeze(-1)
+        # )  # detach from history as input
         duration = self.duration_activation(duration)
         outputs = torch.cat((act, duration), dim=-1)
         # [N, 1, 2]
         return outputs
-
-    def sample_multinomial(self, x):
-        # [N, 1, encodings]
-        act = torch.multinomial(
-            self.activity_prob_activation(x.squeeze()), 1
-        ).unsqueeze(-1)
-        return act
-
-    def sample_topk(self, x):
-        _, topi = x.topk(1)
-        act = topi.detach()
-        return act

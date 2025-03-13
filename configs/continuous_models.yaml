@@ -51,7 +51,7 @@ xattention:
     jitter: 0.1
     fix_durations: False
   model_params:
-    name: "VAESeqXAtt"
+    name: "VAEContXAtt"
     latent_dim: 6
     hidden_n: 3
     heads: 7
@@ -65,7 +65,7 @@ xattention:
 
 # cnn1d:
 #   model_params:
-#     name: "VAESeqCNN1D"
+#     name: "VAEContCNN1D"
 #     latent_dim: 6
 #     hidden_layers: [256,256,256,256,256]
 #     dropout: 0.0
@@ -75,21 +75,21 @@ xattention:
 
 # cnn2d:
 #   model_params:
-#     name: "VAESeqCNN2D"
+#     name: "VAEContCNN2D"
 #     latent_dim: 6
 #     hidden_layers: [256,256,256,256,256,256] 
 #     dropout: 0.1
 
 # fc:
 #   model_params:
-#     name: "VAESeqFC"
+#     name: "VAEContFC"
 #     latent_dim: 6
 #     hidden_layers: [128,128,128,128] 
 #     dropout: 0.0
 
 # rnn:
 #   model_params:
-#     name: "VAESeqLSTM"
+#     name: "VAEContLSTM"
 #     latent_dim: 6
 #     hidden_n: 5
 #     hidden_size: 256

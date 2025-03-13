@@ -4,7 +4,8 @@ import torch
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationModeDistanceEmbedding
+from caveat.models import Base
+from caveat.models.embed import CustomDurationModeDistanceEmbedding
 
 
 class Seq2SeqLSTM(Base):
@@ -125,9 +126,12 @@ class Seq2SeqLSTM(Base):
             log_probs, [self.act_encodings, 1, self.mode_encodings, 1], dim=-1
         )
         # unpack target
-        target_acts, target_durations, target_mode, target_distances = (
-            target.split([1, 1, 1, 1], dim=-1)
-        )
+        (
+            target_acts,
+            target_durations,
+            target_mode,
+            target_distances,
+        ) = target.split([1, 1, 1, 1], dim=-1)
 
         # acts = input[:, :, :-1].contiguous()
         # durations = input[:, :, -1:].squeeze(-1).contiguous()

@@ -23,13 +23,13 @@ experiment_params:
   kld_weight: 0.01
 
 encoder_params:
-  name: "sequence"
+  name: "continuous"
   duration: 1440
   jitter: 0
   fix_durations: True
 
 model_params:
-  name: "VAESeqLSTM"
+  name: "VAEContLSTM"
   latent_dim: 6
   hidden_n: 5
   hidden_size: 256

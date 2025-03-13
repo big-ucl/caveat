@@ -6,20 +6,20 @@ global:
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
 
-  conditionals:
-    gender: nominal
-    age_group: nominal
-    car_access: nominal
-    work_status: nominal
-    income: nominal
-
   evaluation_params:
     split_on: [gender, age_group, car_access, work_status, income]
 
-  attribute_encoder: "tokens"
+  labels_encoder:
+    name: "tokens"
+    labels:
+      gender: nominal
+      age_group: nominal
+      car_access: nominal
+      work_status: nominal
+      income: nominal
 
   encoder_params:
-    name: "sequence"
+    name: "continuous"
     max_length: 16
     norm_duration: 1440
     jitter: 0
@@ -36,7 +36,7 @@ global:
     max_epochs: 200
 
   model_params:
-    name: "JVAESeqLSTM"
+    name: "JVAEContLSTM"
     hidden_n: 6
     hidden_size: 256
     labels_hidden_size: 32

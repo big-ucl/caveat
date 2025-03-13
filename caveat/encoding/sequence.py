@@ -15,7 +15,7 @@ from caveat.encoding import (
 )
 
 
-class SequenceEncoder(BaseEncoder):
+class ContinuousEncoder(BaseEncoder):
     dataset = BaseDataset
 
     def __init__(
@@ -131,7 +131,6 @@ class SequenceEncoder(BaseEncoder):
     def _encode_sequences(
         self, data: pd.DataFrame, max_length: int
     ) -> Tuple[Tensor, Tensor]:
-
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
 
@@ -212,7 +211,7 @@ class SequenceEncoder(BaseEncoder):
         return df
 
 
-class SequenceEncoderStaggered(SequenceEncoder):
+class ContinuousEncoderStaggered(ContinuousEncoder):
     dataset = StaggeredDataset
 
 

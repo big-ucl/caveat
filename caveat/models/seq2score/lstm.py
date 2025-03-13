@@ -3,7 +3,8 @@ from typing import List, Optional
 import torch
 from torch import Tensor, nn
 
-from caveat.models import Base, CustomDurationModeDistanceEmbedding
+from caveat.models import Base
+from caveat.models.embed import CustomDurationModeDistanceEmbedding
 
 
 class Seq2ScoreLSTM(Base):
@@ -89,7 +90,6 @@ class Seq2ScoreLSTM(Base):
     def loss_function(
         self, scores: Tensor, target: Tensor, mask: Tensor, **kwargs
     ) -> dict:
-
         # duration loss
         loss = self.MSE(scores.squeeze(), target)
 
