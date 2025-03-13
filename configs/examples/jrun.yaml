@@ -10,16 +10,14 @@ labels_encoder:
   labels:
     work_status: nominal
 
-attribute_encoder: "tokens"
-
 encoder_params:
-  name: "sequence"
+  name: "continuous"
   max_length: 12
   norm_duration: 1440
   jitter: 0.2
 
 model_params:
-  name: "JVAESeqLSTM"
+  name: "JVAEContLSTM"
   hidden_n: 3
   hidden_size: 128
   latent_dim: 6

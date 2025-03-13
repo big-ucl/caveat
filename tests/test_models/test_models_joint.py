@@ -1,6 +1,6 @@
 import torch
 
-from caveat.models.joint_vaes.jvae_sequence import JVAESeqLSTM
+from caveat.models.joint_vaes.jvae_continuous import JVAEContLSTM
 
 
 def test_jvae_lstm_forward():
@@ -16,7 +16,7 @@ def test_jvae_lstm_forward():
     labels = torch.Tensor([[1, 0], [1, 5], [0, 0]]).long()
     label_weights = torch.ones((3, 2))
 
-    model = JVAESeqLSTM(
+    model = JVAEContLSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=None,

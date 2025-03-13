@@ -13,13 +13,13 @@ labels_encoder:
     employment: nominal
 
 encoder_params:
-  name: "sequence_staggered"
+  name: "continuous_staggered"
   max_length: 16
   norm_duration: 1440
   jitter: 0.1
 
 model_params:
-  name: "CVAESeqLSTM"
+  name: "CVAEContLSTM"
   hidden_n: 1
   hidden_size: 32
   latent_dim: 6

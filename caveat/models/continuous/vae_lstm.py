@@ -1,24 +1,17 @@
-from typing import List, Optional, Tuple
+from typing import Tuple
 
 import torch
-from torch import Tensor, exp, nn
+from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbeddingConcat
+from caveat.models import Base
+from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class CVAESeqLSTMNudger(Base):
+class VAEContLSTM(Base):
     def __init__(self, *args, **kwargs):
-        """
-        RNN based encoder and decoder with encoder embedding layer and conditionality.
-        Normalises attributes size at decoder to match latent size.
-        Adds latent layer to decoder instead of concatenating.
-        """
+        """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
-        if self.labels_size is None:
-            raise UserWarning(
-                "ConditionalLSTM requires labels_size, please check you have configures a compatible encoder and condition attributes"
-            )
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
@@ -26,16 +19,12 @@ class CVAESeqLSTMNudger(Base):
         self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
+
         self.encoder = Encoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_n,
             dropout=self.dropout,
-        )
-        self.label_network = LabelNetwork(
-            input_size=self.labels_size,
-            hidden_size=self.hidden_size,
-            output_size=self.latent_dim,
         )
         self.decoder = Decoder(
             input_size=self.encodings,
@@ -48,53 +37,14 @@ class CVAESeqLSTMNudger(Base):
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_labels = nn.Linear(self.labels_size, flat_size_encode)
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_attributes = nn.Linear(self.labels_size, self.latent_dim)
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    def forward(
-        self, x: Tensor, labels: Optional[Tensor] = None, target=None, **kwargs
-    ) -> List[Tensor]:
-        """Forward pass, also return latent parameterization.
-
-        Args:
-            x (tensor): Input sequences [N, L, Cin].
-
-        Returns:
-            list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
-        """
-        mu, log_var = self.encode(x, labels)
-        z = self.reparameterize(mu, log_var)
-        log_prob_y = self.decode(z, labels=labels, target=target)
-        return [log_prob_y, mu, log_var, z]
-
-    def encode(self, input: Tensor, labels: Tensor) -> list[Tensor]:
-        """Encodes the input by passing through the encoder network.
-
-        Args:
-            input (tensor): Input sequence batch [N, steps, acts].
-
-        Returns:
-            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
-        """
-        hidden = self.encoder(input)
-        labels = self.fc_labels(labels)
-        hidden = hidden + labels
-
-        # Split the result into mu and var components
-        mu = self.fc_mu(hidden)
-        log_var = self.fc_var(hidden)
-
-        return [mu, log_var]
-
-    def decode(
-        self, z: Tensor, labels: Tensor, target=None, **kwargs
-    ) -> Tuple[Tensor, Tensor]:
+    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -103,11 +53,6 @@ class CVAESeqLSTMNudger(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        # encode labels
-        label_mu, label_var = self.label_network(labels)
-        # manipulate z using label encoding
-        z = (z * label_var) + label_mu
-
         # initialize hidden state as inputs
         h = self.fc_hidden(z)
 
@@ -130,23 +75,22 @@ class CVAESeqLSTMNudger(Base):
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs  # modified z removed fro refactor
+        return log_probs
 
-    def predict(
-        self, z: Tensor, labels: Tensor, device: int, **kwargs
-    ) -> Tensor:
-        """Given samples from the latent space, return the corresponding decoder space map.
 
-        Args:
-            current_device (int): Device to run the model.
-
-        Returns:
-            tensor: [N, steps, acts].
-        """
-        z = z.to(device)
-        labels = labels.to(device)
-        prob_samples = exp(self.decode(z=z, labels=labels, **kwargs))
-        return prob_samples
+class VAE_LSTM_Unweighted(VAEContLSTM):
+    def loss_function(
+        self,
+        log_probs: Tensor,
+        input: Tensor,
+        mu: Tensor,
+        log_var: Tensor,
+        mask: Tensor,
+        **kwargs,
+    ) -> dict:
+        return self.unweighted_seq_loss(
+            log_probs, input, mu, log_var, mask, **kwargs
+        )
 
 
 class Encoder(nn.Module):
@@ -171,7 +115,6 @@ class Encoder(nn.Module):
         self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
-        self.fc_hidden = nn.Linear(hidden_size, hidden_size)
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
@@ -193,22 +136,6 @@ class Encoder(nn.Module):
         return hidden
 
 
-class LabelNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(LabelNetwork, self).__init__()
-        self.fc = nn.Linear(input_size, hidden_size)
-        self.activation = nn.ReLU()
-        self.fc_mu = nn.Linear(hidden_size, output_size)
-        self.fc_var = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        x = self.fc(x)
-        x = self.activation(x)
-        mu = self.fc_mu(x)
-        log_var = self.fc_var(x)
-        return mu, log_var
-
-
 class Decoder(nn.Module):
     def __init__(
         self,
@@ -219,7 +146,6 @@ class Decoder(nn.Module):
         max_length,
         dropout: float = 0.0,
         sos: int = 0,
-        top_sampler: bool = True,
     ):
         """LSTM Decoder with teacher forcing.
 
@@ -252,12 +178,6 @@ class Decoder(nn.Module):
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
-        if top_sampler:
-            print("Decoder using topk sampling")
-            self.sample = self.topk
-        else:
-            print("Decoder using multinomial sampling")
-            self.sample = self.multinomial
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
         hidden, cell = hidden
@@ -272,7 +192,7 @@ class Decoder(nn.Module):
             decoder_output, decoder_hidden = self.forward_step(
                 decoder_input, decoder_hidden
             )
-            outputs.append(decoder_output.squeeze())
+            outputs.append(decoder_output.squeeze(-2))
 
             if target is not None:
                 # teacher forcing for next step
@@ -287,7 +207,9 @@ class Decoder(nn.Module):
             outputs, [self.output_size - 1, 1], dim=-1
         )
         acts_log_probs = self.activity_logprob_activation(acts_logits)
-        durations = torch.log(self.duration_activation(durations))
+        durations = self.duration_activation(durations)
+        durations = torch.log(durations)
+
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
 
         return log_prob_outputs
@@ -303,20 +225,11 @@ class Decoder(nn.Module):
     def pack(self, x):
         # [N, 1, encodings+1]
         acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        act = self.sample(acts)
+        _, topi = acts.topk(1)
+        act = (
+            topi.squeeze(-1).detach().unsqueeze(-1)
+        )  # detach from history as input
         duration = self.duration_activation(duration)
         outputs = torch.cat((act, duration), dim=-1)
         # [N, 1, 2]
         return outputs
-
-    def multinomial(self, x):
-        # [N, 1, encodings]
-        acts = torch.multinomial(self.activity_prob_activation(x.squeeze()), 1)
-        # DETACH?
-        return acts
-
-    def topk(self, x):
-        _, topi = x.topk(1)
-        act = topi.detach()  # detach from history as input
-        # DETACH?
-        return act

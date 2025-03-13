@@ -1,18 +1,18 @@
 import pytest
 import torch
 
-from caveat.models.sequence.auto_sequence_lstm import AutoSeqLSTM
-from caveat.models.sequence.cond_sequence_lstm import CondSeqLSTM
-from caveat.models.sequence.cvae_sequence_lstm import CVAESeqLSTM
-from caveat.models.sequence.cvae_sequence_lstm_nudger import CVAESeqLSTMNudger
-from caveat.models.sequence.cvae_sequence_lstm_nudger_adversarial import (
-    CVAESeqLSTMNudgerAdversarial,
+from caveat.models.continuous.auto_lstm import AutoContLSTM
+from caveat.models.continuous.cond_lstm import CondContLSTM
+from caveat.models.continuous.cvae_lstm import CVAEContLSTM
+from caveat.models.continuous.cvae_lstm_nudger import CVAEContLSTMNudger
+from caveat.models.continuous.cvae_lstm_nudger_adversarial import (
+    CVAEContLSTMNudgerAdversarial,
     Discriminator,
 )
-from caveat.models.sequence.vae_sequence_cnn import VAESeqCNN2D
-from caveat.models.sequence.vae_sequence_cnn1d import VAESeqCNN1D
-from caveat.models.sequence.vae_sequence_fc import VAESeqFC
-from caveat.models.sequence.vae_sequence_lstm import VAESeqLSTM
+from caveat.models.continuous.vae_cnn1d import VAEContCNN1D
+from caveat.models.continuous.vae_cnn2d import VAEContCNN2D
+from caveat.models.continuous.vae_fc import VAEContFC
+from caveat.models.continuous.vae_lstm import VAEContLSTM
 
 
 def test_auto_lstm_forward():
@@ -24,7 +24,7 @@ def test_auto_lstm_forward():
     x_encoded = torch.cat([acts_max, durations], dim=-1)
     labels = torch.randn(3, 10)  # (batch, channels)
     label_weights = (torch.ones((3, 10)), torch.ones((3, 1)))
-    model = AutoSeqLSTM(
+    model = AutoContLSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -56,7 +56,7 @@ def test_conditional_lstm_forward():
 
     label_weights = (torch.ones((3, 2)), torch.ones((3, 1)))
 
-    model = CondSeqLSTM(
+    model = CondContLSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -132,7 +132,7 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
     labels = torch.concat((label_a[:, None], label_b[:, None]), dim=-1)
     label_weights = (torch.ones((3, 2)), torch.ones((3, 1)))
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = CVAESeqLSTM(
+    model = CVAEContLSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -174,7 +174,7 @@ def test_cvae_lstm_nudger_forward():
     durations = durations
     labels = torch.randn(3, 10)  # (batch, channels)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = CVAESeqLSTMNudger(
+    model = CVAEContLSTMNudger(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -213,7 +213,7 @@ def test_cvae_adv_forward():
     labels = torch.randn(3, 10)  # (batch, channels)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
     batch = (x_encoded, weights), (x_encoded, weights), (labels, None)
-    model = CVAESeqLSTMNudgerAdversarial(
+    model = CVAEContLSTMNudgerAdversarial(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -234,7 +234,7 @@ def test_lstm_forward():
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = VAESeqLSTM(
+    model = VAEContLSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -262,7 +262,7 @@ def test_cnn_forward():
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = VAESeqCNN2D(
+    model = VAEContCNN2D(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -304,7 +304,7 @@ def test_cnn1d_forward(length, encodings, kernel, stride, padding):
     acts, durations = x.split([encodings, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = VAESeqCNN1D(
+    model = VAEContCNN1D(
         in_shape=x_encoded[0].shape,
         encodings=encodings,
         encoding_weights=torch.ones((5)),
@@ -339,7 +339,7 @@ def test_fc_forward():
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = VAESeqFC(
+    model = VAEContFC(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),

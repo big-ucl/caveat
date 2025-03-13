@@ -5,10 +5,11 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, exp, nn
 
-from caveat.models import Base, CustomDurationEmbeddingConcat
+from caveat.models import Base
+from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class AutoSeqAtt(Base):
+class AutoContAtt(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)

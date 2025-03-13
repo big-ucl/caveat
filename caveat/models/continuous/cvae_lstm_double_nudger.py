@@ -1,161 +1,14 @@
 from typing import List, Optional, Tuple
 
 import torch
-from pytorch_lightning import LightningModule
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbeddingConcat
+from caveat.models import Base
+from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class CVAESeqLSTMNudgerAdversarial(LightningModule):
-    def __init__(
-        self,
-        in_shape: tuple,
-        encodings: int,
-        encoding_weights: Optional[Tensor] = None,
-        labels_size: Optional[tuple] = None,
-        sos: int = 0,
-        **kwargs,
-    ):
-        super().__init__()
-        self.save_hyperparameters()
-        self.automatic_optimization = False
-        latent_dim = kwargs.get("latent_dim", 6)
-        hidden_size = kwargs.get("hidden_size", 256)
-        self.LR = kwargs.get("LR", 0.001)
-        self.weight_decay = kwargs.get("weight_decay", 0.0)
-        self.kld_weight = kwargs.get("kld_weight", 0.0001)
-        self.duration_weight = kwargs.get("duration_weight", 1.0)
-        self.adv_weight = kwargs.get("adv_weight", 1.0)
-        print(f"KLD weight: {self.kld_weight}")
-        print(f"duration weight: {self.duration_weight}")
-        print(f"adversarial weight: {self.adv_weight}")
-
-        self.generator = CVAESeqLSTMNudger(
-            in_shape, encodings, encoding_weights, labels_size, sos, **kwargs
-        )
-        self.discriminator = Discriminator(
-            latent_dim=latent_dim,
-            hidden_size=hidden_size,
-            output_size=labels_size,
-        )
-
-    def adversarial_loss(self, y_hat: Tensor, y: Tensor) -> Tensor:
-        """Adversarial loss for nudging the latent space."""
-        return nn.functional.mse_loss(y_hat, y)
-
-    def training_step(self, batch, batch_idx):
-        (x, _), (y, y_mask), (labels, _) = batch
-        optimizer_g, optimizer_d = self.optimizers()
-
-        self.curr_device = x.device
-
-        # train generator
-        self.toggle_optimizer(optimizer_g)
-        log_probs, mu, log_var, z = self.generator.forward(
-            x, labels=labels, target=y
-        )
-        losses = self.generator.loss_function(
-            log_probs=log_probs,
-            mu=mu,
-            log_var=log_var,
-            target=y,
-            weights=y_mask,
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
-            batch_idx=batch_idx,
-        )
-
-        # generator loss
-        labels_hat = self.discriminator(z)
-
-        adversarial_loss = self.adversarial_loss(labels_hat, labels).detach()
-        losses["adversarial_loss"] = adversarial_loss
-        losses["adversarial_weight"] = torch.Tensor([self.adv_weight]).float()
-        weighted_adversarial_loss = adversarial_loss * self.adv_weight
-        losses["adversarial_loss_weighted"] = weighted_adversarial_loss
-        losses["loss"] /= weighted_adversarial_loss
-
-        self.manual_backward(losses["loss"])
-        optimizer_g.step()
-        optimizer_g.zero_grad()
-        self.untoggle_optimizer(optimizer_g)
-
-        # train discriminator
-        self.toggle_optimizer(optimizer_d)
-        labels_hat = self.discriminator(z.detach())
-        d_loss = self.adversarial_loss(labels_hat, labels)
-        losses["discriminator_loss"] = d_loss
-
-        self.manual_backward(d_loss)
-        optimizer_d.step()
-        optimizer_d.zero_grad()
-        self.untoggle_optimizer(optimizer_d)
-
-        self.log_dict(
-            {key: val.item() for key, val in losses.items()}, sync_dist=True
-        )
-
-    def configure_optimizers(self):
-        opt_g = torch.optim.Adam(
-            self.generator.parameters(), self.LR, weight_decay=self.weight_decay
-        )
-        opt_d = torch.optim.Adam(
-            self.discriminator.parameters(),
-            self.LR,
-            weight_decay=self.weight_decay,
-        )
-        return [opt_g, opt_d], []
-
-    def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, _), (y, y_mask), (labels, _) = batch
-        self.curr_device = x.device
-
-        log_probs, mu, log_var, z = self.generator.forward(x, labels=labels)
-        val_loss = self.generator.loss_function(
-            log_probs=log_probs,
-            mu=mu,
-            log_var=log_var,
-            target=y,
-            weights=y_mask,
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
-            optimizer_idx=optimizer_idx,
-            batch_idx=batch_idx,
-        )
-
-        self.log_dict(
-            {f"val_{key}": val.item() for key, val in val_loss.items()},
-            sync_dist=True,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-        )
-
-    def predict_step(self, batch):
-        return self.generator.predict_step(batch)
-
-
-class Discriminator(nn.Module):
-    def __init__(self, latent_dim: int, hidden_size: int, output_size: int):
-        super().__init__()
-        self.block = nn.Sequential(
-            nn.Linear(latent_dim, hidden_size),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, output_size),
-        )
-        self.activation = nn.Softmax(dim=-1)  # TODO!!
-
-    def forward(self, x):
-        x = self.block(x)
-        x = self.activation(x)
-        return x
-
-
-class CVAESeqLSTMNudger(Base):
+class CVAEContLSTMDoubleNudger(Base):
     def __init__(self, *args, **kwargs):
         """
         RNN based encoder and decoder with encoder embedding layer and conditionality.
@@ -165,7 +18,7 @@ class CVAESeqLSTMNudger(Base):
         super().__init__(*args, **kwargs)
         if self.labels_size is None:
             raise UserWarning(
-                "ConditionalLSTM requires labels_size, please check you have configures a compatible encoder and labels"
+                "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
             )
 
     def build(self, **config):
@@ -196,7 +49,7 @@ class CVAESeqLSTMNudger(Base):
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_labels = nn.Linear(self.labels_size, flat_size_encode)
+        self.fc_conditionals = nn.Linear(self.labels_size, flat_size_encode)
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_attributes = nn.Linear(self.labels_size, self.latent_dim)
@@ -206,7 +59,11 @@ class CVAESeqLSTMNudger(Base):
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
     def forward(
-        self, x: Tensor, labels: Optional[Tensor] = None, target=None, **kwargs
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target=None,
+        **kwargs,
     ) -> List[Tensor]:
         """Forward pass, also return latent parameterization.
 
@@ -216,12 +73,12 @@ class CVAESeqLSTMNudger(Base):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x, labels)
+        mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y = self.decode(z, labels=labels, target=target)
+        log_prob_y = self.decode(z, conditionals=conditionals, target=target)
         return [log_prob_y, mu, log_var, z]
 
-    def encode(self, input: Tensor, labels: Tensor) -> list[Tensor]:
+    def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
 
         Args:
@@ -230,18 +87,21 @@ class CVAESeqLSTMNudger(Base):
         Returns:
             list[tensor]: Latent layer input (means and variances) [N, latent_dims].
         """
+        # encode labels
+        label_mu, label_var = self.label_network(conditionals)
+
         hidden = self.encoder(input)
-        labels = self.fc_labels(labels)
-        hidden = hidden + labels
+        conditionals = self.fc_conditionals(conditionals)
+        hidden = hidden + conditionals
 
         # Split the result into mu and var components
-        mu = self.fc_mu(hidden)
-        log_var = self.fc_var(hidden)
+        mu = self.fc_mu(hidden) + label_mu
+        log_var = self.fc_var(hidden) * label_var
 
         return [mu, log_var]
 
     def decode(
-        self, z: Tensor, labels: Tensor, target=None, **kwargs
+        self, z: Tensor, conditionals: Tensor, target=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -252,9 +112,10 @@ class CVAESeqLSTMNudger(Base):
             tensor: Output sequence batch [N, steps, acts].
         """
         # encode labels
-        label_mu, label_var = self.label_network(labels)
+        label_mu, label_var = self.label_network(conditionals)
         # manipulate z using label encoding
-        z = (z * label_var) + label_mu
+        z = (z / label_var) - label_mu
+        # z = z - label_mu
 
         # initialize hidden state as inputs
         h = self.fc_hidden(z)
@@ -278,10 +139,10 @@ class CVAESeqLSTMNudger(Base):
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs
+        return log_probs  # modified z removed to simplify refactor
 
     def predict(
-        self, z: Tensor, labels: Tensor, device: int, **kwargs
+        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
@@ -292,8 +153,10 @@ class CVAESeqLSTMNudger(Base):
             tensor: [N, steps, acts].
         """
         z = z.to(device)
-        labels = labels.to(device)
-        prob_samples = exp(self.decode(z=z, labels=labels, **kwargs))
+        conditionals = conditionals.to(device)
+        prob_samples = exp(
+            self.decode(z=z, conditionals=conditionals, **kwargs)
+        )
         return prob_samples
 
 

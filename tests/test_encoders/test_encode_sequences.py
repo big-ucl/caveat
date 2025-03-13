@@ -46,7 +46,7 @@ def test_encoder():
     expected_weights = torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0, 0.0])
     labels = torch.tensor([[0, 0], [1, 1]])
     label_weights = (torch.tensor([[1, 1], [1, 1]]), torch.tensor([[1], [1]]))
-    encoder = seq.SequenceEncoder(
+    encoder = seq.ContinuousEncoder(
         max_length=length,
         norm_duration=duration,
         weighting="unit",
@@ -119,7 +119,6 @@ def test_fix_end_durations():
 
 
 def test_decode():
-
     duration = 10
     encoded = torch.tensor(
         [
@@ -138,14 +137,13 @@ def test_decode():
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
-    encoder = seq.SequenceEncoder(max_length=6, norm_duration=duration)
+    encoder = seq.ContinuousEncoder(max_length=6, norm_duration=duration)
     encoder.setup_encoder(expected)
     decoded = encoder.decode(encoded, argmax=False)
     pd.testing.assert_frame_equal(decoded, expected)
 
 
 def test_decode_argmax():
-
     duration = 10
     encoded = torch.tensor(
         [
@@ -178,14 +176,13 @@ def test_decode_argmax():
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
-    encoder = seq.SequenceEncoder(max_length=6, norm_duration=duration)
+    encoder = seq.ContinuousEncoder(max_length=6, norm_duration=duration)
     encoder.setup_encoder(expected)
     decoded = encoder.decode(encoded, argmax=True)
     pd.testing.assert_frame_equal(decoded, expected)
 
 
 def test_decode_fix_durations():
-
     duration = 10
     encoded = torch.tensor(
         [
@@ -204,7 +201,7 @@ def test_decode_fix_durations():
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
-    encoder = seq.SequenceEncoder(
+    encoder = seq.ContinuousEncoder(
         max_length=6, norm_duration=duration, fix_durations=True
     )
     encoder.setup_encoder(expected)

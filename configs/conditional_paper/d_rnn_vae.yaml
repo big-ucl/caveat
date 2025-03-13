@@ -51,7 +51,7 @@ encoder_params:
   jitter: 0.2
 
 model_params:
-  name: "VAESeqLSTM"
+  name: "VAEContLSTM"
   latent_dim: 6
   hidden_n: 4
   hidden_size: 128

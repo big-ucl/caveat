@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from torch import Tensor, nn
 
-from caveat.models import CustomDurationEmbeddingConcat
+from caveat.models.embed import CustomDurationEmbeddingConcat
 from caveat.models.schedule2label.experiment import LabelExperiment
 
 

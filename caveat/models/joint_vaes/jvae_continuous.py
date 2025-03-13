@@ -4,12 +4,11 @@ import torch
 from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import CustomDurationEmbeddingConcat
+from caveat.models.embed import CustomDurationEmbeddingConcat
 from caveat.models.joint_vaes.experiment import JointExperiment
 
 
-class JVAESeqLSTM(JointExperiment):
-
+class JVAEContLSTM(JointExperiment):
     def __init__(self, *args, **kwargs):
         """
         Joint Sequence and Label generating VAE with LSTM sequence encoder and decoder.
@@ -225,7 +224,8 @@ class JVAESeqLSTM(JointExperiment):
     def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
         # from https://kvfrans.com/deriving-the-kl/
         return torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
         )
 
     def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:

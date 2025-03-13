@@ -22,12 +22,13 @@ experiment_params:
   weight_decay: 0.02
   scheduler_gamma: 0.975
 
-conditionals:
-  gender: nominal
-  age_group: nominal
-  car_access: nominal
-  work_status: nominal
-  income: ordinal
+labels_encoder:
+  labels:
+    gender: nominal
+    age_group: nominal
+    car_access: nominal
+    work_status: nominal
+    income: ordinal
 
 evaluation_params:
   split_on: [gender, age_group, car_access, work_status, income]

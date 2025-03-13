@@ -20,7 +20,7 @@ labels_encoder:
     income: nominal
 
 encoder_params:
-  name: "sequence"
+  name: "continuous"
   max_length: 16
   norm_duration: 1440
   jitter: 0
@@ -40,7 +40,7 @@ trainer_params:
   max_epochs: 300
 
 model_params:
-  name: "CVAESeqLSTM"
+  name: "CVAEContLSTM"
   hidden_n: 6
   hidden_size: 512
   labels_hidden_size: 32

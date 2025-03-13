@@ -3,10 +3,11 @@ from typing import List, Optional, Tuple
 import torch
 from torch import Tensor, exp, nn
 
-from caveat.models import Base, CustomDurationEmbeddingConcat
+from caveat.models import Base
+from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class CVAESeqLSTM(Base):
+class CVAEContLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoders with optional conditionalities at encoder, latent and decoder."""
         super().__init__(*args, **kwargs)
@@ -675,7 +676,6 @@ class ConcatLatent(nn.Module):
         self.latent_fc = nn.Linear(latent_dim + labels_size, flat_size_encode)
 
     def forward(self, z: Tensor, labels: Tensor) -> Tuple[Tensor, Tensor]:
-
         # add conditionlity to z
         z = torch.cat((z, labels), dim=-1)
         # initialize hidden state as inputs
@@ -709,7 +709,6 @@ class AddLatent(nn.Module):
         self.latent_fc = nn.Linear(latent_dim, flat_size_encode)
 
     def forward(self, z: Tensor, labels: Tensor) -> Tuple[Tensor, Tensor]:
-
         # add conditionlity to z
         labels_z = self.labels_fc(labels)
         z = z + labels_z
