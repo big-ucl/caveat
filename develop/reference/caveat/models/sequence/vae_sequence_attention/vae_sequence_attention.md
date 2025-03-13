@@ -1,1 +1,0 @@
-::: caveat.models.sequence.vae_sequence_attention

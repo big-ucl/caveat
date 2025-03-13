@@ -1,0 +1,1 @@
+::: caveat.models.continuous.vae_cnn1d
