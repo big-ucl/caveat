@@ -1,0 +1,140 @@
+global:
+  logging_params:
+    log_dir: "logs"
+    name: "sequence_models/cnn_w"
+
+  schedules_path: "tmp/nts_schedules_2023.csv"
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 50
+    max_epochs: 200
+    patience: 50
+
+  seed: 1234
+
+  encoder_params:
+    name: "continuous"
+    max_length: 16
+    duration: 1440
+    jitter: 0
+    weighting: unit
+    joint_weighting: unit
+
+  experiment_params:
+    LR: 0.002
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.005
+    duration_loss_weight: 200
+
+  model_params:
+    name: "VAEContCNN1D"
+    latent_dim: 6
+    hidden_layers: [256,256,256,256,256]
+    dropout: 0.0
+    stride: 2
+    kernel_size: 2
+    padding: 1
+
+uu:
+  encoder_params:
+    name: "continuous"
+    max_length: 16
+    duration: 1440
+    jitter: 0
+    fix_durations: True
+    weighting: unit
+    joint_weighting: unit
+
+iu:
+  encoder_params:
+    name: "continuous"
+    max_length: 16
+    duration: 1440
+    jitter: 0
+    fix_durations: True
+    weighting: act_inverse
+    joint_weighting: unit
+
+ui:
+  encoder_params:
+    name: "continuous"
+    max_length: 16
+    duration: 1440
+    jitter: 0
+    fix_durations: True
+    weighting: unit
+    joint_weighting: act_inverse
+
+
+# fc:
+#   model_params:
+#     name: "VAEContFC"
+#     latent_dim: 6
+#     hidden_layers: [128,128,128,128] 
+#     dropout: 0.0
+
+# cnn1d:
+#   model_params:
+#     name: "VAEContCNN1D"
+#     latent_dim: 6
+#     hidden_layers: [256,256,256,256,256]
+#     dropout: 0.0
+#     stride: 2
+#     kernel_size: 2
+#     padding: 1
+
+# rnn:
+#   model_params:
+#     name: "VAEContLSTM"
+#     latent_dim: 6
+#     hidden_n: 5
+#     hidden_size: 256
+#     dropout: 0.1
+
+# auto_attention:
+#   encoder_params:
+#     name: "sequence_staggered"
+#     max_length: 16
+#     duration: 1440
+#     jitter: 0.1
+#   model_params:
+#     name: "AutoSeqAtt"
+#     latent_dim: 6
+#     hidden_n: 2
+#     heads: 4
+#     hidden_size: 128
+#     ffwd_size: 256
+#     dropout: 0.1
+
+# xattention:
+#   encoder_params:
+#     name: "sequence_staggered"
+#     max_length: 16
+#     duration: 1440
+#     jitter: 0.1
+#     fix_durations: False
+#   model_params:
+#     name: "VAEContXAtt"
+#     latent_dim: 6
+#     hidden_n: 3
+#     heads: 7
+#     hidden_size: 128
+#     ffwd_size: 256
+#     dropout: 0
+#     embedding: concat
+#     position_embedding: learnt
+#     time_embedding: none
+#     latent_context: xattention
+
+# cnn2d:
+#   model_params:
+#     name: "VAEContCNN2D"
+#     latent_dim: 6
+#     hidden_layers: [256,256,256,256,256,256] 
+#     dropout: 0.1

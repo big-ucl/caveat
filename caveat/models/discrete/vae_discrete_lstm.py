@@ -82,11 +82,11 @@ class VAEDiscLSTM(Base):
         mu: Tensor,
         log_var: Tensor,
         target: Tensor,
-        mask: Tensor,
+        weights: Tensor,
         **kwargs,
     ) -> dict:
         return super().discretized_loss(
-            log_probs, mu, log_var, target, mask, **kwargs
+            log_probs, mu, log_var, target, weights, **kwargs
         )
 
 

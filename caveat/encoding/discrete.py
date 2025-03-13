@@ -7,6 +7,10 @@ from torch import Tensor
 
 from caveat.data.augment import DiscreteJitter
 from caveat.encoding import BaseDataset, BaseEncoder, PaddedDatatset
+from caveat.encoding.disc_weighting import (
+    act_weight_library,
+    seq_weight_library,
+)
 
 
 class DiscreteEncoder(BaseEncoder):
@@ -16,8 +20,31 @@ class DiscreteEncoder(BaseEncoder):
         self.steps = duration // step_size
         self.jitter = kwargs.get("jitter", 0)
         self.acts_to_index = None
+
+        self.weighting = kwargs.get("weighting", "unit")
+        self.joint_weighting = kwargs.get("joint_weighting", "unit")
+
+        self.weighter = act_weight_library.get(self.weighting, None)
+        if self.weighter is None:
+            raise ValueError(
+                f"Unknown Discrete Encoder weighting: {self.weighting}, should be one of: {act_weight_library.keys()}"
+            )
+
+        self.joint_weighter = seq_weight_library.get(self.joint_weighting, None)
+        if self.joint_weighter is None:
+            raise ValueError(
+                f"Unknown Discrete Encoder weighting: {self.joint_weighting}, should be one of: {seq_weight_library.keys()}"
+            )
+
         print(
-            f"DiscreteEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
+            f"""Discrete Encoder initialised with:
+        duration: {self.duration}
+        step_size: {self.step_size}
+        steps: {self.steps}
+        jitter: {self.jitter}
+        (act) weighting: {self.weighting}
+        (seq) joint weighting: {self.joint_weighting}
+        """
         )
 
     def encode(
@@ -37,21 +64,32 @@ class DiscreteEncoder(BaseEncoder):
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
         # calc weightings
-        act_freqs = (
-            schedules.groupby("act", observed=True).duration.sum().to_dict()
-        )
-        index_freqs = {self.acts_to_index[k]: v for k, v in act_freqs.items()}
-        ordered_freqs = np.array(
-            [index_freqs[k] for k in range(len(index_freqs))]
-        )
-        weights = 1 / np.log(ordered_freqs)
-        weights = (
-            weights / weights.mean()
-        )  # normalise to average 1 for each activity
-        weights = (
-            weights / self.steps
-        )  # normalise to average 1 for each activity schedule
-        self.encoding_weights = torch.from_numpy(weights).float()
+        self.encoding_weights = None
+        # if self.weighter == "inverse":
+        #     act_freqs = (
+        #         schedules.groupby("act", observed=True).duration.sum().to_dict()
+        #     )
+        #     index_freqs = {
+        #         self.acts_to_index[k]: v for k, v in act_freqs.items()
+        #     }
+        #     ordered_freqs = np.array(
+        #         [index_freqs[k] for k in range(len(index_freqs))]
+        #     )
+        #     weights = 1 / np.log(ordered_freqs)
+        #     weights = (
+        #         weights / weights.mean()
+        #     )  # normalise to average 1 for each activity
+        #     weights = (
+        #         weights / self.steps
+        #     )  # normalise to average 1 for each activity schedule
+        #     self.encoding_weights = torch.from_numpy(weights).float()
+        # elif self.weighter == "inverse":
+        #     n = schedules.act.nunique()
+        #     self.encoding_weights = torch.ones(n).float()
+        # else:
+        #     raise ValueError(
+        #         f"Unknown Discrete Encoder weighting: {self.weighting}, should be one of: {act_weight_library.keys()}"
+        #     )
 
     def _encode(
         self,
@@ -75,10 +113,13 @@ class DiscreteEncoder(BaseEncoder):
             DiscreteJitter(self.step_size, self.jitter) if self.jitter else None
         )
 
+        act_weights = self.weighter(encoded)
+        joint_weights = self.joint_weighter(encoded)
+
         return BaseDataset(
             schedules=encoded.long(),
-            act_weights=torch.ones(encoded.shape),
-            seq_weights=torch.ones(encoded.shape[0], 1),
+            act_weights=act_weights,
+            seq_weights=joint_weights,
             activity_encodings=activity_encodings,
             activity_weights=self.encoding_weights,
             augment=augment,
