@@ -1,8 +1,8 @@
 seed: 12345
 
 logging_params:
-  log_dir: logs/sequence_models
-  name: rnn_tune
+  log_dir: logs/discrete_models
+  name: fc_tune
 
 tune:
   trials: 400
@@ -17,17 +17,15 @@ loader_params:
   num_workers: 8
 
 trainer_params:
-  min_epochs: 100
-  max_epochs: 200
+  min_epochs: 50
+  max_epochs: 150
   patience: 50
 
 encoder_params:
-  name: "continuous"
-  max_length: 16
-  norm_duration: 1440
+  name: "discrete"
+  duration: 1440
+  step_size: 10
   jitter: trial.suggest_float("jitter", 0, 0.3)
-  fix_durations: True
-  trim_eos: trial.suggest_categorical("trim_eos", [True, False])
   weighting: unit
   joint_weighting: unit
 
@@ -36,12 +34,12 @@ experiment_params:
   weight_decay: 0.02
   scheduler_gamma: 0.975
   kld_weight: 0.005
-  duration_loss_weight: 200
+  # duration_loss_weight: 200
 
 model_params:
-  name: "VAEContLSTM"
-  hidden_n: trial.suggest_int("hidden_n", 2, 6)
-  hidden_size: trial.suggest_categorical("hidden_size", [64, 128, 256, 512])
+  name: "VAEDiscFC"
+  hidden_n: trial.suggest_int("hidden_n", 2, 4)
+  hidden_size: trial.suggest_categorical("hidden_size", [32, 64, 128])
   latent_dim: 6
   dropout: trial.suggest_float("dropout", 0, 0.3)
-  teacher_forcing_ratio: 0.5
+  # teacher_forcing_ratio: 0.5

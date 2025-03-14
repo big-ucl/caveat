@@ -403,7 +403,7 @@ class Base(Experiment):
             "act_weight": torch.tensor([act_weight]).float(),
         }
 
-    def seq_loss_no_kld(
+    def continuous_loss_no_kld(
         self, log_probs, target, weights, label_weights, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
@@ -461,6 +461,35 @@ class Base(Experiment):
             "dur_recon": w_dur_recon.detach(),
             "act_weight": torch.tensor([act_weight]).float(),
             "dur_weight": torch.tensor([dur_weight]).float(),
+        }
+
+    def discretized_loss_no_kld(
+        self,
+        log_probs,
+        target,
+        weights: Tuple[Tensor, Tensor],
+        label_weights: Optional[Tuple[Tensor, Tensor]] = (None, None),
+        **kwargs,
+    ) -> dict:
+        """Loss function for discretized encoding [N, L]."""
+        # unpack weights
+        act_weights, seq_weights = weights
+        label_weights, joint_weights = label_weights
+
+        # activity loss
+        act_weight = self.activity_loss_weight * self.scheduled_act_weight
+        act_recon = self.act_seq_loss(
+            preds=log_probs,
+            targets=target.unsqueeze(-1),
+            weights=act_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_recons_loss = act_weight * act_recon
+
+        return {
+            "loss": w_recons_loss,
+            "act_weight": torch.tensor([act_weight]).float(),
         }
 
     def end_time_seq_loss(

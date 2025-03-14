@@ -53,30 +53,46 @@ def test_large_downsample_discretise_population():
     assert torch.equal(result, expected)
 
 
-def test_encoded_weights():
+@pytest.mark.parametrize(
+    "weights,joint,weight_expected,joint_expected",
+    [
+        ("unit", "unit", torch.ones(3), torch.ones((1))),
+        (
+            "act_inverse",
+            "unit",
+            torch.tensor([3 / 4, 3 / 2, 3 / 4]),
+            torch.ones((1)),
+        ),
+        (
+            "act_inverse",
+            "act_inverse",
+            torch.tensor([3 / 4, 3 / 2, 3 / 4]),
+            torch.ones((1)),
+        ),
+    ],
+)
+def test_encoded_weights(weights, joint, weight_expected, joint_expected):
     traces = pd.DataFrame(
         [
             [0, 0, 0, 2, 2],
-            [0, 1, 2, 5, 3],
-            [0, 0, 5, 6, 1],
-            [1, 0, 0, 3, 3],
-            [1, 1, 3, 5, 2],
-            [1, 0, 5, 6, 1],
+            [0, 1, 2, 4, 2],
+            [0, 0, 4, 6, 2],
+            [1, 0, 0, 2, 2],
+            [1, 1, 2, 4, 2],
+            [1, 0, 4, 6, 2],
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
     length = 6
     step = 2
-    expected_weights = torch.tensor([7.0, 5.0])
-    expected_weights = 1 / torch.log(expected_weights)
-    expected_weights = expected_weights / expected_weights.mean()
-    steps = length / step
-    expected_weights = expected_weights / steps
-    expected_mask = torch.tensor([1.0, 1.0, 1.0])
-    encoder = discrete.DiscreteEncoder(length, step)
-    encoded = encoder.encode(traces, None, (None, None))
-    # assert torch.equal(encoded.encoding_weights, expected_weights)
-    assert torch.equal(encoded[0][0][1][0], expected_mask)
+    encoder = discrete.DiscreteEncoder(
+        length, step, weighting=weights, joint_weighting=joint
+    )
+    dataset = encoder.encode(traces, None, (None, None))
+    (_, (weights, joint_weight)), (_, _), _ = dataset[0]
+    print(weights, joint_weight)
+    assert torch.equal(weights, weight_expected)
+    assert torch.equal(joint_weight, joint_expected)
 
 
 def test_encoded_with_jitter():
@@ -128,7 +144,6 @@ def test_padded_encoder():
     encoded = encoder.encode(traces, None)
     assert torch.equal(encoded.schedules, encode)
     assert torch.equal(encoded.act_weights, masks)
-    # assert torch.equal(encoded.encoding_weights, weights)
     (left, (mask_left, _)), (right, (mask_right, _)), _ = encoded[0]
     assert torch.equal(left, pad_left[0])
     assert torch.equal(mask_left, mask)

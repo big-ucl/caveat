@@ -74,7 +74,7 @@ def test_discrete_conditional_lstm_forward():
     assert "loss" in losses
 
 
-def test_discrete_vae_conv_forward():
+def test_discrete_vae_conv2d_forward():
     x = torch.randn(3, 1, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
     weights = torch.randn(3, 144)  # (batch, steps)

@@ -17,7 +17,6 @@ def act_inverse_weights(sequences: Tensor) -> Tensor:
     )
     weights = 1 / ws[locs].float()
     weights = weights / weights.mean()
-
     return weights
 
 

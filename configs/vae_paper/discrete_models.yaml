@@ -22,6 +22,13 @@ global:
     scheduler_gamma: 0.9
     kld_weight: 0.002
 
+  model_params:
+    name: "VAEDiscFC"
+    latent_dim: 6
+    hidden_n: 2
+    hidden_size: 64 
+    dropout: 0.1
+
 fc_uu:
   encoder_params:
     name: "discrete"
@@ -31,12 +38,6 @@ fc_uu:
     weighting: unit
     joint_weighting: unit
 
-  model_params:
-    name: "VAEDiscFC"
-    latent_dim: 6
-    hidden_layers: [128,32] 
-    dropout: 0.1
-
 fc_iu:
   encoder_params:
     name: "discrete"
@@ -45,12 +46,6 @@ fc_iu:
     jitter: 0.0
     weighting: act_inverse
     joint_weighting: unit
-    
-  model_params:
-    name: "VAEDiscFC"
-    latent_dim: 6
-    hidden_layers: [128,32] 
-    dropout: 0.1
 
 fc_ui:
   encoder_params:
@@ -60,12 +55,6 @@ fc_ui:
     jitter: 0.0
     weighting: unit
     joint_weighting: act_inverse
-    
-  model_params:
-    name: "VAEDiscFC"
-    latent_dim: 6
-    hidden_layers: [128,32] 
-    dropout: 0.1
 
 fc_ii:
   encoder_params:
@@ -75,12 +64,13 @@ fc_ii:
     jitter: 0.0
     weighting: act_inverse
     joint_weighting: act_inverse
-    
-  model_params:
-    name: "VAEDiscFC"
-    latent_dim: 6
-    hidden_layers: [128,32] 
-    dropout: 0.1
+
+# fc:
+#   model_params:
+#     name: "VAEDiscFC"
+#     latent_dim: 6
+#     hidden_layers: [128,32] 
+#     dropout: 0.1
 
 # cnn1d:
 #   model_params:
