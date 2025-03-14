@@ -6,10 +6,8 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import SequenceJitter
-from caveat.encoding import (
-    BaseDataset,
-    BaseEncoder,
-    StaggeredDataset,
+from caveat.encoding import BaseDataset, BaseEncoder, StaggeredDataset
+from caveat.encoding.cont_weighting import (
     act_weight_library,
     seq_weight_library,
 )
@@ -21,7 +19,7 @@ class ContinuousEncoder(BaseEncoder):
     def __init__(
         self, max_length: int = 12, norm_duration: int = 1440, **kwargs
     ):
-        """Sequence Encoder for sequences of activities. Also supports conditional attributes.
+        """Continuous Encoder for sequences of activities. Also supports conditional attributes.
 
         Args:
             max_length (int, optional): _description_. Defaults to 12.
@@ -39,17 +37,17 @@ class ContinuousEncoder(BaseEncoder):
         self.weighter = act_weight_library.get(self.weighting, None)
         if self.weighter is None:
             raise ValueError(
-                f"Unknown Sequence Encoder weighting: {self.weighting}, should be one of: {act_weight_library.keys()}"
+                f"Unknown Continuous Encoder weighting: {self.weighting}, should be one of: {act_weight_library.keys()}"
             )
 
         self.joint_weighter = seq_weight_library.get(self.joint_weighting, None)
         if self.joint_weighter is None:
             raise ValueError(
-                f"Unknown Sequence Encoder weighting: {self.joint_weighting}, should be one of: {seq_weight_library.keys()}"
+                f"Unknown Continuous Encoder weighting: {self.joint_weighting}, should be one of: {seq_weight_library.keys()}"
             )
 
         print(
-            f"""Sequence Encoder initialised with:
+            f"""Continuous Encoder initialised with:
         max_length: {self.max_length}
         norm_duration: {self.norm_duration}
         jitter: {self.jitter}

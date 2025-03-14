@@ -1,0 +1,99 @@
+global:
+  seed: 1234
+  logging_params:
+    log_dir: "logs/discrete_models"
+    name: "fc_weights"
+  
+  schedules_path: "tmp/nts_schedules_2023.csv"
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+  
+  trainer_params:
+    min_epochs: 50
+    max_epochs: 200
+    patience: 50
+  
+  experiment_params:
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.9
+    kld_weight: 0.002
+
+  model_params:
+    name: "VAEDiscFC"
+    latent_dim: 6
+    hidden_n: 2
+    hidden_size: 64 
+    dropout: 0.1
+
+fc_uu:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.0
+    weighting: unit
+    joint_weighting: unit
+
+fc_iu:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.0
+    weighting: act_inverse
+    joint_weighting: unit
+
+fc_ui:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.0
+    weighting: unit
+    joint_weighting: act_inverse
+
+fc_ii:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.0
+    weighting: act_inverse
+    joint_weighting: act_inverse
+
+# fc:
+#   model_params:
+#     name: "VAEDiscFC"
+#     latent_dim: 6
+#     hidden_layers: [128,32] 
+#     dropout: 0.1
+
+# cnn1d:
+#   model_params:
+#     name: "VAEDiscCNN1D"
+#     latent_dim: 6
+#     hidden_layers: [256,256,256,256,256,256]
+#     dropout: 0.0
+#     stride: 2
+#     kernel_size: 2
+#     padding: 0
+
+# cnn2d:
+#   model_params:
+#     name: "VAEDiscCNN2D"
+#     latent_dim: 6
+#     hidden_layers: [256,256,256,256,256,256] 
+#     dropout: 0.1
+
+# rnn:
+#   model_params:
+#     name: "VAEDiscLSTM"
+#     latent_dim: 6
+#     hidden_n: 4
+#     hidden_size: 128
+#     dropout: 0.1
+

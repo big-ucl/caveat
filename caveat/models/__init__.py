@@ -37,7 +37,7 @@ library = {
     "VAEContLSTM": VAEContLSTM,
     "VAEContCNN2D": VAEContCNN2D,
     "VAEContCNN1D": VAEContCNN1D,
-    "VAEcontFC": VAEContFC,
+    "VAEContFC": VAEContFC,
     "VAEContXAtt": VAEContXAtt,
     "CVAEContLSTM": CVAEContLSTM,
     "Seq2SeqLSTM": Seq2SeqLSTM,

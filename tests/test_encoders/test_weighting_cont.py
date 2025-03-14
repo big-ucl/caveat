@@ -1,6 +1,6 @@
 import torch
 
-from caveat.encoding.seq_weighting import (
+from caveat.encoding.cont_weighting import (
     act_and_dur_inverse_weight,
     act_and_dur_inverse_weights,
     act_inverse_weights,
