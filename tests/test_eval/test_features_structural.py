@@ -2,6 +2,7 @@ from numpy import array
 from pandas import DataFrame
 
 from caveat.evaluate.features.structural import (
+    contains_consecutive,
     duration_consistency,
     start_and_end_acts,
     time_consistency,
@@ -56,3 +57,31 @@ def test_duration_consistency():
     )
     expected = {"total duration": (array([20, 30]), array([1, 1]))}
     assert equals(duration_consistency(population, factor=1), expected)
+
+
+def test_does_not_contains_consecutive():
+    schedule = DataFrame(
+        [
+            {"act": "home"},
+            {"act": "work"},
+            {"act": "home"},
+            {"act": "work"},
+            {"act": "home"},
+        ]
+    )
+    assert not contains_consecutive(schedule, act="home")
+    assert not contains_consecutive(schedule, act="work")
+
+
+def test_contains_consecutive():
+    schedule = DataFrame(
+        [
+            {"act": "home"},
+            {"act": "home"},
+            {"act": "work"},
+            {"act": "home"},
+            {"act": "work"},
+        ]
+    )
+    assert contains_consecutive(schedule, act="home")
+    assert not contains_consecutive(schedule, act="work")

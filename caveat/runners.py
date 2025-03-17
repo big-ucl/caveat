@@ -985,7 +985,8 @@ def evaluate_synthetics(
             )
         else:
             eval_attributes = default_eval_attributes
-        sub_reports = evaluate.evaluate_subsampled(
+
+        sub_reports = evaluate.subsample_and_evaluate(
             synthetic_schedules=synthetic_schedules,
             synthetic_attributes=synthetic_labels,
             target_schedules=eval_schedules,

@@ -20,6 +20,7 @@ from caveat.callbacks import LinearLossScheduler
 
 def tune_command(
     config: dict,
+    db_path: str = None,
     verbose: bool = False,
     gen: bool = True,
     test: bool = False,
@@ -30,6 +31,7 @@ def tune_command(
 
     Args:
         config (dict): The configuration dictionary.
+        db_path (str, optional): The path to the optuna database. Defaults to None.
         verbose (bool, optional): Whether to print verbose output. Defaults to False.
         gen (bool, optional): Whether to generate synthetic data. Defaults to True.
         test (bool, optional): Whether to test the model. Defaults to False.
@@ -60,24 +62,21 @@ def tune_command(
     timeout = config.get("tune", {}).get("timeout", 600)
 
     def objective(trial: optuna.Trial) -> float:
-
         torch.manual_seed(seed)
         if cuda_available():
             torch.set_float32_matmul_precision("medium")
         torch.cuda.empty_cache()
-
         trial_config = build_config(trial, config)
-
         trial_name = build_trial_name(trial.number)
         logger = runners.initiate_logger(base_dir, trial_name)
-
         # encode data
-        label_encoder, encoded_labels, label_weights = (
-            runners.encode_input_labels(
-                logger.log_dir, input_attributes, trial_config
-            )
+        (
+            label_encoder,
+            encoded_labels,
+            label_weights,
+        ) = runners.encode_input_labels(
+            logger.log_dir, input_attributes, trial_config
         )
-
         _, encoded_schedules, data_loader = runners.encode_schedules(
             logger.log_dir,
             input_schedules,
@@ -85,7 +84,6 @@ def tune_command(
             label_weights,
             trial_config,
         )
-
         # build model
         ckpt_path = trial_config.get("ckpt_path", None)
         if ckpt_path is not None:
@@ -95,14 +93,10 @@ def tune_command(
             model = runners.build_model(
                 encoded_schedules, trial_config, test, gen, label_kwargs
             )
-
         trainer = runners.build_trainer(logger, trial_config)
         trainer.logger.log_hyperparams(trial.params)
-
         trial.set_user_attr("config", trial_config)
-
         trainer.fit(model, datamodule=data_loader)
-
         return trainer.callback_metrics["val_loss"].item()
 
     if prune:
@@ -110,7 +104,11 @@ def tune_command(
     else:
         pruner = optuna.pruners.NopPruner()
 
-    db_name = f"sqlite:///{base_dir}/optuna.db"
+    if db_path is None:
+        db_name = f"sqlite:///{base_dir}/optuna.db"
+    else:
+        db_name = f"sqlite:///{db_path}"
+
     print(f"Study logging to {db_name}")
     study = optuna.create_study(
         storage=db_name,
@@ -118,6 +116,7 @@ def tune_command(
         direction="minimize",
         sampler=optuna.samplers.TPESampler(seed=seed),
         pruner=pruner,
+        load_if_exists=True,
     )
     study.optimize(
         objective, n_trials=trials, timeout=timeout, callbacks=[best_callback]

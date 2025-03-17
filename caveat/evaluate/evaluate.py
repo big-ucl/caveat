@@ -4,13 +4,6 @@ from typing import Callable, List, Optional, Tuple
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, concat
 
-from caveat.evaluate.describe.features import (
-    average,
-    average2d,
-    average_density,
-    feature_value,
-    feature_weight,
-)
 from caveat.evaluate.distance import emd
 from caveat.evaluate.features import (
     creativity,
@@ -20,21 +13,15 @@ from caveat.evaluate.features import (
     times,
     transitions,
 )
+from caveat.evaluate.filters import filter_novel
+from caveat.evaluate.ops import (
+    average,
+    average2d,
+    average_density,
+    feature_value,
+    feature_weight,
+)
 
-sample_quality_jobs = [
-    (
-        ("duration", structural.duration_consistency),
-        (feature_weight),
-        ("duration", average),
-        ("EMD", emd),
-    ),
-    (
-        ("home based", structural.start_and_end_acts),
-        (feature_weight),
-        ("prob.", average),
-        ("EMD", emd),
-    ),
-]
 count_jobs = [
     (
         ("total schedules", frequency.count_schedules),
@@ -51,21 +38,6 @@ aggregate_jobs = [
         ("EMD", emd),
     )
 ]
-# participation_prob_jobs = [
-
-#     (
-#         ("participation", participation.participation_prob_by_act),
-#         (feature_weight),
-#         ("prob.", average),
-#         ("MAPE", mape),
-#     ),
-#     (
-#         ("joint participation", participation.joint_participation_prob),
-#         (feature_weight),
-#         ("prob.", average),
-#         ("MAPE", mape),
-#     ),
-# ]
 participation_rate_jobs = [
     (
         ("lengths", structural.sequence_lengths),
@@ -95,6 +67,12 @@ transition_jobs = [
     ),
     (
         ("3-gram", transitions.transition_3s_by_act),
+        (feature_weight),
+        ("av. rate", average),
+        ("EMD", emd),
+    ),
+    (
+        ("4-gram", transitions.transition_4s_by_act),
         (feature_weight),
         ("av. rate", average),
         ("EMD", emd),
@@ -133,7 +111,7 @@ time_jobs = [
 ]
 
 
-def evaluate_subsampled(
+def subsample_and_evaluate(
     synthetic_schedules: dict[str, DataFrame],
     synthetic_attributes: dict[str, DataFrame],
     target_schedules: DataFrame,
@@ -163,7 +141,7 @@ def evaluate_subsampled(
                     sample_schedules.pid.isin(sample_pids)
                 ]
 
-            sub_reports = process(
+            sub_reports = process_metrics(
                 synthetic_schedules=sub_schedules, target_schedules=sub_target
             )
             for r in sub_reports:  # add sub pop to index
@@ -192,7 +170,9 @@ def evaluate(
     target_schedules: DataFrame,
     report_stats: bool = True,
 ):
-    descriptions, distances = process(synthetic_schedules, target_schedules)
+    descriptions, distances = process_metrics(
+        synthetic_schedules, target_schedules
+    )
     frames = describe(descriptions, distances)
 
     if report_stats:
@@ -203,38 +183,48 @@ def evaluate(
     return frames
 
 
-def process(
+def process_metrics(
     synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
 ) -> Tuple[DataFrame, DataFrame]:
     # evaluate creativity
-    descriptions, distances = eval_models_creativity(
+    descriptions, distances = [], []
+
+    creativity_descriptions, creativity_distances = eval_creativity(
         synthetic_schedules=synthetic_schedules,
         target_schedules=target_schedules,
     )
+    descriptions.append(creativity_descriptions)
+    distances.append(creativity_distances)
+
+    sample_quality = eval_sample_quality(
+        synthetic_schedules=synthetic_schedules,
+        target_schedules=target_schedules,
+    )
+    descriptions.append(sample_quality)
+    distances.append(sample_quality)
 
     for domain, jobs in [
         ("count", count_jobs),
-        ("sample quality", sample_quality_jobs),
         ("aggregate", aggregate_jobs),
-        # ("participation_probs", participation_prob_jobs),
         ("participations", participation_rate_jobs),
         ("transitions", transition_jobs),
         ("timing", time_jobs),
     ]:
         for feature, size, description_job, distance_job in jobs:
-            feature_descriptions, feature_distances = (
-                eval_models_density_estimation(
-                    synthetic_schedules,
-                    target_schedules,
-                    domain,
-                    feature,
-                    size,
-                    description_job,
-                    distance_job,
-                )
+            feature_descriptions, feature_distances = eval_jobs(
+                synthetic_schedules=synthetic_schedules,
+                target_schedules=target_schedules,
+                domain=domain,
+                feature=feature,
+                size=size,
+                description_job=description_job,
+                distance_job=distance_job,
             )
-            descriptions = concat([descriptions, feature_descriptions], axis=0)
-            distances = concat([distances, feature_distances], axis=0)
+            descriptions.append(feature_descriptions)
+            distances.append(feature_distances)
+
+    descriptions = concat(descriptions, axis=0)
+    distances = concat(distances, axis=0)
 
     # remove nans
     descriptions = descriptions.fillna(0.0)
@@ -247,31 +237,35 @@ def describe(
 ) -> dict[str, DataFrame]:
     # features
     features_descriptions = (
-        descriptions.drop("description", axis=1)
+        descriptions.drop("unit", axis=1)
         .groupby(["domain", "feature"])
         .apply(weighted_av)
     )
-    features_descriptions["description"] = (
-        descriptions["description"].groupby(["domain", "feature"]).first()
+    features_descriptions.loc[("sample quality", "all")] = descriptions.loc[
+        ("sample quality", "all", "all")
+    ]
+    features_descriptions["unit"] = (
+        descriptions["unit"].groupby(["domain", "feature"]).first()
     )
 
     features_distances = (
-        distances.drop("distance", axis=1)
+        distances.drop("unit", axis=1)
         .groupby(["domain", "feature"])
         .apply(distance_weighted_av)
     )
-    features_distances["distance"] = (
-        distances["distance"].groupby(["domain", "feature"]).first()
+    features_distances.loc[("sample quality", "all")] = distances.loc[
+        ("sample quality", "all", "all")
+    ]
+    features_distances["unit"] = (
+        distances["unit"].groupby(["domain", "feature"]).first()
     )
 
     # domains
     domain_descriptions = (
-        features_descriptions.drop("description", axis=1)
-        .groupby("domain")
-        .mean()
+        features_descriptions.drop("unit", axis=1).groupby("domain").mean()
     )
     domain_distances = (
-        features_distances.drop("distance", axis=1).groupby("domain").mean()
+        features_distances.drop("unit", axis=1).groupby("domain").mean()
     )
 
     frames = {
@@ -290,23 +284,27 @@ def describe_splits(
 ) -> dict[str, DataFrame]:
     # features
     features_descriptions = (
-        descriptions.drop("description", axis=1)
+        descriptions.drop("unit", axis=1)
         .groupby(["domain", "feature", "sub_pop"])
         .apply(weighted_av)
     )
-    features_descriptions["description"] = (
-        descriptions["description"]
-        .groupby(["domain", "feature", "sub_pop"])
-        .first()
+    features_descriptions.loc[
+        ("sample quality", "all", slice(None))
+    ] = descriptions.loc[("sample quality", "all", "all", slice(None))]
+    features_descriptions["unit"] = (
+        descriptions["unit"].groupby(["domain", "feature", "sub_pop"]).first()
     )
 
     features_distances = (
-        distances.drop("distance", axis=1)
+        distances.drop("unit", axis=1)
         .groupby(["domain", "feature", "sub_pop"])
         .apply(distance_weighted_av)
     )
-    features_distances["distance"] = (
-        distances["distance"].groupby(["domain", "feature", "sub_pop"]).first()
+    features_distances.loc[
+        ("sample quality", "all", slice(None))
+    ] = distances.loc[("sample quality", "all", "all", slice(None))]
+    features_distances["unit"] = (
+        distances["unit"].groupby(["domain", "feature", "sub_pop"]).first()
     )
 
     # themes
@@ -316,7 +314,7 @@ def describe_splits(
         .mean()
     )
     domain_distances = (
-        features_distances.drop("distance", axis=1).groupby("domain").mean()
+        features_distances.drop("unit", axis=1).groupby("domain").mean()
     )
 
     frames = {
@@ -330,7 +328,7 @@ def describe_splits(
     return frames
 
 
-def eval_models_creativity(
+def eval_creativity(
     synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
 ) -> Tuple[DataFrame, DataFrame]:
     # Evaluate Creativity
@@ -379,10 +377,10 @@ def eval_models_creativity(
         )
 
     creativity_descs.append(
-        Series(["prob. unique", "prob. novel"], name="description")
+        Series(["prob. unique", "prob. novel"], name="unit")
     )
     creativity_dists.append(
-        Series(["prob. not unique", "prob. conservative"], name="distance")
+        Series(["prob. not unique", "prob. conservative"], name="unit")
     )
     # combine
     descriptions = concat(
@@ -405,7 +403,25 @@ def eval_models_creativity(
     return descriptions, distances
 
 
-def eval_models_density_estimation(
+def eval_sample_quality(
+    synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
+) -> Tuple[DataFrame, DataFrame]:
+    observed_weights, observed_metrics = structural.structural_eval(
+        target_schedules, name="observed"
+    )
+    results = [observed_weights, observed_metrics]
+    for model, y in synthetic_schedules.items():
+        y = filter_novel(y, target_schedules)
+
+        weights, metrics = structural.structural_eval(y, name=model)
+        results.append(weights)
+        results.append(metrics)
+    results = concat(results, axis=1)
+    results["unit"] = "prob. invalid"
+    return results
+
+
+def eval_jobs(
     synthetic_schedules: dict[str, DataFrame],
     target_schedules: DataFrame,
     domain: str,
@@ -473,8 +489,8 @@ def eval_models_density_estimation(
         )
 
     # add domain and feature name to index
-    feature_descriptions["description"] = description_name
-    feature_distances["distance"] = distance_name
+    feature_descriptions["unit"] = description_name
+    feature_distances["unit"] = distance_name
     feature_descriptions.index = MultiIndex.from_tuples(
         [(domain, feature_name, f) for f in feature_descriptions.index],
         name=["domain", "feature", "segment"],
@@ -489,7 +505,7 @@ def eval_models_density_estimation(
 
 def rank(data: DataFrame) -> DataFrame:
     # feature rank
-    rank = data.drop(["observed", "distance"], axis=1, errors="ignore").rank(
+    rank = data.drop(["observed", "unit"], axis=1, errors="ignore").rank(
         axis=1, method="min"
     )
     col_ranks = rank.sum(axis=0)
@@ -632,7 +648,7 @@ def score_features(
         name=model,
     )
     metrics = metrics.fillna(0)
-    metrics = metrics[np.isfinite(metrics)]
+    # metrics = metrics[np.isfinite(metrics)]
     return metrics
 
 
@@ -644,7 +660,7 @@ def defaulting_get(
     feature = features.get(key)
     if feature is None:
         return default
-    support, weights = feature
+    support, _ = feature
     if len(support) == 0:
         return default
     return feature
@@ -652,7 +668,7 @@ def defaulting_get(
 
 def extract_default(features: dict[str, tuple[np.array, np.array]]):
     # we use a single feature of zeros as required
-    # look for a zize
+    # look for a size
     default_shape = extract_default_shape(features)
     default_support = np.zeros(default_shape)
     return (default_support, np.array([1]))
@@ -666,11 +682,14 @@ def extract_default_shape(
             default_shape = list(k.shape)
             default_shape[0] = 1
             return default_shape
-    raise ValueError("No features found in the given dictionary.")
+    print(
+        f"Warning, no features found in the given dictionary: {features}, return [1]."
+    )
+    return np.array([0])
 
 
 def weighted_av(report: DataFrame, weight_col: str = "__weight") -> Series:
-    """Weighted avergae of dataframe using weights in the weight column."""
+    """Weighted average of dataframe using weights in the weight column."""
     cols = list(report.columns)
     cols = [c for c in cols if not c.endswith(weight_col)]
     scores = DataFrame()

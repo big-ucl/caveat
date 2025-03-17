@@ -53,12 +53,14 @@ def run(
 
 @cli.command(name="tune")
 @click.argument("config_path", type=click.Path(exists=True))
+@click.option("--db-path", "-db", type=click.Path(exists=True))
 @click.option("--test", "-t", is_flag=True)
 @click.option("--no-infer", "-ni", is_flag=True)
 @click.option("--no-gen", "-ng", is_flag=True)
 @click.option("--verbose", "-v", is_flag=True)
 def tune(
     config_path: click.Path,
+    db_path: Optional[click.Path],
     test: bool,
     no_gen: bool,
     no_infer: bool,
@@ -71,6 +73,7 @@ def tune(
         config = yaml.safe_load(file)
         tune_command(
             config,
+            db_path=db_path,
             verbose=verbose,
             test=test,
             gen=not no_gen,
