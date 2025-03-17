@@ -27,7 +27,6 @@ class VAEDiscFC(Base):
             hidden_layers=hidden_layers,
             dropout=dropout,
         )
-        # TODO add drop out
         self.decoder = Decoder(
             length=self.in_shape[0],
             in_size=self.encoder.flat_size,
@@ -57,10 +56,10 @@ class VAEDiscFC(Base):
         return log_probs
 
     def loss_function(
-        self, log_probs, mu, log_var, target, mask, *args, **kwargs
+        self, log_probs, mu, log_var, target, weights, *args, **kwargs
     ) -> dict:
         return self.discretized_loss(
-            log_probs, mu, log_var, target, mask, *args, **kwargs
+            log_probs, mu, log_var, target, weights, *args, **kwargs
         )
 
 

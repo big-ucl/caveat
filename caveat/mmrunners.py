@@ -246,7 +246,7 @@ def mmrun_command(
     # evaluate synthetic schedules
     evaluate_synthetics(
         synthetic_schedules={name: synthetic_schedules},
-        synthetic_attributes={name: synthetic_attributes},
+        synthetic_labels={name: synthetic_attributes},
         default_eval_schedules=input_schedules,
         default_eval_attributes=input_attributes,
         write_path=Path(logger.log_dir),

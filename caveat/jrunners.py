@@ -142,7 +142,7 @@ def jrun_command(
         # evaluate synthetic schedules
         evaluate_synthetics(
             synthetic_schedules={name: synthetic_schedules},
-            synthetic_attributes={name: synthetic_labels},
+            synthetic_labels={name: synthetic_labels},
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_labels,
             write_path=Path(logger.log_dir),
@@ -363,7 +363,7 @@ def jbatch_command(
         # evaluate synthetic schedules
         evaluate_synthetics(
             synthetic_schedules=synthetic_schedules_all,
-            synthetic_attributes=synthetic_attributes_all,
+            synthetic_labels=synthetic_attributes_all,
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_labels,
             write_path=Path(log_dir),
@@ -389,9 +389,13 @@ def test_inference(
     inference = trainer.predict(
         ckpt_path=ckpt_path, dataloaders=trainer.datamodule.test_dataloader()
     )
-    input_schedules, inferred_schedules, input_labels, inferred_labels, zs = (
-        zip(*inference)
-    )
+    (
+        input_schedules,
+        inferred_schedules,
+        input_labels,
+        inferred_labels,
+        zs,
+    ) = zip(*inference)
 
     input_schedules = torch.concat(input_schedules)
     inferred_schedules = torch.concat(inferred_schedules)
@@ -472,7 +476,12 @@ def generate_n(
 ) -> torch.Tensor:
     torch.manual_seed(seed)
     dataloaders = data.build_latent_dataloader(n, latent_dims, batch_size)
+    time = datetime.datetime.now()
     synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
+    duration = datetime.datetime.now() - time
+    print(
+        f">>> Generation took {duration.seconds + duration.microseconds / 1e6} seconds"
+    )
     synthetic_schedules, synthetic_labels, zs = zip(*synth)
     synthetic_schedules = torch.concat(synthetic_schedules)
     synthetic_labels = repack_labels(synthetic_labels)
