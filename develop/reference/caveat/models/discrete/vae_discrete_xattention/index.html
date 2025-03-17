@@ -1100,6 +1100,8 @@
       
         
       
+        
+      
     
     
     
@@ -1140,6 +1142,69 @@
   
   <span class="md-ellipsis">
     caveat.encoding.base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/cont_weighting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.cont_weighting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/continuous/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.continuous
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/disc_weighting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.disc_weighting
   </span>
   
 
@@ -1224,48 +1289,6 @@
   
   <span class="md-ellipsis">
     caveat.encoding.seq2seq
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../encoding/seq_weighting/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    caveat.encoding.seq_weighting
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../encoding/sequence/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    caveat.encoding.sequence
   </span>
   
 
@@ -7165,7 +7188,7 @@
 
 
 <h3 id="caveat.models.discrete.vae_discrete_xattention.VAEDiscXTrans.loss_function" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">loss_function</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">log_var</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">loss_function</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">log_var</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
 <a href="#caveat.models.discrete.vae_discrete_xattention.VAEDiscXTrans.loss_function" class="headerlink" title="Permanent link">#</a></h3>
 
@@ -7192,11 +7215,11 @@
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="n">mu</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
 </span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="n">log_var</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
 </span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>    <span class="n">target</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
-</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>    <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
 </span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 </span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">discretized_loss</span><span class="p">(</span>
-</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="n">log_probs</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">log_var</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="n">log_probs</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">log_var</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
 </span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>

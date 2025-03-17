@@ -13,20 +13,22 @@
       
       
       
+        <link rel="prev" href="../continuous/">
       
-        <link rel="next" href="installation/">
+      
+        <link rel="next" href="../discrete/">
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.20">
     
     
       
-        <title>caveat</title>
+        <title>caveat.encoding.disc_weighting - caveat</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.66ac8b77.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.66ac8b77.min.css">
       
       
 
@@ -45,11 +47,11 @@
       
     
     
-      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="static/extras.css">
+      <link rel="stylesheet" href="../../../../static/extras.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -68,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#research" class="md-skip">
+        <a href="#caveat.encoding.disc_weighting.act_weight_library" class="md-skip">
           Skip to content
         </a>
       
@@ -88,7 +90,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="caveat" class="md-header__button md-logo" aria-label="caveat" data-md-component="logo">
+    <a href="../../../.." title="caveat" class="md-header__button md-logo" aria-label="caveat" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -108,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              caveat.encoding.disc_weighting
             
           </span>
         </div>
@@ -195,7 +197,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="caveat" class="md-nav__button md-logo" aria-label="caveat" data-md-component="logo">
+    <a href="../../../.." title="caveat" class="md-nav__button md-logo" aria-label="caveat" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -222,28 +224,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Home
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -252,207 +236,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#research" class="md-nav__link">
-    <span class="md-ellipsis">
-      Research
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-applications" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example Applications
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quick Start
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Quick Start">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#batch" class="md-nav__link">
-    <span class="md-ellipsis">
-      Batch
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#nrun" class="md-nav__link">
-    <span class="md-ellipsis">
-      Nrun
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ngen" class="md-nav__link">
-    <span class="md-ellipsis">
-      Ngen
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#evaluate" class="md-nav__link">
-    <span class="md-ellipsis">
-      Evaluate
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tune" class="md-nav__link">
-    <span class="md-ellipsis">
-      Tune
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#label-joint-and-multi-model-models" class="md-nav__link">
-    <span class="md-ellipsis">
-      Label, joint and multi-model models
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#logging" class="md-nav__link">
-    <span class="md-ellipsis">
-      Logging
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#jupyter-notebooks" class="md-nav__link">
-    <span class="md-ellipsis">
-      Jupyter Notebooks
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#windoes-and-cuda" class="md-nav__link">
-    <span class="md-ellipsis">
-      Windoes and CUDA
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optuna" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optuna
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#contributing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Contributing
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#building-the-documentation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Building the documentation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#credits" class="md-nav__link">
-    <span class="md-ellipsis">
-      Credits
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -464,7 +247,7 @@
   
   
     <li class="md-nav__item">
-      <a href="installation/" class="md-nav__link">
+      <a href="../../../../installation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -484,7 +267,7 @@
   
   
     <li class="md-nav__item">
-      <a href="configuration/" class="md-nav__link">
+      <a href="../../../../configuration/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -561,7 +344,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/1_synthetic_schedules_gen/" class="md-nav__link">
+      <a href="../../../../examples/1_synthetic_schedules_gen/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -582,7 +365,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/1_toy_schedules_gen/" class="md-nav__link">
+      <a href="../../../../examples/1_toy_schedules_gen/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -603,7 +386,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/1_toy_work_status_schedules/" class="md-nav__link">
+      <a href="../../../../examples/1_toy_work_status_schedules/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -624,7 +407,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/2_synthetic_population_gen/" class="md-nav__link">
+      <a href="../../../../examples/2_synthetic_population_gen/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -645,7 +428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/3_NTS_population_demo/" class="md-nav__link">
+      <a href="../../../../examples/3_NTS_population_demo/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -666,7 +449,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/4_creativity/" class="md-nav__link">
+      <a href="../../../../examples/4_creativity/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -687,7 +470,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/5_features_and_correctness/" class="md-nav__link">
+      <a href="../../../../examples/5_features_and_correctness/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -708,7 +491,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/6_matsim_seq2seq/" class="md-nav__link">
+      <a href="../../../../examples/6_matsim_seq2seq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -729,7 +512,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/7_matsim_seq2score/" class="md-nav__link">
+      <a href="../../../../examples/7_matsim_seq2score/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -750,7 +533,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/normalising_notes/" class="md-nav__link">
+      <a href="../../../../examples/normalising_notes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -778,7 +561,7 @@
   
   
     <li class="md-nav__item">
-      <a href="CHANGELOG/" class="md-nav__link">
+      <a href="../../../../CHANGELOG/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -795,8 +578,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -807,11 +592,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -825,7 +610,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             Reference
@@ -839,7 +624,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/cli/" class="md-nav__link">
+      <a href="../../../../api/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -857,8 +642,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -891,11 +678,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" checked>
         
           
           <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
@@ -909,7 +696,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6_2">
             <span class="md-nav__icon md-icon"></span>
             Python API
@@ -923,7 +710,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/callbacks/" class="md-nav__link">
+      <a href="../../callbacks/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -944,7 +731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/experiment/" class="md-nav__link">
+      <a href="../../experiment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -965,7 +752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/jrunners/" class="md-nav__link">
+      <a href="../../jrunners/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -986,7 +773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/label_runners/" class="md-nav__link">
+      <a href="../../label_runners/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1007,7 +794,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/mmrunners/" class="md-nav__link">
+      <a href="../../mmrunners/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1028,7 +815,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/runners/" class="md-nav__link">
+      <a href="../../runners/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1049,7 +836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/samplers/" class="md-nav__link">
+      <a href="../../samplers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1070,7 +857,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/tune/" class="md-nav__link">
+      <a href="../../tune/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1142,7 +929,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/data/augment/" class="md-nav__link">
+      <a href="../../data/augment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1163,7 +950,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/data/loaders/" class="md-nav__link">
+      <a href="../../data/loaders/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1184,7 +971,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/data/module/" class="md-nav__link">
+      <a href="../../data/module/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1205,7 +992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/data/nts/" class="md-nav__link">
+      <a href="../../data/nts/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1226,7 +1013,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/data/samplers/" class="md-nav__link">
+      <a href="../../data/samplers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1247,7 +1034,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/data/synth/" class="md-nav__link">
+      <a href="../../data/synth/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1268,7 +1055,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/data/utils/" class="md-nav__link">
+      <a href="../../data/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1294,8 +1081,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1318,11 +1107,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_10" checked>
         
           
           <label class="md-nav__link" for="__nav_6_2_10" id="__nav_6_2_10_label" tabindex="0">
@@ -1336,7 +1125,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_10_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_10_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6_2_10">
             <span class="md-nav__icon md-icon"></span>
             caveat.encoding
@@ -1350,7 +1139,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/encoding/base/" class="md-nav__link">
+      <a href="../base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1371,7 +1160,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/encoding/cont_weighting/" class="md-nav__link">
+      <a href="../cont_weighting/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1392,7 +1181,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/encoding/continuous/" class="md-nav__link">
+      <a href="../continuous/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1410,10 +1199,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="reference/caveat/encoding/disc_weighting/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    caveat.encoding.disc_weighting
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -1422,6 +1229,87 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.act_weight_library" class="md-nav__link">
+    <span class="md-ellipsis">
+      act_weight_library
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.seq_weight_library" class="md-nav__link">
+    <span class="md-ellipsis">
+      seq_weight_library
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.act_inverse_weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      act_inverse_weights
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.seq_inverse_weight" class="md-nav__link">
+    <span class="md-ellipsis">
+      seq_inverse_weight
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.seq_max_weight" class="md-nav__link">
+    <span class="md-ellipsis">
+      seq_max_weight
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.unit_weight" class="md-nav__link">
+    <span class="md-ellipsis">
+      unit_weight
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.unit_weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      unit_weights
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1434,7 +1322,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/encoding/discrete/" class="md-nav__link">
+      <a href="../discrete/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1455,7 +1343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/encoding/one_hot/" class="md-nav__link">
+      <a href="../one_hot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1476,7 +1364,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/encoding/seq2score/" class="md-nav__link">
+      <a href="../seq2score/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1497,7 +1385,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/encoding/seq2seq/" class="md-nav__link">
+      <a href="../seq2seq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1591,7 +1479,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/describe/features/" class="md-nav__link">
+      <a href="../../evaluate/describe/features/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1612,7 +1500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/describe/frequency/" class="md-nav__link">
+      <a href="../../evaluate/describe/frequency/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1633,7 +1521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/describe/times/" class="md-nav__link">
+      <a href="../../evaluate/describe/times/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1654,7 +1542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/describe/transitions/" class="md-nav__link">
+      <a href="../../evaluate/describe/transitions/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1675,7 +1563,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/distance/scalar/" class="md-nav__link">
+      <a href="../../evaluate/distance/scalar/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1696,7 +1584,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/distance/wasserstein/" class="md-nav__link">
+      <a href="../../evaluate/distance/wasserstein/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1717,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/evaluate/" class="md-nav__link">
+      <a href="../../evaluate/evaluate/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1738,7 +1626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/features/creativity/" class="md-nav__link">
+      <a href="../../evaluate/features/creativity/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1759,7 +1647,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/features/frequency/" class="md-nav__link">
+      <a href="../../evaluate/features/frequency/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1780,7 +1668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/features/participation/" class="md-nav__link">
+      <a href="../../evaluate/features/participation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1801,7 +1689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/features/structural/" class="md-nav__link">
+      <a href="../../evaluate/features/structural/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1822,7 +1710,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/features/times/" class="md-nav__link">
+      <a href="../../evaluate/features/times/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1843,7 +1731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/features/transitions/" class="md-nav__link">
+      <a href="../../evaluate/features/transitions/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1864,7 +1752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/evaluate/features/utils/" class="md-nav__link">
+      <a href="../../evaluate/features/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1938,7 +1826,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/label_encoding/base/" class="md-nav__link">
+      <a href="../../label_encoding/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1959,7 +1847,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/label_encoding/label_weighting/" class="md-nav__link">
+      <a href="../../label_encoding/label_weighting/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1980,7 +1868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/label_encoding/onehot/" class="md-nav__link">
+      <a href="../../label_encoding/onehot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2001,7 +1889,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/label_encoding/tokenise/" class="md-nav__link">
+      <a href="../../label_encoding/tokenise/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2129,7 +2017,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/base/" class="md-nav__link">
+      <a href="../../models/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2150,7 +2038,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/auto_attention/" class="md-nav__link">
+      <a href="../../models/continuous/auto_attention/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2171,7 +2059,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/auto_lstm/" class="md-nav__link">
+      <a href="../../models/continuous/auto_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2192,7 +2080,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/cond_lstm/" class="md-nav__link">
+      <a href="../../models/continuous/cond_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2213,7 +2101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/cvae_lstm/" class="md-nav__link">
+      <a href="../../models/continuous/cvae_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2234,7 +2122,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/cvae_lstm_double_nudger/" class="md-nav__link">
+      <a href="../../models/continuous/cvae_lstm_double_nudger/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2255,7 +2143,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/cvae_lstm_nudge_feed/" class="md-nav__link">
+      <a href="../../models/continuous/cvae_lstm_nudge_feed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2276,7 +2164,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/cvae_lstm_nudger/" class="md-nav__link">
+      <a href="../../models/continuous/cvae_lstm_nudger/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2297,7 +2185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/cvae_lstm_nudger_adversarial/" class="md-nav__link">
+      <a href="../../models/continuous/cvae_lstm_nudger_adversarial/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2318,7 +2206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/vae_attention/" class="md-nav__link">
+      <a href="../../models/continuous/vae_attention/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2339,7 +2227,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/vae_cnn1d/" class="md-nav__link">
+      <a href="../../models/continuous/vae_cnn1d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2360,7 +2248,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/vae_cnn2d/" class="md-nav__link">
+      <a href="../../models/continuous/vae_cnn2d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2381,7 +2269,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/vae_fc/" class="md-nav__link">
+      <a href="../../models/continuous/vae_fc/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2402,7 +2290,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/vae_lstm/" class="md-nav__link">
+      <a href="../../models/continuous/vae_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2423,7 +2311,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/auto_discrete_lstm/" class="md-nav__link">
+      <a href="../../models/discrete/auto_discrete_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2444,7 +2332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/cond_discrete_conv/" class="md-nav__link">
+      <a href="../../models/discrete/cond_discrete_conv/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2465,7 +2353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/cond_discrete_lstm/" class="md-nav__link">
+      <a href="../../models/discrete/cond_discrete_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2486,7 +2374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/vae_discrete_cnn1d/" class="md-nav__link">
+      <a href="../../models/discrete/vae_discrete_cnn1d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2507,7 +2395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/vae_discrete_cnn2d/" class="md-nav__link">
+      <a href="../../models/discrete/vae_discrete_cnn2d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2528,7 +2416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/vae_discrete_fc/" class="md-nav__link">
+      <a href="../../models/discrete/vae_discrete_fc/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2549,7 +2437,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/vae_discrete_lstm/" class="md-nav__link">
+      <a href="../../models/discrete/vae_discrete_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2570,7 +2458,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/discrete/vae_discrete_xattention/" class="md-nav__link">
+      <a href="../../models/discrete/vae_discrete_xattention/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2591,7 +2479,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/embed/" class="md-nav__link">
+      <a href="../../models/embed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2612,7 +2500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/joint_vaes/experiment/" class="md-nav__link">
+      <a href="../../models/joint_vaes/experiment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2633,7 +2521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/joint_vaes/jvae_continuous/" class="md-nav__link">
+      <a href="../../models/joint_vaes/jvae_continuous/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2654,7 +2542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/joint_vaes/jvae_continuous_rerouted/" class="md-nav__link">
+      <a href="../../models/joint_vaes/jvae_continuous_rerouted/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2675,7 +2563,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/schedule2label/experiment/" class="md-nav__link">
+      <a href="../../models/schedule2label/experiment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2696,7 +2584,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/schedule2label/feedforward/" class="md-nav__link">
+      <a href="../../models/schedule2label/feedforward/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2717,7 +2605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/seq2score/lstm/" class="md-nav__link">
+      <a href="../../models/seq2score/lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2738,7 +2626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/seq2seq/lstm/" class="md-nav__link">
+      <a href="../../models/seq2seq/lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2759,7 +2647,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/utils/" class="md-nav__link">
+      <a href="../../models/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2821,183 +2709,63 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#research" class="md-nav__link">
+  <a href="#caveat.encoding.disc_weighting.act_weight_library" class="md-nav__link">
     <span class="md-ellipsis">
-      Research
+      act_weight_library
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-applications" class="md-nav__link">
+  <a href="#caveat.encoding.disc_weighting.seq_weight_library" class="md-nav__link">
     <span class="md-ellipsis">
-      Example Applications
+      seq_weight_library
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
+  <a href="#caveat.encoding.disc_weighting.act_inverse_weights" class="md-nav__link">
     <span class="md-ellipsis">
-      Quick Start
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Quick Start">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#batch" class="md-nav__link">
-    <span class="md-ellipsis">
-      Batch
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#nrun" class="md-nav__link">
-    <span class="md-ellipsis">
-      Nrun
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ngen" class="md-nav__link">
-    <span class="md-ellipsis">
-      Ngen
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#evaluate" class="md-nav__link">
-    <span class="md-ellipsis">
-      Evaluate
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tune" class="md-nav__link">
-    <span class="md-ellipsis">
-      Tune
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#label-joint-and-multi-model-models" class="md-nav__link">
-    <span class="md-ellipsis">
-      Label, joint and multi-model models
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#logging" class="md-nav__link">
-    <span class="md-ellipsis">
-      Logging
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
+      act_inverse_weights
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#caveat.encoding.disc_weighting.seq_inverse_weight" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#jupyter-notebooks" class="md-nav__link">
-    <span class="md-ellipsis">
-      Jupyter Notebooks
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#windoes-and-cuda" class="md-nav__link">
-    <span class="md-ellipsis">
-      Windoes and CUDA
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optuna" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optuna
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#contributing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Contributing
+      seq_inverse_weight
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#building-the-documentation" class="md-nav__link">
+  <a href="#caveat.encoding.disc_weighting.seq_max_weight" class="md-nav__link">
     <span class="md-ellipsis">
-      Building the documentation
+      seq_max_weight
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#credits" class="md-nav__link">
+  <a href="#caveat.encoding.disc_weighting.unit_weight" class="md-nav__link">
     <span class="md-ellipsis">
-      Credits
+      unit_weight
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoding.disc_weighting.unit_weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      unit_weights
     </span>
   </a>
   
@@ -3024,102 +2792,243 @@
   
 
 
-  <h1>Home</h1>
+  <h1>caveat.encoding.disc_weighting</h1>
 
-<p><img alt="caveat" src="resources/logos/title.png" /></p>
-<p>Deep learning for modelling human activity schedules.</p>
-<p><a href="https://github.com/big-ucl/caveat/actions/workflows/daily-scheduled-ci.yml"><img alt="Daily CI Build" src="https://github.com/big-ucl/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg" /></a>
-<a href="https://big-ucl.github.io/caveat"><img alt="Documentation" src="https://github.com/big-ucl/caveat/actions/workflows/pages/pages-build-deployment/badge.svg" /></a></p>
-<p>Caveat is for building and evaluating models of human activity schedules. Activity schedules are a useful representation of human behaviours, used for modelling transport, energy and epidemiological systems.</p>
-<p>Activity scheduling is required component of activity-based models. But Caveat also has application for (i) diverse upsampling, (ii) bias correction, (iii) simple forecasting.</p>
-<h2 id="research">Research<a class="headerlink" href="#research" title="Permanent link">#</a></h2>
-<p>Caveat is part of an ongoing research project. Overview of presented work can be found in the <a href="https://github.com/big-ucl/caveat/blob/main/papers/README.md">papers</a> module, including key information allowing presented results to be <strong>reproduced</strong>.</p>
-<h2 id="example-applications">Example Applications<a class="headerlink" href="#example-applications" title="Permanent link">#</a></h2>
-<p><strong>Generation</strong> for up-sampling or anonymisation an observed population of activity schedules:
-- <code>caveat run configs/example_run.yaml</code> - train a generative model using an observed population of schedules, sample a new synthetic population of schedules, and evaluate it's quality.</p>
-<p><strong>Conditional Generation</strong> for bias correction and simple forecasting or modelling from an observed population of schedules and attributes:
-- <code>caveat run configs/example_run_conditional.yaml</code> - train a model using an observed population of schedules with attributes, sample a new population conditional on new person attributes, and evaluate it's quality.</p>
-<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">#</a></h2>
-<p>Once <a href="#installation">installed</a> get started using <code>caveat --help</code>.</p>
-<p>Caveat provides various commands to facilitate rapid and reproducible experiments. Outputs are written to the (default) <code>logs</code> directory.</p>
-<h3 id="run">Run<a class="headerlink" href="#run" title="Permanent link">#</a></h3>
-<p><code>caveat run --help</code></p>
-<p>Train and evaluate a model. The run data, encoder, model and other parameters are controlled using a run config. For example:</p>
-<ul>
-<li><code>caveat run configs/example_run.yaml</code></li>
-<li><code>caveat run configs/example_run_conditional.yaml</code> (conditional generation)</li>
-</ul>
-<h3 id="batch">Batch<a class="headerlink" href="#batch" title="Permanent link">#</a></h3>
-<p><code>caveat batch --help</code></p>
-<p>Batch allows training and comparison of multiple models and/or hyper-params as per a batch config. For example:</p>
-<ul>
-<li><code>caveat batch configs/example_batch.yaml</code></li>
-<li><code>caveat batch configs/example_batch_conditional.yaml</code> (conditional generation)</li>
-</ul>
-<h3 id="nrun">Nrun<a class="headerlink" href="#nrun" title="Permanent link">#</a></h3>
-<p><code>caveat nrun --help</code></p>
-<p>Nrun is a simplified version of batch used to repeat the same model training and evaluation. This is intended to test for variance in model training and sampling. For example, run and evaluate the variance of <em>n=3</em> of the same experiment using:</p>
-<ul>
-<li><code>caveat nrun configs/example_run.yaml --n 3</code></li>
-</ul>
-<p>The config is as per a regular run config but <code>seed</code> is ignored.</p>
-<h3 id="ngen">Ngen<a class="headerlink" href="#ngen" title="Permanent link">#</a></h3>
-<p><code>caveat ngen --help</code></p>
-<p>As per nrun but only assesses variance from the sampling/generative process (not model training):</p>
-<ul>
-<li><code>caveat ngen configs/example_run.yaml --n 3</code></li>
-</ul>
-<h3 id="evaluate">Evaluate<a class="headerlink" href="#evaluate" title="Permanent link">#</a></h3>
-<p><code>caveat eval --help</code></p>
-<p>Evaluate the outputs of an existing run (or batch using <code>-b</code>):</p>
-<ul>
-<li><code>caveat eval configs/example_run.yaml</code></li>
-<li><code>caveat eval configs/example_batch_conditional.yaml -b</code> (conditional evaluation of batch)</li>
-</ul>
-<h3 id="tune">Tune<a class="headerlink" href="#tune" title="Permanent link">#</a></h3>
-<p><code>caveat tune --help</code></p>
-<p>Carry out hyper-parameter tuning using optuna. See the example config <code>config/example_tune.yaml</code>. Tuning runs are recorded in <code>optuna.db</code> and can be reviewed via <a href="https://optuna-dashboard.readthedocs.io/en/latest/getting-started.html">optuna-dashboard</a>.</p>
-<h3 id="label-joint-and-multi-model-models">Label, joint and multi-model models<a class="headerlink" href="#label-joint-and-multi-model-models" title="Permanent link">#</a></h3>
-<p>We have some fancy model variations for predicting labels from schedules, joint generation of schedules and associated labels, and multi-model runs (segmenting and training a model per label).</p>
-<p><code>caveat lrun --help</code></p>
-<p><code>caveat jrun --help</code></p>
-<p><code>caveat jbatch --help</code></p>
-<p><code>caveat mmrun --help</code></p>
-<h3 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">#</a></h3>
-<p>Caveat writes tensorboard logs to a (default) <code>logs/</code> directory. Monitor or review training progress using <code>tensorboard --logdir=logs</code>.</p>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">#</a></h2>
-<p>For help with configuration refer to our <a href="https://big-ucl.github.io/caveat/latest/configuration">documentation</a>.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">#</a></h2>
-<p>To install caveat, we recommend using the <a href="https://mamba.readthedocs.io/en/latest/index.html">mamba</a> package manager:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:big-ucl/caveat.git
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>caveat
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>caveat<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>-c<span class="w"> </span>city-modelling-lab<span class="w"> </span>-c<span class="w"> </span>pytorch<span class="w"> </span>--file<span class="w"> </span>requirements/base.txt<span class="w"> </span>--file<span class="w"> </span>requirements/dev.txt
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>mamba<span class="w"> </span>activate<span class="w"> </span>caveat
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
-</span></code></pre></div>
-<p>Caveat is in development, hence an "editable" (<code>-e</code>) install is recommended.</p>
-<h3 id="jupyter-notebooks">Jupyter Notebooks<a class="headerlink" href="#jupyter-notebooks" title="Permanent link">#</a></h3>
-<p>To run the example notebooks you will need to add a ipython kernel into the mamba environemnt: <code>ipython kernel install --user --name=caveat</code>.</p>
-<h3 id="windoes-and-cuda">Windoes and CUDA<a class="headerlink" href="#windoes-and-cuda" title="Permanent link">#</a></h3>
-<p>If you want to get a cuda enabled windows install you can try the following mamba create:
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
-</span></code></pre></div>
-Or lake a look <a href="https://pytorch.org/get-started/locally/">here</a>. Note that you need to have the right version of python.
-For more detailed instructions, see our <a href="https://big-ucl.github.io/caveat/latest/installation/">documentation</a>.</p>
-<h3 id="optuna">Optuna<a class="headerlink" href="#optuna" title="Permanent link">#</a></h3>
-<p>Optuna is also a bit finickety. Specifically it seems to be ahead of the grpcio version available on conda-forge. Breaking the mamba build. Current work around is to pip install within the mamba env <code>pip install grpcio==1.70.0</code>. To make sure that this version is used, make sure to use the dev build which includes a conda-forge pip, ensuring everything is discovered correctly.</p>
-<h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">#</a></h2>
-<p>Note that caveat is work in progress, we maintain example config files but these can be affected by breaking changes. If you find an issue with an example config please report it.</p>
-<p>See our <a href="https://big-ucl.github.io/caveat/latest/contributing/">documentation</a> for additional guides on contribution inclusing reporting problems.</p>
-<h2 id="building-the-documentation">Building the documentation<a class="headerlink" href="#building-the-documentation" title="Permanent link">#</a></h2>
-<p>If you are unable to access the online documentation, you can build the documentation locally.
-First, <a href="https://big-ucl.github.io/caveat/latest/installation/">install a development environment of caveat</a>, then deploy the documentation using <a href="https://github.com/jimporter/mike">mike</a>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mike deploy develop
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>mike serve
-</span></code></pre></div>
-<p>Then you can view the documentation in a browser at http://localhost:8000/.</p>
-<h2 id="credits">Credits<a class="headerlink" href="#credits" title="Permanent link">#</a></h2>
-<p>This package was created with <a href="https://github.com/audreyr/cookiecutter">Cookiecutter</a> and the <a href="https://github.com/arup-group/cookiecutter-pypackage">arup-group/cookiecutter-pypackage</a> project template.</p>
+<div class="doc doc-object doc-module">
+
+
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="caveat.encoding.disc_weighting.act_weight_library" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">act_weight_library</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="n">unit_weights</span><span class="p">,</span> <span class="s1">&#39;act_inverse&#39;</span><span class="p">:</span> <span class="n">act_inverse_weights</span><span class="p">}</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#caveat.encoding.disc_weighting.act_weight_library" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="caveat.encoding.disc_weighting.seq_weight_library" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">seq_weight_library</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="n">unit_weight</span><span class="p">,</span> <span class="s1">&#39;act_inverse&#39;</span><span class="p">:</span> <span class="n">seq_inverse_weight</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="n">seq_max_weight</span><span class="p">}</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#caveat.encoding.disc_weighting.seq_weight_library" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="caveat.encoding.disc_weighting.act_inverse_weights" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">act_inverse_weights</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span></code>
+
+<a href="#caveat.encoding.disc_weighting.act_inverse_weights" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="quote">
+              <summary>Source code in <code>caveat/encoding/disc_weighting.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">act_inverse_weights</span><span class="p">(</span><span class="n">sequences</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">activities</span> <span class="o">=</span> <span class="n">sequences</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">locs</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>        <span class="n">activities</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>    <span class="p">)</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">ws</span><span class="p">[</span><span class="n">locs</span><span class="p">]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="k">return</span> <span class="n">weights</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="caveat.encoding.disc_weighting.seq_inverse_weight" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">seq_inverse_weight</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span></code>
+
+<a href="#caveat.encoding.disc_weighting.seq_inverse_weight" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="quote">
+              <summary>Source code in <code>caveat/encoding/disc_weighting.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="k">def</span><span class="w"> </span><span class="nf">seq_inverse_weight</span><span class="p">(</span><span class="n">sequences</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="n">activities</span> <span class="o">=</span> <span class="n">sequences</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">locs</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>        <span class="n">activities</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="p">)</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">ws</span><span class="p">[</span><span class="n">locs</span><span class="p">]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="k">return</span> <span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="caveat.encoding.disc_weighting.seq_max_weight" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">seq_max_weight</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span></code>
+
+<a href="#caveat.encoding.disc_weighting.seq_max_weight" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="quote">
+              <summary>Source code in <code>caveat/encoding/disc_weighting.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="k">def</span><span class="w"> </span><span class="nf">seq_max_weight</span><span class="p">(</span><span class="n">sequences</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="n">activities</span> <span class="o">=</span> <span class="n">sequences</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">locs</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="n">activities</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="p">)</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="c1"># set eos weight to sos weight (ignore trailing eos)</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">ws</span><span class="p">[</span><span class="n">locs</span><span class="p">]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="k">return</span> <span class="n">weights</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="caveat.encoding.disc_weighting.unit_weight" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">unit_weight</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span></code>
+
+<a href="#caveat.encoding.disc_weighting.unit_weight" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="quote">
+              <summary>Source code in <code>caveat/encoding/disc_weighting.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">def</span><span class="w"> </span><span class="nf">unit_weight</span><span class="p">(</span><span class="n">sequences</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="n">B</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="caveat.encoding.disc_weighting.unit_weights" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">unit_weights</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span></code>
+
+<a href="#caveat.encoding.disc_weighting.unit_weights" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="quote">
+              <summary>Source code in <code>caveat/encoding/disc_weighting.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">unit_weights</span><span class="p">(</span><span class="n">sequences</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a>    <span class="n">B</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="k">return</span> <span class="n">weights</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
@@ -3167,10 +3076,10 @@ First, <a href="https://big-ucl.github.io/caveat/latest/installation/">install a
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.indexes"], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../../../..", "features": ["navigation.indexes"], "search": "../../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.dd8806f2.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.dd8806f2.min.js"></script>
       
     
   </body>

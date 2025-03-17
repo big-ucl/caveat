@@ -1100,6 +1100,8 @@
       
         
       
+        
+      
     
     
     
@@ -1140,6 +1142,69 @@
   
   <span class="md-ellipsis">
     caveat.encoding.base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/cont_weighting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.cont_weighting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/continuous/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.continuous
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/disc_weighting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.disc_weighting
   </span>
   
 
@@ -1224,48 +1289,6 @@
   
   <span class="md-ellipsis">
     caveat.encoding.seq2seq
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../encoding/seq_weighting/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    caveat.encoding.seq_weighting
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../encoding/sequence/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    caveat.encoding.sequence
   </span>
   
 
@@ -3358,7 +3381,7 @@
 
 
 <h3 id="caveat.models.discrete.cond_discrete_conv.CondDiscCNN2D.loss_function" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">loss_function</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">loss_function</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
 <a href="#caveat.models.discrete.cond_discrete_conv.CondDiscCNN2D.loss_function" class="headerlink" title="Permanent link">#</a></h3>
 
@@ -3381,7 +3404,7 @@
 <span class="normal"><a href="#__codelineno-0-80">80</a></span>
 <span class="normal"><a href="#__codelineno-0-81">81</a></span>
 <span class="normal"><a href="#__codelineno-0-82">82</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="k">def</span><span class="w"> </span><span class="nf">loss_function</span><span class="p">(</span>
-</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
 </span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function for discretized encoding [N, L].&quot;&quot;&quot;</span>
 </span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="c1"># activity loss</span>

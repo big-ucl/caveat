@@ -1100,6 +1100,8 @@
       
         
       
+        
+      
     
     
     
@@ -1140,6 +1142,69 @@
   
   <span class="md-ellipsis">
     caveat.encoding.base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/cont_weighting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.cont_weighting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/continuous/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.continuous
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../encoding/disc_weighting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.disc_weighting
   </span>
   
 
@@ -1224,48 +1289,6 @@
   
   <span class="md-ellipsis">
     caveat.encoding.seq2seq
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../encoding/seq_weighting/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    caveat.encoding.seq_weighting
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../encoding/sequence/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    caveat.encoding.sequence
   </span>
   
 
@@ -3632,7 +3655,7 @@
 </span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="n">weights</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
 </span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 </span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_loss_no_kld</span><span class="p">(</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">continuous_loss_no_kld</span><span class="p">(</span>
 </span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>        <span class="n">log_probs</span><span class="o">=</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
 </span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>

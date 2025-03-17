@@ -1,0 +1,1 @@
+::: caveat.encoding.cont_weighting
