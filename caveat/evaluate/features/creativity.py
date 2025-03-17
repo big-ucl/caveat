@@ -1,6 +1,19 @@
 from pandas import DataFrame
 
 
+def hash_schedule(schedule: DataFrame) -> list[str]:
+    """Hash a schedule. We first create strings of combined activities and durations.
+
+    Args:
+        schedule (DataFrame): Input schedule.
+
+    Returns:
+        str: hashed schedule.
+    """
+    act_hash = schedule.act.astype(str) + schedule.duration.astype(str)
+    return "".join(act_hash)
+
+
 def hash_population(population: DataFrame) -> set[str]:
     """Hash a population of sequences. We first create strings of combined activities and durations.
     Then create a python set of these strings. This will remove duplicates.

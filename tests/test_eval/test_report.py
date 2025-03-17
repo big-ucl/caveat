@@ -83,7 +83,7 @@ def test_score_features_with_default():
     assert result.equals(expected)
 
 
-def test_report():
+def test_report_same():
     observed = DataFrame(
         [
             {"pid": 0, "act": "home", "start": 0, "end": 6, "duration": 6},
@@ -100,6 +100,28 @@ def test_report():
             {"pid": 0, "act": "home", "start": 14, "end": 24, "duration": 10},
             {"pid": 1, "act": "home", "start": 0, "end": 10, "duration": 10},
             {"pid": 1, "act": "work", "start": 10, "end": 24, "duration": 14},
+        ]
+    )
+    evaluate({"y": y}, observed, None)
+
+
+def test_report():
+    observed = DataFrame(
+        [
+            {"pid": 0, "act": "home", "start": 0, "end": 6, "duration": 6},
+            {"pid": 0, "act": "work", "start": 6, "end": 14, "duration": 8},
+            {"pid": 0, "act": "home", "start": 14, "end": 24, "duration": 10},
+            {"pid": 1, "act": "home", "start": 0, "end": 10, "duration": 10},
+            {"pid": 1, "act": "work", "start": 10, "end": 24, "duration": 14},
+        ]
+    )
+    y = DataFrame(
+        [
+            {"pid": 0, "act": "home", "start": 0, "end": 6, "duration": 6},
+            {"pid": 0, "act": "shop", "start": 6, "end": 14, "duration": 8},
+            {"pid": 0, "act": "home", "start": 14, "end": 24, "duration": 10},
+            {"pid": 1, "act": "home", "start": 0, "end": 12, "duration": 12},
+            {"pid": 1, "act": "work", "start": 12, "end": 24, "duration": 12},
         ]
     )
     evaluate({"y": y}, observed, None)

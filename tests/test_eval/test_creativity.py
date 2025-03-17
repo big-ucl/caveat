@@ -4,9 +4,21 @@ from caveat.evaluate.features.creativity import (
     conservatism,
     diversity,
     hash_population,
+    hash_schedule,
     homogeneity,
     novelty,
 )
+
+
+def test_hash_schedule():
+    schedule = DataFrame(
+        [
+            {"pid": 0, "act": "home", "duration": 10},
+            {"pid": 0, "act": "work", "duration": 10},
+            {"pid": 0, "act": "home", "duration": 10},
+        ]
+    )
+    assert hash_schedule(schedule) == "home10work10home10"
 
 
 def test_hash_population():

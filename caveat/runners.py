@@ -576,9 +576,9 @@ def batch_eval_command(
         version = sorted([d for d in log_dir.iterdir() if d.is_dir()])[-1]
         outputs_dir = log_dir / version.name
         schedules_path = outputs_dir / schedules_name
-        synthetic_schedules_all[log_dir.name] = (
-            data.load_and_validate_schedules(schedules_path)
-        )
+        synthetic_schedules_all[
+            log_dir.name
+        ] = data.load_and_validate_schedules(schedules_path)
         print(
             f"> Loaded {synthetic_schedules_all[log_dir.name].pid.nunique()} synthetic schedules from {schedules_path}"
         )
@@ -671,7 +671,6 @@ def encode_schedules(
     label_weights: Optional[Tuple[Tensor, Tensor]],
     config: dict,
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule]:
-
     # encode schedules
     schedule_encoder = build_encoder(config)
     encoded_schedules = schedule_encoder.encode(
@@ -868,15 +867,17 @@ def generate(
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
         )
-        synthetic_attributes, synthetic_schedules, zs = (
-            generate_from_attributes(
-                trainer,
-                attributes=population,
-                batch_size=batch_size,
-                latent_dims=latent_dims,
-                seed=seed,
-                ckpt_path=ckpt_path,
-            )
+        (
+            synthetic_attributes,
+            synthetic_schedules,
+            zs,
+        ) = generate_from_attributes(
+            trainer,
+            attributes=population,
+            batch_size=batch_size,
+            latent_dims=latent_dims,
+            seed=seed,
+            ckpt_path=ckpt_path,
         )
         synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
         synthetic_attributes.to_csv(write_dir / "synthetic_attributes.csv")
@@ -964,7 +965,7 @@ def evaluate_synthetics(
         else:
             eval_attributes = default_eval_attributes
 
-        sub_reports = evaluate.evaluate_subsampled(
+        sub_reports = evaluate.subsample_and_evaluate(
             synthetic_schedules=synthetic_schedules,
             synthetic_attributes=synthetic_attributes,
             target_schedules=eval_schedules,

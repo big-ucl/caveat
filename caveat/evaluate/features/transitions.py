@@ -48,6 +48,33 @@ def transition_3s_by_act(
     return weighted_features(transitions)
 
 
+def transition_4s_by_act(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    transitions = population.reset_index()
+    transitions = transitions.set_index(["index", "pid"])
+    transitions.act = transitions.act.astype(str)
+    transitions = (
+        transitions.act
+        + ">"
+        + transitions.act.shift(-1)
+        + ">"
+        + transitions.act.shift(-2)
+        + ">"
+        + transitions.act.shift(-3)
+    )
+    transitions = transitions.drop(transitions.groupby("pid").tail(3).index)
+    transitions = (
+        transitions.groupby("pid")
+        .value_counts()
+        .unstack()
+        .fillna(0)
+        .astype(int)
+        .to_dict(orient="list")
+    )
+    return weighted_features(transitions)
+
+
 def tour(acts: Series) -> str:
     """
     Extracts the tour from the given Series of activities.
