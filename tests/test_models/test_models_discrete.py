@@ -13,62 +13,76 @@ from caveat.models.discrete.vae_discrete_xattention import VAEDiscXTrans
 
 def test_discrete_auto_lstm_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
+    weights = torch.randn(3, 144)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     x_max = x.argmax(dim=-1).squeeze()
     labels = torch.randn(3, 10)  # (batch, channels)
     model = AutoDiscLSTM(
         in_shape=x_max[0].shape,
         encodings=5,
-        encoding_weights=torch.ones((5)),
+        encoding_weights=None,
         labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob, _, _, _ = model(x_max, labels=labels)
     assert log_prob.shape == torch.Size([3, 144, 5])
-    losses = model.loss_function(log_probs=log_prob, target=x_max, weights=None)
+    losses = model.loss_function(
+        log_probs=log_prob, target=x_max, weights=(weights, seq_weights)
+    )
     assert "loss" in losses
 
 
 def test_discrete_conditional_conv_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
+    weights = torch.randn(3, 144)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     labels = torch.randn(3, 10)  # (batch, channels)
     model = CondDiscCNN2D(
         in_shape=x_max[0].shape,
         encodings=5,
-        encoding_weights=torch.ones((5)),
+        encoding_weights=None,
         labels_size=10,
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_max, labels=labels)
     assert log_prob_y.shape == x.shape
-    losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
+    losses = model.loss_function(
+        log_probs=log_prob_y, target=x_max, weights=(weights, seq_weights)
+    )
     assert "loss" in losses
 
 
 def test_discrete_conditional_lstm_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
+    weights = torch.randn(3, 144)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     labels = torch.randn(3, 10)  # (batch, channels)
     model = CondDiscLSTM(
         in_shape=x_max[0].shape,
         encodings=5,
-        encoding_weights=torch.ones((5)),
+        encoding_weights=None,
         labels_size=10,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, _, _, _ = model(x_max, labels=labels)
     assert log_prob_y.shape == x.shape
-    losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
+    losses = model.loss_function(
+        log_probs=log_prob_y, target=x_max, weights=(weights, seq_weights)
+    )
     assert "loss" in losses
 
 
-def test_discrete_vae_conv_forward():
+def test_discrete_vae_conv2d_forward():
     x = torch.randn(3, 1, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
+    weights = torch.randn(3, 144)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     model = VAEDiscCNN2D(
         in_shape=x_max[0].shape,
         encodings=5,
-        encoding_weights=torch.ones((5)),
+        encoding_weights=None,
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_max)
@@ -77,7 +91,11 @@ def test_discrete_vae_conv_forward():
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, weights=None
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_max,
+        weights=(weights, seq_weights),
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -101,10 +119,12 @@ def test_discrete_vae_conv1d_forward(
 ):
     x = torch.randn(3, 1, length, encodings)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
+    weights = torch.randn(3, length)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     model = VAEDiscCNN1D(
         in_shape=x_max[0].shape,
         encodings=encodings,
-        encoding_weights=torch.ones((encodings)),
+        encoding_weights=None,
         **{
             "hidden_layers": [16, 8],
             "latent_dim": 2,
@@ -120,7 +140,11 @@ def test_discrete_vae_conv1d_forward(
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_max,
+        weights=(weights, seq_weights),
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -131,10 +155,12 @@ def test_discrete_vae_fc_forward():
     encodings = 10
     x = torch.randn(3, 1, length, encodings)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
+    weights = torch.randn(3, length)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     model = VAEDiscFC(
         in_shape=x_max[0].shape,
         encodings=encodings,
-        encoding_weights=torch.ones((encodings)),
+        encoding_weights=None,
         **{"hidden_layers": [16, 8], "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_max)
@@ -143,7 +169,11 @@ def test_discrete_vae_fc_forward():
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_max,
+        weights=(weights, seq_weights),
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -152,10 +182,12 @@ def test_discrete_vae_fc_forward():
 def test_discrete_vae_lstm_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
+    weights = torch.randn(3, 144)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     model = VAEDiscLSTM(
         in_shape=x_max[0].shape,
         encodings=5,
-        encoding_weights=torch.ones((5)),
+        encoding_weights=None,
         **{"hidden_n": 1, "hidden_size": 2, "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, mu, log_var, z = model(x_max)
@@ -164,7 +196,11 @@ def test_discrete_vae_lstm_forward():
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_max,
+        weights=(weights, seq_weights),
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -173,10 +209,12 @@ def test_discrete_vae_lstm_forward():
 def test_discrete_xtransformer_forward():
     x = torch.randn(3, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
+    weights = torch.randn(3, 144)  # (batch, steps)
+    seq_weights = torch.randn(3, 1)  # (batch, 1)
     model = VAEDiscXTrans(
         in_shape=x_max[0].shape,
         encodings=5,
-        encoding_weights=torch.ones((5)),
+        encoding_weights=None,
         **{
             "hidden_n": 2,
             "hidden_size": 2,
@@ -191,7 +229,11 @@ def test_discrete_xtransformer_forward():
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_max,
+        weights=(weights, seq_weights),
     )
     assert "loss" in losses
     assert "recon_loss" in losses

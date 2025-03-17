@@ -119,7 +119,7 @@ def run_command(
         # evaluate synthetic schedules
         evaluate_synthetics(
             synthetic_schedules={name: synthetic_schedules},
-            synthetic_attributes={name: synthetic_attributes},
+            synthetic_labels={name: synthetic_attributes},
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
             write_path=Path(logger.log_dir),
@@ -242,7 +242,7 @@ def batch_command(
         # evaluate synthetic schedules
         evaluate_synthetics(
             synthetic_schedules=synthetic_schedules,
-            synthetic_attributes=synthetic_attributes_all,
+            synthetic_labels=synthetic_attributes_all,
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
             write_path=logger.log_dir,
@@ -350,7 +350,7 @@ def nrun_command(
     if gen:
         evaluate_synthetics(
             synthetic_schedules=synthetic_schedules,
-            synthetic_attributes=all_synthetic_attributes,
+            synthetic_labels=all_synthetic_attributes,
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
             write_path=log_dir,
@@ -447,7 +447,7 @@ def ngen_command(
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
-        synthetic_attributes=all_synthetic_attributes,
+        synthetic_labels=all_synthetic_attributes,
         default_eval_schedules=input_schedules,
         default_eval_attributes=input_attributes,
         write_path=log_dir,
@@ -510,7 +510,7 @@ def eval_command(
     # evaluate synthetic schedules
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
-        synthetic_attributes=synthetic_labels,
+        synthetic_labels=synthetic_labels,
         default_eval_schedules=input_schedules,
         default_eval_attributes=input_attributes,
         write_path=log_dir,
@@ -562,23 +562,26 @@ def batch_eval_command(
         combined_config.update(config)
 
         # load data
-        input_schedules, input_attributes, synthetic_labels = load_data(
+        input_schedules, input_labels, synthetic_labels = load_data(
             combined_config, verbose=verbose
         )
         print(
             f"> Loaded {input_schedules.pid.nunique()} target schedules for evaluation"
         )
-        print(
-            f"> Loaded {input_attributes.pid.nunique()} target attributes for evaluation"
-        )
+        if input_labels is not None:
+            print(
+                f"> Loaded {input_labels.pid.nunique()} target labels for evaluation"
+            )
+        else:
+            print("No target labels provided.")
 
         # get most recent version
         version = sorted([d for d in log_dir.iterdir() if d.is_dir()])[-1]
         outputs_dir = log_dir / version.name
         schedules_path = outputs_dir / schedules_name
-        synthetic_schedules_all[log_dir.name] = (
-            data.load_and_validate_schedules(schedules_path)
-        )
+        synthetic_schedules_all[
+            log_dir.name
+        ] = data.load_and_validate_schedules(schedules_path)
         print(
             f"> Loaded {synthetic_schedules_all[log_dir.name].pid.nunique()} synthetic schedules from {schedules_path}"
         )
@@ -602,9 +605,9 @@ def batch_eval_command(
     # evaluate synthetic schedules
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules_all,
-        synthetic_attributes=synthetic_labels_all,
+        synthetic_labels=synthetic_labels_all,
         default_eval_schedules=input_schedules,
-        default_eval_attributes=input_attributes,
+        default_eval_attributes=input_labels,
         write_path=batch_dir,
         eval_params=global_config.get("evaluation_params", {}),
         stats=stats,
@@ -671,7 +674,6 @@ def encode_schedules(
     label_weights: Optional[Tuple[Tensor, Tensor]],
     config: dict,
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule]:
-
     # encode schedules
     schedule_encoder = build_encoder(config)
     encoded_schedules = schedule_encoder.encode(
@@ -752,7 +754,12 @@ def train(
             encoded_schedules, config, test, gen, label_kwargs
         )
     trainer = build_trainer(logger, config)
+    time = datetime.datetime.now()
     trainer.fit(experiment, datamodule=data_loader)
+    duration = datetime.datetime.now() - time
+    print(
+        f">>> Training took {duration.seconds + duration.microseconds / 1e6} seconds"
+    )
     return trainer
 
 
@@ -868,15 +875,17 @@ def generate(
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
         )
-        synthetic_attributes, synthetic_schedules, zs = (
-            generate_from_attributes(
-                trainer,
-                attributes=population,
-                batch_size=batch_size,
-                latent_dims=latent_dims,
-                seed=seed,
-                ckpt_path=ckpt_path,
-            )
+        (
+            synthetic_attributes,
+            synthetic_schedules,
+            zs,
+        ) = generate_from_attributes(
+            trainer,
+            attributes=population,
+            batch_size=batch_size,
+            latent_dims=latent_dims,
+            seed=seed,
+            ckpt_path=ckpt_path,
         )
         synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
         synthetic_attributes.to_csv(write_dir / "synthetic_attributes.csv")
@@ -900,7 +909,12 @@ def generate_n(
 ) -> torch.Tensor:
     torch.manual_seed(seed)
     dataloaders = data.build_latent_dataloader(n, latent_dims, batch_size)
+    time = datetime.datetime.now()
     synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
+    duration = datetime.datetime.now() - time
+    print(
+        f">>> Generation took {duration.seconds + duration.microseconds / 1e6} seconds"
+    )
     _, synthetic_schedules, zs = zip(*synth)
     synthetic_schedules = torch.concat(synthetic_schedules)
     zs = torch.concat(zs)
@@ -919,7 +933,13 @@ def generate_from_attributes(
     dataloaders = data.build_latent_conditional_dataloader(
         attributes, latent_dims, batch_size
     )
+    time = datetime.datetime.now()
     synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
+    duration = datetime.datetime.now() - time
+    print(
+        f">>> Generation took {duration.seconds + duration.microseconds / 1e6} seconds"
+    )
+
     synthetic_attributes, synthetic_schedules, zs = zip(*synth)
     synthetic_attributes = torch.concat(synthetic_attributes)
     synthetic_schedules = torch.concat(synthetic_schedules)
@@ -929,7 +949,7 @@ def generate_from_attributes(
 
 def evaluate_synthetics(
     synthetic_schedules: dict[str, DataFrame],
-    synthetic_attributes: dict[str, DataFrame],
+    synthetic_labels: dict[str, DataFrame],
     default_eval_schedules: DataFrame,
     default_eval_attributes: DataFrame,
     write_path: Path,
@@ -952,7 +972,9 @@ def evaluate_synthetics(
 
     split_on = eval_params.get("split_on", [])
     if split_on:
-        print(f"Conditional Evaluation using: {split_on}")
+        print(
+            f"Conditional Evaluation using: {split_on}, writing to {write_path}"
+        )
         eval_attributes_path = eval_params.get("attributes_path", None)
         if eval_attributes_path:
             eval_attributes = data.load_and_validate_attributes(
@@ -963,10 +985,9 @@ def evaluate_synthetics(
             )
         else:
             eval_attributes = default_eval_attributes
-
         sub_reports = evaluate.evaluate_subsampled(
             synthetic_schedules=synthetic_schedules,
-            synthetic_attributes=synthetic_attributes,
+            synthetic_attributes=synthetic_labels,
             target_schedules=eval_schedules,
             target_attributes=eval_attributes,
             split_on=split_on,
@@ -980,7 +1001,7 @@ def evaluate_synthetics(
             suffix="_subs",
             ranking=len(synthetic_schedules) > 1,
         )
-    print("Evaluating schedules")
+    print(f"Evaluating schedules, writing results to {write_path}.")
     reports = evaluate.evaluate(
         target_schedules=eval_schedules,
         synthetic_schedules=synthetic_schedules,

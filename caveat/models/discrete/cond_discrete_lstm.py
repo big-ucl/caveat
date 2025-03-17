@@ -56,7 +56,7 @@ class CondDiscLSTM(Base):
         return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
-        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
+        self, log_probs: Tensor, target: Tensor, weights: Tensor, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss

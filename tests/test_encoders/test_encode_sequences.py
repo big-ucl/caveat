@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import torch
 
-from caveat.encoding import sequence as seq
+from caveat.encoding import continuous as seq
 
 
 @pytest.mark.parametrize(

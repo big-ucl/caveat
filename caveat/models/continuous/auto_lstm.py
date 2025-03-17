@@ -54,7 +54,7 @@ class AutoContLSTM(Base):
         weights: Tuple[Tensor, Tensor],
         **kwargs,
     ) -> dict:
-        return self.seq_loss_no_kld(
+        return self.continuous_loss_no_kld(
             log_probs=log_probs, target=target, weights=weights, **kwargs
         )
 
