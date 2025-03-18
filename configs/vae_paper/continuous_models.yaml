@@ -28,51 +28,6 @@ global:
     trim_eos: True
 
 
-fc_kupup:
-  experiment_params:
-    LR: 0.0001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.05
-    duration_loss_weight: 200
-  model_params:
-    name: "VAEContFC"
-    latent_dim: 6
-    hidden_n: 4
-    hidden_size: 128
-    dropout: 0.1
-
-cnn1d_kupup:
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.05
-    duration_loss_weight: 200
-  model_params:
-    name: "VAEContCNN1D"
-    latent_dim: 6
-    hidden_n: 5
-    hidden_size: 128
-    stride: 2
-    kernel_size: 2
-    padding: 1
-    dropout: 0.1
-
-rnn_kupup:
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.05
-    duration_loss_weight: 200
-  model_params:
-    name: "VAEContLSTM"
-    latent_dim: 6
-    hidden_n: 4
-    hidden_size: 256
-    dropout: 0.1
-
 fc_kup:
   experiment_params:
     LR: 0.0001
@@ -93,51 +48,6 @@ cnn1d_kup:
     weight_decay: 0.02
     scheduler_gamma: 0.975
     kld_weight: 0.01
-    duration_loss_weight: 200
-  model_params:
-    name: "VAEContCNN1D"
-    latent_dim: 6
-    hidden_n: 5
-    hidden_size: 128
-    stride: 2
-    kernel_size: 2
-    padding: 1
-    dropout: 0.1
-
-rnn_kup:
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 200
-  model_params:
-    name: "VAEContLSTM"
-    latent_dim: 6
-    hidden_n: 4
-    hidden_size: 256
-    dropout: 0.1
-
-fc:
-  experiment_params:
-    LR: 0.0001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.005
-    duration_loss_weight: 200
-  model_params:
-    name: "VAEContFC"
-    latent_dim: 6
-    hidden_n: 4
-    hidden_size: 128
-    dropout: 0.1
-
-cnn1d:
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.005
     duration_loss_weight: 200
   model_params:
     name: "VAEContCNN1D"

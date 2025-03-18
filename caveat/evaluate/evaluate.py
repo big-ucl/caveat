@@ -236,39 +236,30 @@ def describe(
     descriptions: DataFrame, distances: DataFrame
 ) -> dict[str, DataFrame]:
     # features
-    features_descriptions = (
-        descriptions.drop("unit", axis=1)
-        .groupby(["domain", "feature"])
-        .apply(weighted_av)
-    )
-    features_descriptions.loc[("sample quality", "invalid")] = descriptions.loc[
-        ("sample quality", "invalid", "all")
+    remove_features = [
+        ("sample quality", "not home based", "starts"),
+        ("sample quality", "not home based", "ends"),
+        ("sample quality", "consecutive", "home"),
+        ("sample quality", "consecutive", "work"),
+        ("sample quality", "consecutive", "education"),
     ]
-    features_descriptions.loc[
-        ("sample quality", "not home based")
-    ] = descriptions.loc[("sample quality", "not home based", "all")]
-    features_descriptions.loc[
-        ("sample quality", "consecutive")
-    ] = descriptions.loc[("sample quality", "consecutive", "all")]
+
+    features_descriptions = descriptions.drop("unit", axis=1)
+    for f in remove_features:
+        features_descriptions = features_descriptions.drop(f, axis=0)
+    features_descriptions = features_descriptions.groupby(
+        ["domain", "feature"]
+    ).apply(weighted_av)
     features_descriptions["unit"] = (
         descriptions["unit"].groupby(["domain", "feature"]).first()
     )
 
-    features_distances = (
-        distances.drop("unit", axis=1)
-        .groupby(["domain", "feature"])
-        .apply(distance_weighted_av)
-    )
-    features_distances.loc[("sample quality", "all")] = distances.loc[
-        ("sample quality", "invalid", "all")
-    ]
-    features_distances.loc[
-        ("sample quality", "not home based")
-    ] = descriptions.loc[("sample quality", "not home based", "all")]
-    features_distances.loc[
-        ("sample quality", "consecutive")
-    ] = descriptions.loc[("sample quality", "consecutive", "all")]
-
+    features_distances = descriptions.drop("unit", axis=1)
+    for f in remove_features:
+        features_distances = features_distances.drop(f, axis=0)
+    features_distances = features_distances.groupby(
+        ["domain", "feature"]
+    ).apply(weighted_av)
     features_distances["unit"] = (
         distances["unit"].groupby(["domain", "feature"]).first()
     )

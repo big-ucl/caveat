@@ -148,6 +148,10 @@ def test_describe_structural():
     assert len(frames["domain_descriptions"]) == 1
     assert len(frames["feature_distances"]) == 3
     assert len(frames["domain_distances"]) == 1
+    assert len(frames["feature_descriptions"].columns) == 3
+    assert len(frames["feature_distances"].columns) == 3
+    assert len(frames["domain_descriptions"].columns) == 2
+    assert len(frames["domain_distances"].columns) == 2
 
 
 def test_describe_splits_structural():
@@ -186,3 +190,7 @@ def test_describe_splits_structural():
     assert len(frames["domain_descriptions"]) == 1
     assert len(frames["feature_distances"]) == 6
     assert len(frames["domain_distances"]) == 1
+    assert len(frames["feature_descriptions"].columns) == 3
+    assert len(frames["feature_distances"].columns) == 3
+    assert len(frames["domain_descriptions"].columns) == 2
+    assert len(frames["domain_distances"].columns) == 2
