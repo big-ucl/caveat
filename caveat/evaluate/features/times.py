@@ -33,8 +33,8 @@ def durations_by_act(
     )
 
 
-def zip_columns(group) -> ndarray:
-    return array([(s, d) for s, d in zip(group.start, group.duration)])
+def zip_columns(group, a: str = "start", b: str = "duration") -> ndarray:
+    return array([(s, d) for s, d in zip(group[a], group[b])])
 
 
 def start_durations_by_act(population: DataFrame) -> dict[str, ndarray]:
@@ -43,10 +43,26 @@ def start_durations_by_act(population: DataFrame) -> dict[str, ndarray]:
 
 
 def start_and_duration_by_act_bins(
-    population: DataFrame, bin_size: int = 15
+    population: DataFrame, bin_size: int = 15, factor: int = 1440
 ) -> dict[str, tuple[ndarray, ndarray]]:
     features = start_durations_by_act(population)
-    return weighted_features(features, bin_size=bin_size, factor=1440)
+    return weighted_features(features, bin_size=bin_size, factor=factor)
+
+
+def joint_durations_by_act_bins(
+    population: DataFrame, bin_size: int = 15, factor: int = 1440
+) -> dict[str, tuple[ndarray, ndarray]]:
+    transitions = population.reset_index()
+    transitions = transitions.set_index(["index", "pid"])
+    transitions.act = transitions.act.astype(str)
+    transitions["shifted"] = transitions.duration.shift(-1)
+    transitions = transitions.drop(transitions.groupby("pid").tail(1).index)
+    transitions = (
+        transitions.groupby("act", observed=False)
+        .apply(zip_columns, a="duration", b="shifted")
+        .to_dict()
+    )
+    return weighted_features(transitions, bin_size=bin_size, factor=factor)
 
 
 def start_times_by_act_plan_seq(

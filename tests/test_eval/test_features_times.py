@@ -163,3 +163,43 @@ def test_durations_by_act_plan_enum():
         "home1": (array([6]) / 1440, array([1])),
     }
     assert equals(times.durations_by_act_plan_enum(population), expected)
+
+
+def test_joint_durations_by_act():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home", "duration": 0},
+            {"pid": 0, "act": "work", "duration": 2},
+            {"pid": 0, "act": "home", "duration": 6},
+            {"pid": 1, "act": "home", "duration": 0},
+            {"pid": 1, "act": "work", "duration": 1},
+        ]
+    )
+    expected = {
+        "home": (array([[0.5, 1.5], [0.5, 2.5]]), array([1, 1])),
+        "work": (array([[2.5, 6.5]]), array([1])),
+    }
+    assert equals(
+        times.joint_durations_by_act_bins(population, bin_size=1, factor=1),
+        expected,
+    )
+
+
+def test_joint_durations_by_act_binned():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home", "duration": 0},
+            {"pid": 0, "act": "work", "duration": 2},
+            {"pid": 0, "act": "home", "duration": 6},
+            {"pid": 1, "act": "home", "duration": 0},
+            {"pid": 1, "act": "work", "duration": 1},
+        ]
+    )
+    expected = {
+        "home": (array([[2, 2]]), array([2])),
+        "work": (array([[2, 6]]), array([1])),
+    }
+    assert equals(
+        times.joint_durations_by_act_bins(population, bin_size=4, factor=1),
+        expected,
+    )

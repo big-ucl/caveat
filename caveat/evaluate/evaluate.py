@@ -90,12 +90,12 @@ time_jobs = [
         ("average", average),
         ("EMD", emd),
     ),
-    (
-        ("end times", times.end_times_by_act_plan_enum),
-        (feature_weight),
-        ("average", average),
-        ("EMD", emd),
-    ),
+    # (
+    #     ("end times", times.end_times_by_act_plan_enum),
+    #     (feature_weight),
+    #     ("average", average),
+    #     ("EMD", emd),
+    # ),
     (
         ("durations", times.durations_by_act_plan_enum),
         (feature_weight),
@@ -104,6 +104,12 @@ time_jobs = [
     ),
     (
         ("start-durations", times.start_and_duration_by_act_bins),
+        (feature_weight),
+        ("average", average2d),
+        ("EMD", emd),
+    ),
+    (
+        ("joint-durations", times.joint_durations_by_act_bins),
         (feature_weight),
         ("average", average2d),
         ("EMD", emd),
