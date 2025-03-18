@@ -11,9 +11,11 @@ def structural_eval(
 ) -> dict[str, tuple[ndarray, ndarray]]:
     index = MultiIndex.from_tuples(
         [
-            ("sample quality", "all", "all"),
+            ("sample quality", "invalid", "all"),
+            ("sample quality", "not home based", "all"),
             ("sample quality", "not home based", "starts"),
             ("sample quality", "not home based", "ends"),
+            ("sample quality", "consecutive", "all"),
             ("sample quality", "consecutive", "home"),
             ("sample quality", "consecutive", "work"),
             ("sample quality", "consecutive", "education"),
@@ -22,14 +24,16 @@ def structural_eval(
     )
 
     if population.empty:
-        print(f"Warning: {name} has no novel schedules for quality evaluation")
-        weights = Series([0] * 6, index=index, name=f"{name}__weight")
-        metrics = Series([0] * 6, index=index, name=name)
+        print(f"Warning: {name} has no novel schedules for quality evaluation.")
+        weights = Series([0] * len(index), index=index, name=f"{name}__weight")
+        metrics = Series([0] * len(index), index=index, name=name)
         return weights, metrics
 
     n = population.pid.nunique()
 
-    valid = 0
+    invalid = 0
+    not_home_based = 0
+    consecutives = 0
     not_start_at_home = 0
     not_end_at_home = 0
     consecutive_home = 0
@@ -37,34 +41,39 @@ def structural_eval(
     consecutive_education = 0
 
     for _, schedule in population.groupby("pid"):
-        not_start_at_home += schedule.act.iloc[0] != "home"
-        not_end_at_home += schedule.act.iloc[-1] != "home"
-        consecutive_home += contains_consecutive(schedule, "home")
-        consecutive_work += contains_consecutive(schedule, "work")
-        consecutive_education += contains_consecutive(schedule, "education")
-        valid += any(
-            [
-                not_start_at_home,
-                not_end_at_home,
-                consecutive_home,
-                consecutive_work,
-                consecutive_education,
-            ]
-        )
+        nsh = schedule.act.iloc[0] != "home"
+        neh = schedule.act.iloc[-1] != "home"
+        nhb = any([nsh, neh])
 
-    weights = Series([n] * 6, index=index, name=f"{name}__weight")
+        ch = contains_consecutive(schedule, "home")
+        cw = contains_consecutive(schedule, "work")
+        ce = contains_consecutive(schedule, "education")
+        ccs = any([ch, cw, ce])
+
+        invalid += any([nhb, ccs])
+        not_home_based += nhb
+        not_start_at_home += nsh
+        not_end_at_home += neh
+        consecutives += ccs
+        consecutive_home += ch
+        consecutive_work += cw
+        consecutive_education += ce
+
     metrics = Series(
         [
+            invalid / n,
+            not_home_based / n,
             not_start_at_home / n,
             not_end_at_home / n,
+            consecutives / n,
             consecutive_home / n,
             consecutive_work / n,
             consecutive_education / n,
-            valid / n,
         ],
         index=index,
         name=name,
     )
+    weights = Series([n] * len(index), index=index, name=f"{name}__weight")
 
     return weights, metrics
 

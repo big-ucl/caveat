@@ -236,26 +236,30 @@ def describe(
     descriptions: DataFrame, distances: DataFrame
 ) -> dict[str, DataFrame]:
     # features
-    features_descriptions = (
-        descriptions.drop("unit", axis=1)
-        .groupby(["domain", "feature"])
-        .apply(weighted_av)
-    )
-    features_descriptions.loc[("sample quality", "all")] = descriptions.loc[
-        ("sample quality", "all", "all")
+    remove_features = [
+        ("sample quality", "not home based", "starts"),
+        ("sample quality", "not home based", "ends"),
+        ("sample quality", "consecutive", "home"),
+        ("sample quality", "consecutive", "work"),
+        ("sample quality", "consecutive", "education"),
     ]
+
+    features_descriptions = descriptions.drop("unit", axis=1)
+    for f in remove_features:
+        features_descriptions = features_descriptions.drop(f, axis=0)
+    features_descriptions = features_descriptions.groupby(
+        ["domain", "feature"]
+    ).apply(weighted_av)
     features_descriptions["unit"] = (
         descriptions["unit"].groupby(["domain", "feature"]).first()
     )
 
-    features_distances = (
-        distances.drop("unit", axis=1)
-        .groupby(["domain", "feature"])
-        .apply(distance_weighted_av)
-    )
-    features_distances.loc[("sample quality", "all")] = distances.loc[
-        ("sample quality", "all", "all")
-    ]
+    features_distances = descriptions.drop("unit", axis=1)
+    for f in remove_features:
+        features_distances = features_distances.drop(f, axis=0)
+    features_distances = features_distances.groupby(
+        ["domain", "feature"]
+    ).apply(weighted_av)
     features_distances["unit"] = (
         distances["unit"].groupby(["domain", "feature"]).first()
     )
@@ -264,9 +268,15 @@ def describe(
     domain_descriptions = (
         features_descriptions.drop("unit", axis=1).groupby("domain").mean()
     )
+    domain_descriptions.loc[("sample quality")] = distances.loc[
+        ("sample quality", "invalid", "all")
+    ]
     domain_distances = (
         features_distances.drop("unit", axis=1).groupby("domain").mean()
     )
+    domain_distances.loc[("sample quality")] = distances.loc[
+        ("sample quality", "invalid", "all")
+    ]
 
     frames = {
         "descriptions": descriptions,
@@ -283,39 +293,53 @@ def describe_splits(
     descriptions: DataFrame, distances: DataFrame
 ) -> dict[str, DataFrame]:
     # features
-    features_descriptions = (
-        descriptions.drop("unit", axis=1)
-        .groupby(["domain", "feature", "sub_pop"])
-        .apply(weighted_av)
-    )
-    features_descriptions.loc[
-        ("sample quality", "all", slice(None))
-    ] = descriptions.loc[("sample quality", "all", "all", slice(None))]
+    remove_features = [
+        ("sample quality", "not home based", "starts"),
+        ("sample quality", "not home based", "ends"),
+        ("sample quality", "consecutive", "home"),
+        ("sample quality", "consecutive", "work"),
+        ("sample quality", "consecutive", "education"),
+    ]
+
+    features_descriptions = descriptions.drop("unit", axis=1)
+    for f in remove_features:
+        features_descriptions = features_descriptions.drop(f, axis=0)
+    features_descriptions = features_descriptions.groupby(
+        ["domain", "feature", "sub_pop"]
+    ).apply(weighted_av)
+
     features_descriptions["unit"] = (
         descriptions["unit"].groupby(["domain", "feature", "sub_pop"]).first()
     )
 
-    features_distances = (
-        distances.drop("unit", axis=1)
-        .groupby(["domain", "feature", "sub_pop"])
-        .apply(distance_weighted_av)
-    )
-    features_distances.loc[
-        ("sample quality", "all", slice(None))
-    ] = distances.loc[("sample quality", "all", "all", slice(None))]
+    features_distances = distances.drop("unit", axis=1)
+    for f in remove_features:
+        features_distances = features_distances.drop(f, axis=0)
+    features_distances = features_distances.groupby(
+        ["domain", "feature", "sub_pop"]
+    ).apply(distance_weighted_av)
     features_distances["unit"] = (
-        distances["unit"].groupby(["domain", "feature", "sub_pop"]).first()
+        descriptions["unit"].groupby(["domain", "feature", "sub_pop"]).first()
     )
 
     # themes
-    domain_descriptions = (
-        features_descriptions.drop("description", axis=1)
-        .groupby("domain")
-        .mean()
+    domain_descriptions = features_descriptions.drop("unit", axis=1)
+    domain_descriptions = domain_descriptions.drop(
+        ("sample quality", "not home based"), axis=0
     )
-    domain_distances = (
-        features_distances.drop("unit", axis=1).groupby("domain").mean()
+    domain_descriptions = domain_descriptions.drop(
+        ("sample quality", "consecutive"), axis=0
     )
+    domain_descriptions = domain_descriptions.groupby("domain").mean()
+
+    domain_distances = features_distances.drop("unit", axis=1)
+    domain_distances = domain_distances.drop(
+        ("sample quality", "not home based"), axis=0
+    )
+    domain_distances = domain_distances.drop(
+        ("sample quality", "consecutive"), axis=0
+    )
+    domain_distances = domain_distances.groupby("domain").mean()
 
     frames = {
         "descriptions": descriptions,
