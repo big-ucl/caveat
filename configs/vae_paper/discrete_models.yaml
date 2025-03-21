@@ -2,7 +2,7 @@ global:
   seed: 1234
   logging_params:
     log_dir: "logs/discrete_models"
-    name: "fc_weights"
+    name: "kernels"
   
   schedules_path: "tmp/nts_schedules_2023.csv"
 
@@ -13,74 +13,214 @@ global:
   
   trainer_params:
     min_epochs: 50
-    max_epochs: 200
+    max_epochs: 150
     patience: 50
-  
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.002
 
-  model_params:
-    name: "VAEDiscFC"
-    latent_dim: 6
-    hidden_n: 2
-    hidden_size: 64 
-    dropout: 0.1
-
-fc_uu:
   encoder_params:
     name: "discrete"
     duration: 1440
     step_size: 10
-    jitter: 0.0
+    jitter: 0.1
     weighting: unit
     joint_weighting: unit
-
-fc_iu:
-  encoder_params:
-    name: "discrete"
-    duration: 1440
-    step_size: 10
-    jitter: 0.0
-    weighting: act_inverse
-    joint_weighting: unit
-
-fc_ui:
-  encoder_params:
-    name: "discrete"
-    duration: 1440
-    step_size: 10
-    jitter: 0.0
-    weighting: unit
-    joint_weighting: act_inverse
-
-fc_ii:
-  encoder_params:
-    name: "discrete"
-    duration: 1440
-    step_size: 10
-    jitter: 0.0
-    weighting: act_inverse
-    joint_weighting: act_inverse
 
 # fc:
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.005
 #   model_params:
 #     name: "VAEDiscFC"
 #     latent_dim: 6
-#     hidden_layers: [128,32] 
+#     hidden_n: 3
+#     hidden_size: 32 
 #     dropout: 0.1
 
-# cnn1d:
-#   model_params:
-#     name: "VAEDiscCNN1D"
-#     latent_dim: 6
-#     hidden_layers: [256,256,256,256,256,256]
-#     dropout: 0.0
-#     stride: 2
-#     kernel_size: 2
-#     padding: 0
+cnn1d_2x2:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 2
+    kernel_size: 2
+    padding: 0
+
+cnn1d_2x4:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 2
+    kernel_size: 4
+    padding: 0
+
+cnn1d_2x6:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 2
+    kernel_size: 6
+    padding: 0
+
+cnn1d_4x4:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 4
+    kernel_size: 4
+    padding: 0
+
+cnn1d_4x6:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 4
+    kernel_size: 6
+    padding: 0
+
+cnn1d_4x8:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 4
+    kernel_size: 8
+    padding: 0
+
+
+cnn1d_6x6:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 6
+    kernel_size: 6
+    padding: 0
+
+cnn1d_6x8:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  model_params:
+    name: "VAEDiscCNN1D"
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 6
+    kernel_size: 8
+    padding: 0
 
 # cnn2d:
 #   model_params:
@@ -90,10 +230,15 @@ fc_ii:
 #     dropout: 0.1
 
 # rnn:
+#   experiment_params:
+#     LR: 0.002
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.005
 #   model_params:
 #     name: "VAEDiscLSTM"
 #     latent_dim: 6
 #     hidden_n: 4
-#     hidden_size: 128
+#     hidden_size: 512
 #     dropout: 0.1
 

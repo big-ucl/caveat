@@ -46,7 +46,7 @@ participation_rate_jobs = [
         ("EMD", emd),
     ),
     (
-        ("participation rate", participation.participation_rates_by_act_enum),
+        ("participation rate", participation.participation_rates_by_act),
         (feature_weight),
         ("av. rate", average),
         ("EMD", emd),
