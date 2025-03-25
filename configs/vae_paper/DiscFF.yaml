@@ -1,0 +1,39 @@
+seed: 1234
+
+logging_params:
+  log_dir: "logs/vae_paper"
+  name: "DiscFF"
+
+schedules_path: "tmp/nts_schedules_2023.csv"
+
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+
+trainer_params:
+  min_epochs: 50
+  max_epochs: 200
+  patience: 50
+
+encoder_params:
+  name: "discrete"
+  duration: 1440
+  step_size: 10
+  jitter: 0.1
+  weighting: unit
+  joint_weighting: unit
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
+  kld_weight: 0.005
+
+model_params:
+  name: "VAEDiscFC"
+  latent_dim: 6
+  hidden_n: 3
+  hidden_size: 32
+  dropout: 0.1
+

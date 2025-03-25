@@ -260,7 +260,7 @@ def describe(
         descriptions["unit"].groupby(["domain", "feature"]).first()
     )
 
-    features_distances = descriptions.drop("unit", axis=1)
+    features_distances = distances.drop("unit", axis=1)
     for f in remove_features:
         features_distances = features_distances.drop(f, axis=0)
     features_distances = features_distances.groupby(

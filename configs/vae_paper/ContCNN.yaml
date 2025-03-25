@@ -1,0 +1,41 @@
+seed: 1234
+
+logging_params:
+  log_dir: "logs/vae_paper"
+  name: "ContCNN"
+
+schedules_path: "tmp/nts_schedules_2023.csv"
+
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+
+trainer_params:
+  min_epochs: 50
+  max_epochs: 200
+  patience: 50
+
+encoder_params:
+  name: "continuous"
+  fix_durations: True
+  max_length: 16
+  duration: 1440
+  jitter: 0.1
+  weighting: unit
+  joint_weighting: unit
+  trim_eos: True
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
+  kld_weight: 0.01
+  duration_loss_weight: 200
+
+model_params:
+  name: "VAEContRNN"
+  latent_dim: 6
+  hidden_n: 5
+  hidden_size: 128
+  dropout: 0.1
