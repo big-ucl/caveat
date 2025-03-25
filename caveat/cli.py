@@ -1,5 +1,6 @@
 """Console script for caveat."""
 
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -261,9 +262,11 @@ def report(
 @click.option("--labels", type=str)
 @click.option("--verbose", "-v", is_flag=True)
 @click.option("--stats", is_flag=True)
-@click.option("--batch", "-b", is_flag=True)
+@click.option("--nrun", "-n", is_flag=True, help="Evaluate an nrun directory.")
+@click.option("--batch", "-b", is_flag=True, help="Evaluate a batch of models.")
 def eval(
     config_path: click.Path,
+    nrun: bool,
     batch: bool,
     verbose: bool,
     stats: bool,
@@ -273,6 +276,23 @@ def eval(
     """Evaluate on the given observed population and logs directory."""
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
+
+        if nrun:
+            logger_params = config.get("logging_params")
+            name = str(logger_params.get("name"))
+            batch_dir = Path(logger_params.get("log_dir"), name)
+            models = sorted(
+                [
+                    d.name
+                    for d in batch_dir.iterdir()
+                    if (d.is_dir() and d.name.startswith(name))
+                ]
+            )
+            config = {"global": config}
+            for model in models:
+                config[model] = {}
+            batch = True
+
         if batch:
             batch_eval_command(
                 batch_config=config,
