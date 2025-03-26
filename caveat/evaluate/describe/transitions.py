@@ -86,7 +86,7 @@ def _probs_plot(
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.set_xlabel("Activity Sequence")
+    ax.set_xlabel("Activity\nSequence")
     if ylabel:
         ax.set_ylabel("Sequence Proportion")
     ax.set_xticklabels([])
