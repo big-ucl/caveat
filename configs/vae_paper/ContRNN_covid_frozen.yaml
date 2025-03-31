@@ -2,9 +2,9 @@ seed: 1234
 
 logging_params:
   log_dir: "logs/vae_paper"
-  name: "ContRNN_50"
+  name: "ContRNN_Covid"
 
-schedules_path: "tmp/nts_schedules_2023_50.csv"
+schedules_path: "tmp/nts_schedules_2020.csv"
 
 loader_params:
   train_batch_size: 1024

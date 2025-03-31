@@ -2,7 +2,7 @@ seed: 1234
 
 logging_params:
   log_dir: "logs/vae_paper"
-  name: "ContRNN"
+  name: "ContRNN_25"
 
 schedules_path: "tmp/nts_schedules_2023_25.csv"
 
