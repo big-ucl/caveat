@@ -64,6 +64,7 @@ def plot_agg_acts(
     legend=True,
     **kwargs,
 ):
+    interval = kwargs.pop("interval", 240)
     bins = binned_activity_density(
         population, duration=duration, step=step, class_map=class_map
     )
@@ -81,11 +82,20 @@ def plot_agg_acts(
     if legend:
         ax.legend(loc="upper right")
     ax = fig.axes
-    labels = [" " for _ in range(len(df.index))]
-    labels[:: int(120 / step)] = [x.strftime("%H:%M") for x in df.index][
-        :: int(120 / step)
+    labels = ["" for _ in range(len(df.index))]
+
+    labels[:: int(interval / step)] = [x.strftime("%H:%M") for x in df.index][
+        :: int(interval / step)
     ]
-    ax.set_xticklabels(labels)
+    # ax.set_xticklabels(labels)
+    # ax.set_xticks(list(ax.get_xticks())[:: int(interval / step)])
+    ax.set_xticks(
+        [i / step for i in [0, 240, 480, 720, 960, 1200, 1440]],
+        labels=["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"],
+        rotation=90,
+        fontsize=8,
+    )
+
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)

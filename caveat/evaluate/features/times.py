@@ -5,31 +5,34 @@ from caveat.evaluate.features.utils import weighted_features
 
 
 def start_times_by_act(
-    population: DataFrame,
+    population: DataFrame, bin_size: int = 15, factor: int = 1440
 ) -> dict[str, tuple[ndarray, ndarray]]:
     return weighted_features(
         population.groupby("act", observed=False).start.apply(list).to_dict(),
-        factor=1440,
+        bin_size=bin_size,
+        factor=factor,
     )
 
 
 def end_times_by_act(
-    population: DataFrame,
+    population: DataFrame, bin_size: int = 15, factor: int = 1440
 ) -> dict[str, tuple[ndarray, ndarray]]:
     return weighted_features(
         population.groupby("act", observed=False).end.apply(list).to_dict(),
-        factor=1440,
+        bin_size=bin_size,
+        factor=factor,
     )
 
 
 def durations_by_act(
-    population: DataFrame,
+    population: DataFrame, bin_size: int = 15, factor: int = 1440
 ) -> dict[str, tuple[ndarray, ndarray]]:
     return weighted_features(
         population.groupby("act", observed=False)
         .duration.apply(list)
         .to_dict(),
-        factor=1440,
+        bin_size=bin_size,
+        factor=factor,
     )
 
 

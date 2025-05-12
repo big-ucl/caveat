@@ -2,9 +2,9 @@ seed: 1234
 
 logging_params:
   log_dir: "logs/vae_paper"
-  name: "DiscRNN"
+  name: "ContRNN_Covid_retuned2"
 
-schedules_path: "tmp/nts_schedules_2023.csv"
+schedules_path: "tmp/nts_schedules_2020.csv"
 
 loader_params:
   train_batch_size: 1024
@@ -17,23 +17,25 @@ trainer_params:
   patience: 50
 
 encoder_params:
-  name: "discrete"
+  name: "continuous"
+  fix_durations: True
+  max_length: 16
   duration: 1440
-  step_size: 10
   jitter: 0.1
   weighting: unit
   joint_weighting: unit
+  trim_eos: True
 
 experiment_params:
-  LR: 0.001
+  LR: 0.002
   weight_decay: 0.02
   scheduler_gamma: 0.975
-  kld_weight: 0.01
+  kld_weight: 0.005
+  duration_loss_weight: 200
 
 model_params:
-  name: "VAEDiscLSTM"
+  name: "VAEContLSTM"
   latent_dim: 6
-  hidden_n: 4
-  hidden_size: 512
+  hidden_n: 2
+  hidden_size: 256
   dropout: 0.1
-

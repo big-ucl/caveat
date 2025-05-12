@@ -6,6 +6,7 @@ from caveat.evaluate.features.utils import equals
 
 
 def test_times_by_act():
+    # todo; add test for start_times_by_act_bins and factors
     population = DataFrame(
         [
             {"pid": 0, "act": "home", "start": 0, "end": 2, "duration": 2},
@@ -16,20 +17,28 @@ def test_times_by_act():
         ]
     )
     expected_starts = {
-        "home": (array([0, 6]) / 1440, array([2, 1])),
-        "work": (array([1, 2]) / 1440, array([1, 1])),
+        "home": (array([0.5, 6.5]), array([2, 1])),
+        "work": (array([1.5, 2.5]), array([1, 1])),
     }
     expected_ends = {
-        "home": (array([1, 2, 8]) / 1440, array([1, 1, 1])),
-        "work": (array([6, 8]) / 1440, array([1, 1])),
+        "home": (array([1.5, 2.5, 8.5]), array([1, 1, 1])),
+        "work": (array([6.5, 8.5]), array([1, 1])),
     }
     expected_durations = {
-        "home": (array([1, 2]) / 1440, array([1, 2])),
-        "work": (array([4, 7]) / 1440, array([1, 1])),
+        "home": (array([1.5, 2.5]), array([1, 2])),
+        "work": (array([4.5, 7.5]), array([1, 1])),
     }
-    assert equals(times.start_times_by_act(population), expected_starts)
-    assert equals(times.end_times_by_act(population), expected_ends)
-    assert equals(times.durations_by_act(population), expected_durations)
+    assert equals(
+        times.start_times_by_act(population, bin_size=1, factor=1),
+        expected_starts,
+    )
+    assert equals(
+        times.end_times_by_act(population, bin_size=1, factor=1), expected_ends
+    )
+    assert equals(
+        times.durations_by_act(population, bin_size=1, factor=1),
+        expected_durations,
+    )
 
 
 def test_start_and_duration_by_act_bins():
