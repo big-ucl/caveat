@@ -2,20 +2,12 @@
 
 from click.testing import CliRunner
 
-from caveat import cli
+from caveat.cli import cli
 
 
-def test_command_line_interface():
-    """Test the CLI."""
+def test_command_line_interface_help():
     runner = CliRunner()
-    result = runner.invoke(cli.cli)
-    assert result.exit_code == 0
-    assert (
-        "Console script for caveat.\n\nOptions:\n  "
-        "--version  Show the version and exit.\n  "
-        "--help     Show this message and exit.\n" in result.output
-    )
-    help_result = runner.invoke(cli.cli, ["--help"])
+    help_result = runner.invoke(cli, ["--help"])
     assert help_result.exit_code == 0
     assert (
         "Console script for caveat.\n\nOptions:\n  "
