@@ -41,6 +41,8 @@ def zip_columns(group, a: str = "start", b: str = "duration") -> ndarray:
 
 
 def start_durations_by_act(population: DataFrame) -> dict[str, ndarray]:
+    if len(population) == 0:
+        return {a: array([]) for a in population.act.unique()}
     sds = population.groupby("act", observed=False).apply(zip_columns).to_dict()
     return sds
 
@@ -55,6 +57,8 @@ def start_and_duration_by_act_bins(
 def joint_durations_by_act_bins(
     population: DataFrame, bin_size: int = 15, factor: int = 1440
 ) -> dict[str, tuple[ndarray, ndarray]]:
+    if len(population) == 0:
+        return {a: array([]) for a in population.act.unique()}
     transitions = population.reset_index()
     transitions = transitions.set_index(["index", "pid"])
     transitions.act = transitions.act.astype(str)

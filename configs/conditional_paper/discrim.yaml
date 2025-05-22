@@ -11,6 +11,9 @@ loader_params:
   train_batch_size: 1024
   val_batch_size:  1024
   num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+
 
 trainer_params:
   min_epochs: 40

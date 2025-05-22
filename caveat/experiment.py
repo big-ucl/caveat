@@ -10,7 +10,6 @@ from caveat.models.utils import ScheduledOptim
 
 
 class Experiment(pl.LightningModule):
-
     def __init__(
         self,
         in_shape: tuple,
@@ -158,11 +157,11 @@ class Experiment(pl.LightningModule):
             (x, x_weights), (y, y_weights), (labels, l_weights) = batch
             self.curr_device = x.device
 
-            log_probs_x, mu, log_var, z = self.forward(
+            log_probs, mu, log_var, z = self.forward(
                 x, labels=labels, input_mask=x_weights
             )
             test_loss = self.loss_function(
-                log_probs_x=log_probs_x,
+                log_probs=log_probs,
                 mu=mu,
                 log_var=log_var,
                 target=y,

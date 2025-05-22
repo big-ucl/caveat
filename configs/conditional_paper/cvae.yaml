@@ -2,8 +2,8 @@ logging_params:
   log_dir: "logs/TRB"
   name: "cvae"
 
-schedules_path: "tmp/nts_home_schedules.csv"
-attributes_path: "tmp/nts_home_attributes_groups.csv"
+schedules_path: "tmp/nts_schedules_2023.csv"
+attributes_path: "tmp/nts_attributes_2023.csv"
 
 evaluation_params:
   split_on: [gender, age_group, car_access, work_status, income]
@@ -33,6 +33,8 @@ loader_params:
   train_batch_size: 1024
   val_batch_size:  1024
   num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
 
 trainer_params:
   min_epochs: 100
@@ -41,8 +43,8 @@ trainer_params:
 
 model_params:
   name: "CVAEContLSTM"
-  hidden_n: 6
-  hidden_size: 512
+  hidden_n: 4
+  hidden_size: 256
   labels_hidden_size: 32
   latent_dim: 6
   dropout: 0.1
@@ -52,8 +54,8 @@ model_params:
   decoder_conditionality: inputs_concat
 
 experiment_params:
-  LR: 0.002
+  LR: 0.001
   weight_decay: 0.02
   scheduler_gamma: 0.975
-  kld_weight: 0.005
+  kld_weight: 0.01
   duration_loss_weight: 200

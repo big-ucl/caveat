@@ -22,8 +22,8 @@ class DataModule(LightningDataModule):
 
         Args:
             data (Dataset): Data
-            val_split (float, optional): _description_. Defaults to None.
-            test_split (Optional[float], optional): _description_. Defaults to 0.1.
+            val_split (float, optional): _description_. Defaults to 0.1.
+            test_split (Optional[float], optional): _description_. Defaults to None.
             train_batch_size (int, optional): _description_. Defaults to 128.
             val_batch_size (int, optional): _description_. Defaults to 128.
             test_batch_size (int, optional): _description_. Defaults to 128.
@@ -44,22 +44,25 @@ class DataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         if self.test_split is None:
-            (self.train_dataset, self.val_dataset) = (
-                torch.utils.data.random_split(
-                    self.data, [1 - self.val_split, self.val_split]
-                )
+            (
+                self.train_dataset,
+                self.val_dataset,
+            ) = torch.utils.data.random_split(
+                self.data, [1 - self.val_split, self.val_split]
             )
             self.test_dataset = self.val_dataset
         else:
-            (self.train_dataset, self.val_dataset, self.test_dataset) = (
-                torch.utils.data.random_split(
-                    self.data,
-                    [
-                        1 - self.val_split - self.test_split,
-                        self.val_split,
-                        self.test_split,
-                    ],
-                )
+            (
+                self.train_dataset,
+                self.val_dataset,
+                self.test_dataset,
+            ) = torch.utils.data.random_split(
+                self.data,
+                [
+                    1 - self.val_split - self.test_split,
+                    self.val_split,
+                    self.test_split,
+                ],
             )
 
     def train_dataloader(self) -> DataLoader:

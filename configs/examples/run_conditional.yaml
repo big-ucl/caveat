@@ -13,7 +13,7 @@ labels_encoder:
     employment: nominal
 
 encoder_params:
-  name: "continuous_staggered"
+  name: "continuous"
   max_length: 16
   norm_duration: 1440
   jitter: 0.1

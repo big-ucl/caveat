@@ -8,24 +8,26 @@ def actual(features: dict[str, float]) -> Series:
 
 
 def feature_value(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
-    return Series({k: v[0] for k, (v, w) in features.items()})
+    return Series({k: v[0] for k, (v, w) in features.items()}, dtype=int)
 
 
 def feature_length(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
-    return Series({k: len(v) for k, (v, w) in features.items()})
+    return Series({k: len(v) for k, (v, w) in features.items()}, dtype=int)
 
 
 def feature_weight(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
-    return Series({k: w.sum() for k, (v, w) in features.items()})
+    return Series({k: w.sum() for k, (v, w) in features.items()}, dtype=int)
 
 
 def average_weight(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
-    return Series({k: w.mean() for k, (v, w) in features.items()})
+    return Series({k: w.mean() for k, (v, w) in features.items()}, dtype=float)
 
 
 def average_density(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
     total = sum(w.sum() for _, w in features.values())
-    return Series({k: w.sum() / total for k, (v, w) in features.items()})
+    return Series(
+        {k: w.sum() / total for k, (v, w) in features.items()}, dtype=float
+    )
 
 
 def average(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
@@ -35,7 +37,7 @@ def average(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
             weighted_average[k] = np.average(v, axis=0, weights=w).sum()
         else:
             weighted_average[k] = 0
-    return Series(weighted_average)
+    return Series(weighted_average, dtype=float)
 
 
 def average2d(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
@@ -44,5 +46,6 @@ def average2d(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
             k: np.average(v, axis=0, weights=w).sum().sum()
             for k, (v, w) in features.items()
             if w.sum() > 0
-        }
+        },
+        dtype=float,
     )

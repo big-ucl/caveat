@@ -5,8 +5,8 @@ from caveat.evaluate import evaluate
 from caveat.evaluate.features.structural import (
     contains_consecutive,
     duration_consistency,
+    feasibility_eval,
     start_and_end_acts,
-    structural_eval,
     time_consistency,
 )
 from caveat.evaluate.features.utils import equals
@@ -89,7 +89,7 @@ def test_contains_consecutive():
     assert not contains_consecutive(schedule, act="work")
 
 
-def test_structural_eval():
+def test_feasibility_eval():
     schedule = DataFrame(
         [
             {"pid": 0, "act": "home"},
@@ -102,7 +102,7 @@ def test_structural_eval():
             {"pid": 2, "act": "shop"},
         ]
     )
-    weights, metrics = structural_eval(schedule, "observed")
+    weights, metrics = feasibility_eval(schedule, "observed")
     assert weights.reset_index(drop=True).equals(
         Series([3, 3, 3, 3, 3, 3, 3, 3])
     )
@@ -115,14 +115,14 @@ def test_structural_eval():
 def test_describe_structural():
     index = MultiIndex.from_tuples(
         [
-            ("sample quality", "invalid", "all"),
-            ("sample quality", "not home based", "all"),
-            ("sample quality", "not home based", "starts"),
-            ("sample quality", "not home based", "ends"),
-            ("sample quality", "consecutive", "all"),
-            ("sample quality", "consecutive", "home"),
-            ("sample quality", "consecutive", "work"),
-            ("sample quality", "consecutive", "education"),
+            ("feasibility", "invalid", "all"),
+            ("feasibility", "not home based", "all"),
+            ("feasibility", "not home based", "starts"),
+            ("feasibility", "not home based", "ends"),
+            ("feasibility", "consecutive", "all"),
+            ("feasibility", "consecutive", "home"),
+            ("feasibility", "consecutive", "work"),
+            ("feasibility", "consecutive", "education"),
         ],
         names=["domain", "feature", "segment"],
     )
@@ -144,37 +144,36 @@ def test_describe_structural():
     )
     metrics["unit"] = "prob. invalid"
     frames = evaluate.describe(metrics, metrics)
-    assert len(frames["feature_descriptions"]) == 3
+    assert len(frames["descriptions"]) == 8
+    assert len(frames["group_descriptions"]) == 3
     assert len(frames["domain_descriptions"]) == 1
-    assert len(frames["feature_distances"]) == 3
+
+    assert len(frames["distances"]) == 8
+    assert len(frames["group_distances"]) == 3
     assert len(frames["domain_distances"]) == 1
-    assert len(frames["feature_descriptions"].columns) == 3
-    assert len(frames["feature_distances"].columns) == 3
-    assert len(frames["domain_descriptions"].columns) == 2
-    assert len(frames["domain_distances"].columns) == 2
 
 
 def test_describe_splits_structural():
     index = MultiIndex.from_tuples(
         [
-            ("sample quality", "invalid", "all", "a"),
-            ("sample quality", "not home based", "all", "a"),
-            ("sample quality", "not home based", "starts", "a"),
-            ("sample quality", "not home based", "ends", "a"),
-            ("sample quality", "consecutive", "all", "a"),
-            ("sample quality", "consecutive", "home", "a"),
-            ("sample quality", "consecutive", "work", "a"),
-            ("sample quality", "consecutive", "education", "a"),
-            ("sample quality", "invalid", "all", "b"),
-            ("sample quality", "not home based", "all", "b"),
-            ("sample quality", "not home based", "starts", "b"),
-            ("sample quality", "not home based", "ends", "b"),
-            ("sample quality", "consecutive", "all", "b"),
-            ("sample quality", "consecutive", "home", "b"),
-            ("sample quality", "consecutive", "work", "b"),
-            ("sample quality", "consecutive", "education", "b"),
+            ("feasibility", "invalid", "all", "a"),
+            ("feasibility", "not home based", "all", "a"),
+            ("feasibility", "not home based", "starts", "a"),
+            ("feasibility", "not home based", "ends", "a"),
+            ("feasibility", "consecutive", "all", "a"),
+            ("feasibility", "consecutive", "home", "a"),
+            ("feasibility", "consecutive", "work", "a"),
+            ("feasibility", "consecutive", "education", "a"),
+            ("feasibility", "invalid", "all", "b"),
+            ("feasibility", "not home based", "all", "b"),
+            ("feasibility", "not home based", "starts", "b"),
+            ("feasibility", "not home based", "ends", "b"),
+            ("feasibility", "consecutive", "all", "b"),
+            ("feasibility", "consecutive", "home", "b"),
+            ("feasibility", "consecutive", "work", "b"),
+            ("feasibility", "consecutive", "education", "b"),
         ],
-        names=["domain", "feature", "segment", "sub_pop"],
+        names=["domain", "feature", "segment", "label"],
     )
 
     observed_weights = Series([3] * 16, index=index, name="observed__weight")
@@ -185,12 +184,21 @@ def test_describe_splits_structural():
         [observed_weights, observed_metrics, weights, metrics], axis=1
     )
     metrics["unit"] = "prob. invalid"
-    frames = evaluate.describe_splits(metrics, metrics)
-    assert len(frames["feature_descriptions"]) == 6
+    frames = evaluate.describe(metrics, metrics)
+    print(frames["descriptions"])
+    assert len(frames["descriptions"]) == 8
+    assert len(frames["group_descriptions"]) == 3
     assert len(frames["domain_descriptions"]) == 1
-    assert len(frames["feature_distances"]) == 6
+
+    assert len(frames["distances"]) == 8
+    assert len(frames["group_distances"]) == 3
     assert len(frames["domain_distances"]) == 1
-    assert len(frames["feature_descriptions"].columns) == 3
-    assert len(frames["feature_distances"].columns) == 3
-    assert len(frames["domain_descriptions"].columns) == 2
-    assert len(frames["domain_distances"].columns) == 2
+
+    frames = evaluate.describe_labels(metrics, metrics)
+    assert len(frames["label_descriptions"]) == 16
+    assert len(frames["label_group_descriptions"]) == 6
+    assert len(frames["label_domain_descriptions"]) == 2
+
+    assert len(frames["label_distances"]) == 16
+    assert len(frames["label_group_distances"]) == 6
+    assert len(frames["label_domain_distances"]) == 2
