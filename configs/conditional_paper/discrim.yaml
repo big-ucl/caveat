@@ -14,7 +14,6 @@ loader_params:
   val_split: 0.1
   test_split: 0.1
 
-
 trainer_params:
   min_epochs: 40
   max_epochs: 100

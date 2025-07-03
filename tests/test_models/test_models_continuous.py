@@ -80,48 +80,56 @@ def test_conditional_lstm_forward():
     assert "loss" in losses
 
 
-testdata = [
-    ("none", "concat", "none"),
-    ("none", "add", "none"),
-    ("hidden", "concat", "none"),
-    ("hidden", "add", "none"),
-    ("inputs_add", "concat", "none"),
-    ("inputs_add", "add", "none"),
-    ("inputs_concat", "concat", "none"),
-    ("inputs_concat", "add", "none"),
-    ("both_add", "concat", "none"),
-    ("both_add", "add", "none"),
-    ("both_concat", "concat", "none"),
-    ("both_concat", "add", "none"),
-    ("none", "concat", "inputs_add"),
-    ("none", "add", "inputs_add"),
-    ("hidden", "concat", "inputs_add"),
-    ("hidden", "add", "inputs_add"),
-    ("inputs_add", "concat", "inputs_add"),
-    ("inputs_add", "add", "inputs_add"),
-    ("inputs_concat", "concat", "inputs_add"),
-    ("inputs_concat", "add", "inputs_add"),
-    ("both_add", "concat", "inputs_add"),
-    ("both_add", "add", "inputs_add"),
-    ("both_concat", "concat", "inputs_add"),
-    ("both_concat", "add", "inputs_add"),
-    ("none", "concat", "inputs_concat"),
-    ("none", "add", "inputs_concat"),
-    ("hidden", "concat", "inputs_concat"),
-    ("hidden", "add", "inputs_concat"),
-    ("inputs_add", "concat", "inputs_concat"),
-    ("inputs_add", "add", "inputs_concat"),
-    ("inputs_concat", "concat", "inputs_concat"),
-    ("inputs_concat", "add", "inputs_concat"),
-    ("both_add", "concat", "inputs_concat"),
-    ("both_add", "add", "inputs_concat"),
-    ("both_concat", "concat", "inputs_concat"),
-    ("both_concat", "add", "inputs_concat"),
-]
+# testdata = [
+#     ("none", "concat", "none"),
+#     ("none", "add", "none"),
+#     ("hidden", "concat", "none"),
+#     ("hidden", "add", "none"),
+#     ("inputs_add", "concat", "none"),
+#     ("inputs_add", "add", "none"),
+#     ("inputs_concat", "concat", "none"),
+#     ("inputs_concat", "add", "none"),
+#     ("both_add", "concat", "none"),
+#     ("both_add", "add", "none"),
+#     ("both_concat", "concat", "none"),
+#     ("both_concat", "add", "none"),
+#     ("none", "concat", "inputs_add"),
+#     ("none", "add", "inputs_add"),
+#     ("hidden", "concat", "inputs_add"),
+#     ("hidden", "add", "inputs_add"),
+#     ("inputs_add", "concat", "inputs_add"),
+#     ("inputs_add", "add", "inputs_add"),
+#     ("inputs_concat", "concat", "inputs_add"),
+#     ("inputs_concat", "add", "inputs_add"),
+#     ("both_add", "concat", "inputs_add"),
+#     ("both_add", "add", "inputs_add"),
+#     ("both_concat", "concat", "inputs_add"),
+#     ("both_concat", "add", "inputs_add"),
+#     ("none", "concat", "inputs_concat"),
+#     ("none", "add", "inputs_concat"),
+#     ("hidden", "concat", "inputs_concat"),
+#     ("hidden", "add", "inputs_concat"),
+#     ("inputs_add", "concat", "inputs_concat"),
+#     ("inputs_add", "add", "inputs_concat"),
+#     ("inputs_concat", "concat", "inputs_concat"),
+#     ("inputs_concat", "add", "inputs_concat"),
+#     ("both_add", "concat", "inputs_concat"),
+#     ("both_add", "add", "inputs_concat"),
+#     ("both_concat", "concat", "inputs_concat"),
+#     ("both_concat", "add", "inputs_concat"),
+# ]
 
 
-@pytest.mark.parametrize("encoder,latent,decoder", testdata)
-def test_cvae_lstm_forward(encoder, latent, decoder):
+@pytest.mark.parametrize("hidden_conditionality", ["none", "add"])
+@pytest.mark.parametrize("encoder_conditionality", ["none", "add", "concat"])
+@pytest.mark.parametrize("latent_conditionality", ["none", "add", "concat"])
+@pytest.mark.parametrize("decoder_conditionality", ["none", "add", "concat"])
+def test_cvae_lstm_forward(
+    hidden_conditionality,
+    encoder_conditionality,
+    latent_conditionality,
+    decoder_conditionality,
+):
     x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
     weights = (torch.ones((3, 10)), torch.ones((3, 1)))
     acts, durations = x.split([5, 1], dim=-1)
@@ -144,9 +152,10 @@ def test_cvae_lstm_forward(encoder, latent, decoder):
             "labels_hidden_size": 4,
             "latent_dim": 2,
             "dropout": 0.1,
-            "encoder_conditionality": encoder,
-            "latent_conditionality": latent,
-            "decoder_conditionality": decoder,
+            "hidden_conditionality": hidden_conditionality,
+            "encoder_conditionality": encoder_conditionality,
+            "latent_conditionality": latent_conditionality,
+            "decoder_conditionality": decoder_conditionality,
         },
     )
     log_prob_y, mu, log_var, z = model(x_encoded, labels=labels)

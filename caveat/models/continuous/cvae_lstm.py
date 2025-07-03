@@ -43,6 +43,26 @@ class CVAEContLSTM(Base):
             hidden_size=self.labels_hidden_size,
         )
 
+        # initial hidden state
+        encoder_hidden = config.get("hidden_conditionality", "none")
+        if encoder_hidden == "none":
+            print("No encoder hidden state")
+            self.encoder_hidden = HiddenNone()
+
+        elif encoder_hidden in ["add", "concat", "hidden"]:
+            print("Using label encoder hidden state")
+            self.encoder_hidden = HiddenLabel(
+                hidden_size=self.hidden_size,
+                hidden_layers=self.hidden_n,
+                labels_size=self.labels_hidden_size,
+                dropout=self.dropout,
+                activation=config.get("hidden_activation", False),
+            )
+        else:
+            raise ValueError(
+                f"encoder_hidden ({encoder_hidden}) must be either 'none' or 'add/concat/hidden'"
+            )
+
         # encoder
         encoder_conditionality = config.get("encoder_conditionality", "none")
         if encoder_conditionality == "none":
@@ -53,18 +73,9 @@ class CVAEContLSTM(Base):
                 hidden_layers=self.hidden_n,
                 dropout=self.dropout,
             )
-        elif encoder_conditionality == "hidden":
-            print("Using hidden state encoder conditionality")
-            self.encoder = HiddenConditionalEncoder(
-                input_size=self.encodings,
-                hidden_size=self.hidden_size,
-                hidden_layers=self.hidden_n,
-                labels_size=self.labels_hidden_size,
-                dropout=self.dropout,
-            )
-        elif encoder_conditionality == "inputs_add":
+        elif encoder_conditionality == "add":
             print("Using inputs addition encoder conditionality")
-            self.encoder = InputsAddConditionalEncoder(
+            self.encoder = AddEncoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 hidden_layers=self.hidden_n,
@@ -72,29 +83,9 @@ class CVAEContLSTM(Base):
                 max_length=length,
                 dropout=self.dropout,
             )
-        elif encoder_conditionality == "inputs_concat":
+        elif encoder_conditionality == "concat":
             print("Using inputs concat encoder conditionality")
-            self.encoder = InputsConcatConditionalEncoder(
-                input_size=self.encodings,
-                hidden_size=self.hidden_size,
-                hidden_layers=self.hidden_n,
-                labels_size=self.labels_hidden_size,
-                max_length=length,
-                dropout=self.dropout,
-            )
-        elif encoder_conditionality == "both_add":
-            print("Using hidden and inputs add encoder conditionality")
-            self.encoder = HiddenInputsAddConditionalEncoder(
-                input_size=self.encodings,
-                hidden_size=self.hidden_size,
-                hidden_layers=self.hidden_n,
-                labels_size=self.labels_hidden_size,
-                max_length=length,
-                dropout=self.dropout,
-            )
-        elif encoder_conditionality == "both_concat":
-            print("Using hidden and inputs concat encoder conditionality")
-            self.encoder = HiddenInputsConcatConditionalEncoder(
+            self.encoder = ConcatEncoder(
                 input_size=self.encodings,
                 hidden_size=self.hidden_size,
                 hidden_layers=self.hidden_n,
@@ -104,7 +95,7 @@ class CVAEContLSTM(Base):
             )
         else:
             raise ValueError(
-                f"encoder_conditionality ({encoder_conditionality}) must be either 'none', 'hidden', 'inputs_add/concat', or 'hidden_and_inputs'"
+                f"encoder_conditionality ({encoder_conditionality}) must be either 'none', 'hidden', 'add', or 'concat'"
             )
 
         # encoder to latent
@@ -113,13 +104,21 @@ class CVAEContLSTM(Base):
 
         # latent block (add or concat)
         latent_conditionality = config.get("latent_conditionality", "concat")
-        if latent_conditionality == "concat":
+        if latent_conditionality == "none":
+            print("No latent conditionality")
+            self.latent_block = Latent(
+                latent_dim=self.latent_dim,
+                flat_size_encode=flat_size_encode,
+                hidden_n=self.hidden_n,
+                hidden_size=self.hidden_size,
+            )
+        elif latent_conditionality == "concat":
             print("Label conditionality is concat")
             self.latent_block = ConcatLatent(
                 latent_dim=self.latent_dim,
                 labels_size=self.labels_hidden_size,
                 flat_size_encode=flat_size_encode,
-                hidden_layers=self.hidden_n,
+                hidden_n=self.hidden_n,
                 hidden_size=self.hidden_size,
             )
         elif latent_conditionality == "add":
@@ -149,7 +148,7 @@ class CVAEContLSTM(Base):
                 dropout=self.dropout,
                 sos=self.sos,
             )
-        elif decoder_conditionality == "inputs_add":
+        elif decoder_conditionality in {"add", "inputs_add"}:
             print("Decoder conditionality is 'inputs'")
             self.decoder = InputsAddConditionalDecoder(
                 input_size=self.encodings,
@@ -161,7 +160,7 @@ class CVAEContLSTM(Base):
                 dropout=self.dropout,
                 sos=self.sos,
             )
-        elif decoder_conditionality == "inputs_concat":
+        elif decoder_conditionality in {"concat", "inputs_concat"}:
             print("Decoder conditionality is 'inputs_concat'")
             self.decoder = InputsConcatConditionalDecoder(
                 input_size=self.encodings,
@@ -175,7 +174,7 @@ class CVAEContLSTM(Base):
             )
         else:
             raise ValueError(
-                "Decoder conditionality must be 'none'. 'inputs_add' or 'inputs_concat'"
+                "Decoder conditionality must be 'none', 'add/inputs_add' or 'concat/inputs_concat'"
             )
 
         # share embedding
@@ -209,8 +208,9 @@ class CVAEContLSTM(Base):
         Returns:
             list[tensor]: Latent layer input (means and variances) [N, latent_dims].
         """
-        labels_hidden = self.label_encoder(labels)
-        hidden = self.encoder(input, labels_hidden)
+        encoded_labels = self.label_encoder(labels)
+        hidden = self.encoder_hidden(encoded_labels)
+        hidden = self.encoder(input, encoded_labels, hidden)
         mu = self.fc_mu(hidden)
         log_var = self.fc_var(hidden)
 
@@ -291,6 +291,43 @@ class LabelEncoder(nn.Module):
         return x
 
 
+class HiddenNone(nn.Module):
+    def forward(self, labels):
+        return None
+
+
+class HiddenLabel(nn.Module):
+    def __init__(
+        self,
+        hidden_size: int,
+        hidden_layers: int,
+        labels_size: int,
+        dropout: float = 0.1,
+        activation: bool = False,
+    ):
+        super(HiddenLabel, self).__init__()
+        self.hidden_size = hidden_size
+        self.hidden_layers = hidden_layers
+        flat_size = 2 * hidden_layers * hidden_size
+        sequence = [nn.Linear(labels_size, flat_size)]
+        if activation:
+            sequence.append(nn.LeakyReLU())
+        if dropout > 0:
+            sequence.append(nn.Dropout(dropout))
+        self.labels_ff = nn.Sequential(*sequence)
+
+    def forward(self, labels):
+        h1, h2 = (
+            self.labels_ff(labels)
+            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
+            .permute(1, 0, 2)
+            .split(self.hidden_layers)
+        )
+        h1 = h1.contiguous()
+        h2 = h2.contiguous()
+        return (h1, h2)
+
+
 class Encoder(nn.Module):
     def __init__(
         self,
@@ -320,9 +357,9 @@ class Encoder(nn.Module):
         )
         self.norm = nn.LayerNorm(hidden_size)
 
-    def forward(self, x, labels):
+    def forward(self, x, labels, hidden):
         embedded = self.embedding(x)
-        _, (h1, h2) = self.lstm(embedded)
+        _, (h1, h2) = self.lstm(embedded, hidden)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
         h1 = self.norm(h1)
         h2 = self.norm(h2)
@@ -331,70 +368,7 @@ class Encoder(nn.Module):
         return hidden
 
 
-class HiddenConditionalEncoder(nn.Module):
-    def __init__(
-        self,
-        input_size: int,
-        hidden_size: int,
-        hidden_layers: int,
-        labels_size: int,
-        dropout: float = 0.1,
-    ):
-        """LSTM Encoder with label conditionality added at RNN hidden state.
-
-        Args:
-            input_size (int): lstm input size.
-            hidden_size (int): lstm hidden size.
-            hidden_layers (int): number of lstm layers.
-            labels (int): size of labels.
-            dropout (float): dropout. Defaults to 0.1.
-        """
-        super(HiddenConditionalEncoder, self).__init__()
-        self.hidden_size = hidden_size
-        self.hidden_layers = hidden_layers
-        flat_size = 2 * hidden_layers * hidden_size
-
-        self.labels_ff = nn.Sequential(
-            nn.Linear(labels_size, flat_size),
-            # nn.LeakyReLU(),
-            nn.Dropout(dropout),
-        )
-        self.embedding = CustomDurationEmbeddingConcat(
-            input_size, hidden_size, dropout=dropout
-        )
-        self.lstm = nn.LSTM(
-            hidden_size,
-            hidden_size,
-            hidden_layers,
-            batch_first=True,
-            bidirectional=False,
-        )
-        self.norm = nn.LayerNorm(hidden_size)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x, labels):
-        # label conditionality
-        h1, h2 = (
-            self.labels_ff(labels)
-            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-            .permute(1, 0, 2)
-            .split(self.hidden_layers)
-        )
-        h1 = h1.contiguous()
-        h2 = h2.contiguous()
-
-        # input encoding
-        embedded = self.embedding(x)
-        _, (h1, h2) = self.lstm(embedded, (h1, h2))
-        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
-        h1 = self.norm(h1)
-        h2 = self.norm(h2)
-        hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
-        # [N, flatsize]
-        return hidden
-
-
-class InputsAddConditionalEncoder(nn.Module):
+class AddEncoder(nn.Module):
     def __init__(
         self,
         input_size: int,
@@ -414,7 +388,7 @@ class InputsAddConditionalEncoder(nn.Module):
             max_length (int): max length of sequences.
             dropout (float): dropout. Defaults to 0.1.
         """
-        super(InputsAddConditionalEncoder, self).__init__()
+        super(AddEncoder, self).__init__()
         self.max_length = max_length
 
         self.inputs_ff = nn.Sequential(
@@ -434,13 +408,13 @@ class InputsAddConditionalEncoder(nn.Module):
         )
         self.norm = nn.LayerNorm(hidden_size)
 
-    def forward(self, x, labels):
+    def forward(self, x, labels, hidden=None):
         labels = (
             self.inputs_ff(labels).unsqueeze(1).repeat(1, self.max_length, 1)
         )
         embedded = self.embedding(x)
         embedded = embedded + labels
-        _, (h1, h2) = self.lstm(embedded)
+        _, (h1, h2) = self.lstm(embedded, hidden)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
         h1 = self.norm(h1)
         h2 = self.norm(h2)
@@ -449,7 +423,7 @@ class InputsAddConditionalEncoder(nn.Module):
         return hidden
 
 
-class InputsConcatConditionalEncoder(nn.Module):
+class ConcatEncoder(nn.Module):
     def __init__(
         self,
         input_size: int,
@@ -500,13 +474,13 @@ class InputsConcatConditionalEncoder(nn.Module):
         )
         self.norm = nn.LayerNorm(hidden_size)
 
-    def forward(self, x, labels):
+    def forward(self, x, labels, hidden=None):
         labels = (
             self.inputs_ff(labels).unsqueeze(1).repeat(1, self.max_length, 1)
         )
         embedded = self.embedding(x)
         embedded = torch.cat((embedded, labels), dim=-1)
-        _, (h1, h2) = self.lstm(embedded)
+        _, (h1, h2) = self.lstm(embedded, hidden)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
         h1 = self.norm(h1)
         h2 = self.norm(h2)
@@ -515,150 +489,32 @@ class InputsConcatConditionalEncoder(nn.Module):
         return hidden
 
 
-class HiddenInputsAddConditionalEncoder(nn.Module):
+class Latent(nn.Module):
     def __init__(
         self,
-        input_size: int,
+        latent_dim: int,
+        flat_size_encode: int,
+        hidden_n: int,
         hidden_size: int,
-        hidden_layers: int,
-        labels_size: int,
-        max_length: int,
-        dropout: float = 0.1,
     ):
-        """LSTM Conditional Encoder. Labels are introduced at the hidden state and input.
+        """Latent block for CVAE.
 
         Args:
-            input_size (int): lstm input size.
-            hidden_size (int): lstm hidden size.
-            hidden_layers (int): number of lstm layers.
-            labels_size (int): size of labels.
-            flat_size_encode (int): flattened hidden size.
-            max_length (int): max length of sequences.
-            dropout (float): dropout. Defaults to 0.1.
+            latent_dim (int): Latent dimension.
+            flat_size_encode (int): Flattened size of the encoder output.
         """
-        super(HiddenInputsAddConditionalEncoder, self).__init__()
+        super(Latent, self).__init__()
+        self.hidden_n = hidden_n
         self.hidden_size = hidden_size
-        self.hidden_layers = hidden_layers
-        self.max_length = max_length
-        flat_size = 2 * hidden_layers * hidden_size
+        self.latent_fc = nn.Linear(latent_dim, flat_size_encode)
 
-        self.inputs_ff = nn.Sequential(
-            nn.Linear(labels_size, hidden_size),
-            # nn.LeakyReLU(),
-            nn.Dropout(dropout),
-        )
-        self.embedding = CustomDurationEmbeddingConcat(
-            input_size, hidden_size, dropout=dropout
-        )
-        self.labels_ff = nn.Sequential(
-            nn.Linear(labels_size, flat_size),
-            # nn.LeakyReLU(),
-            nn.Dropout(dropout),
-        )
-        self.lstm = nn.LSTM(
-            hidden_size,
-            hidden_size,
-            hidden_layers,
-            batch_first=True,
-            bidirectional=False,
-        )
-        self.norm = nn.LayerNorm(hidden_size)
-
-    def forward(self, x, labels):
-        h1, h2 = (
-            self.labels_ff(labels)
-            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-            .permute(1, 0, 2)
-            .split(self.hidden_layers)
-        )
-        h1 = h1.contiguous()
-        h2 = h2.contiguous()
-
-        inputs_labels = (
-            self.inputs_ff(labels).unsqueeze(1).repeat(1, self.max_length, 1)
-        )
-        embedded = self.embedding(x)
-        embedded = embedded + inputs_labels
-        _, (h1, h2) = self.lstm(embedded, (h1, h2))
-        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
-        h1 = self.norm(h1)
-        h2 = self.norm(h2)
-        hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
-        # [N, flatsize]
-        return hidden
-
-
-class HiddenInputsConcatConditionalEncoder(nn.Module):
-    def __init__(
-        self,
-        input_size: int,
-        hidden_size: int,
-        hidden_layers: int,
-        labels_size: int,
-        max_length: int,
-        dropout: float = 0.1,
-        conditional_hidden_size: Optional[int] = None,
-    ):
-        super().__init__()
-        self.hidden_layers = hidden_layers
-        self.hidden_size = hidden_size
-        self.max_length = max_length
-        if conditional_hidden_size is None:
-            conditional_hidden_size = int(hidden_size / 2)
-        else:
-            conditional_hidden_size = conditional_hidden_size
-        encoding_size = hidden_size - conditional_hidden_size
-        if encoding_size < 0:
-            raise ValueError(
-                "conditional_hidden_size must be less than or equal to hidden_size"
-            )
-
-        flat_size = 2 * hidden_layers * hidden_size
-
-        self.inputs_ff = nn.Sequential(
-            nn.Linear(labels_size, conditional_hidden_size),
-            # nn.LeakyReLU(),
-            nn.Dropout(dropout),
-        )
-        self.embedding = CustomDurationEmbeddingConcat(
-            input_size, encoding_size, dropout=dropout
-        )
-        self.labels_ff = nn.Sequential(
-            nn.Linear(labels_size, flat_size),
-            # nn.LeakyReLU(),
-            nn.Dropout(dropout),
-        )
-        self.lstm = nn.LSTM(
-            hidden_size,
-            hidden_size,
-            hidden_layers,
-            batch_first=True,
-            bidirectional=False,
-        )
-        self.norm = nn.LayerNorm(hidden_size)
-
-    def forward(self, x, labels):
-        h1, h2 = (
-            self.labels_ff(labels)
-            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-            .permute(1, 0, 2)
-            .split(self.hidden_layers)
-        )
-        h1 = h1.contiguous()
-        h2 = h2.contiguous()
-
-        inputs_labels = (
-            self.inputs_ff(labels).unsqueeze(1).repeat(1, self.max_length, 1)
-        )
-        embedded = self.embedding(x)
-        embedded = torch.concat((embedded, inputs_labels), dim=-1)
-        _, (h1, h2) = self.lstm(embedded, (h1, h2))
-        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
-        h1 = self.norm(h1)
-        h2 = self.norm(h2)
-        hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
-        # [N, flatsize]
-        return hidden
+    def forward(self, z: Tensor, args) -> Tuple[Tensor, Tensor]:
+        z = self.latent_fc(z)
+        z = z.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
+            1, 0, 2
+        )  # ([2xhidden, N, layers])
+        z = z.split(self.hidden_n)  # ([hidden, N, layers, [hidden, N, layers]])
+        return z
 
 
 class ConcatLatent(nn.Module):
@@ -667,11 +523,11 @@ class ConcatLatent(nn.Module):
         latent_dim: int,
         labels_size: int,
         flat_size_encode: int,
-        hidden_layers: int,
+        hidden_n: int,
         hidden_size: int,
     ):
         super(ConcatLatent, self).__init__()
-        self.hidden_layers = hidden_layers
+        self.hidden_n = hidden_n
         self.hidden_size = hidden_size
         self.latent_fc = nn.Linear(latent_dim + labels_size, flat_size_encode)
 
@@ -682,13 +538,11 @@ class ConcatLatent(nn.Module):
         h = self.latent_fc(z)
 
         # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
-        ).permute(
+        hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
             1, 0, 2
         )  # ([2xhidden, N, layers])
         hidden = hidden.split(
-            self.hidden_layers
+            self.hidden_n
         )  # ([hidden, N, layers, [hidden, N, layers]])
         return hidden
 

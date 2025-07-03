@@ -765,7 +765,7 @@ def distance_weighted_av(
     base_col: str = "observed__weight",
     suffix: str = "__weight",
 ) -> Series:
-    """Weighted avergae of dataframe using weights in the weight column and a base column.
+    """Weighted average of dataframe using weights in the weight column and a base column.
     This deals with cases where models have different features.
     """
     cols = list(report.columns)

@@ -34,7 +34,7 @@ experiment_params:
   duration_loss_weight: 200
 
 model_params:
-  name: "VAEContRNN"
+  name: "VAEContCNN1D"
   latent_dim: 6
   hidden_n: 5
   hidden_size: 128

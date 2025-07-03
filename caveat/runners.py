@@ -249,7 +249,7 @@ def batch_command(
             synthetic_labels=synthetic_attributes_all,
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
-            write_path=logger.log_dir,
+            write_path=log_dir,
             eval_params=global_config.get("evaluation_params", {}),
             stats=stats,
             verbose=verbose,
