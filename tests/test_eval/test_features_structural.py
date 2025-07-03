@@ -103,10 +103,11 @@ def test_feasibility_eval():
         ]
     )
     weights, metrics = feasibility_eval(schedule, "observed")
-    assert weights.reset_index(drop=True).equals(
-        Series([3, 3, 3, 3, 3, 3, 3, 3])
+    assert (
+        weights.reset_index(drop=True)
+        .astype("int32")
+        .equals(Series([3, 3, 3, 3, 3, 3, 3, 3], dtype="int32"))
     )
-    print(metrics)
     assert metrics.reset_index(drop=True).equals(
         Series([2 / 3, 1 / 3, 0, 1 / 3, 1 / 3, 1 / 3, 0, 0])
     )

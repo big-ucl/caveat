@@ -603,7 +603,7 @@ def report(
         print("\nEvalutions (Distance):")
         print_markdown(frames["distances_short"])
 
-    print("\Group Descriptions:")
+    print("\nGroup Descriptions:")
     print_markdown(frames["group_descriptions"])
     print("\nGroup Evaluations (Distance):")
     print_markdown(frames["group_distances"])
