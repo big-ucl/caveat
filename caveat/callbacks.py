@@ -3,16 +3,17 @@ from pytorch_lightning.callbacks import Callback
 
 
 class LinearLossScheduler(Callback):
-
     def __init__(self, config: dict) -> None:
         self.min_epochs = config.get("min_epochs", 0)
         self.kld_schedule = config.get("kld_loss_schedule", None)
         self.act_schedule = config.get("activity_loss_schedule", None)
         self.dur_schedule = config.get("duration_loss_schedule", None)
+        self.end_schedule = config.get("end_loss_schedule", None)
         self.label_schedule = config.get("label_loss_schedule", None)
         self.validate_weights_schedule("KLD", self.kld_schedule)
         self.validate_weights_schedule("ACT", self.act_schedule)
         self.validate_weights_schedule("DUR", self.dur_schedule)
+        self.validate_weights_schedule("END", self.end_schedule)
         self.validate_weights_schedule("ATT", self.label_schedule)
 
     def on_train_epoch_start(
@@ -43,6 +44,14 @@ class LinearLossScheduler(Callback):
                 pl_module.scheduled_dur_weight = 1.0
             else:
                 pl_module.scheduled_dur_weight = (current_epoch - s) / (e - s)
+        if self.end_schedule is not None:
+            s, e = self.end_schedule
+            if current_epoch < s:
+                pl_module.scheduled_end_weight = 0.0
+            elif current_epoch >= e:
+                pl_module.scheduled_end_weight = 1.0
+            else:
+                pl_module.scheduled_end_weight = (current_epoch - s) / (e - s)
         if self.label_schedule is not None:
             s, e = self.label_schedule
             if current_epoch < s:

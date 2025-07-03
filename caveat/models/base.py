@@ -289,6 +289,18 @@ class Base(Experiment):
             losses = losses * joint_weights
         return losses.mean()
 
+    def end_seq_loss(
+        self, preds, targets, weights, seq_weights, joint_weights
+    ) -> Tensor:
+        """Loss function for starts [B, L]."""
+        acc_preds = preds.cumsum(dim=-1)
+        acc_targets = targets.cumsum(dim=-1)
+        losses = self.MSE(acc_preds, acc_targets)
+        losses = losses * weights * seq_weights
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses.mean()
+
     def continuous_loss(
         self,
         log_probs,
@@ -339,8 +351,19 @@ class Base(Experiment):
         )
         w_dur_recon = dur_weight * dur_recon
 
+        # start time loss
+        end_weight = self.end_loss_weight * self.scheduled_end_weight
+        end_recon = self.end_seq_loss(
+            preds=pred_durs,
+            targets=target_durs,
+            weights=dur_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_end_recon = end_weight * end_recon
+
         # reconstruction loss
-        w_recons_loss = w_act_recon + w_dur_recon
+        w_recons_loss = w_act_recon + w_dur_recon + w_end_recon
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
@@ -356,9 +379,11 @@ class Base(Experiment):
             "recon_loss": w_recons_loss.detach(),
             "act_recon": w_act_recon.detach(),
             "dur_recon": w_dur_recon.detach(),
+            "end_recon": w_end_recon.detach(),
             "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
             "act_weight": torch.tensor([act_weight]).float(),
             "dur_weight": torch.tensor([dur_weight]).float(),
+            "end_weight": torch.tensor([end_weight]).float(),
         }
 
     def discretized_loss(

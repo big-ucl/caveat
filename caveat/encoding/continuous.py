@@ -28,7 +28,14 @@ class ContinuousEncoder(BaseEncoder):
         self.max_length = max_length
         self.norm_duration = norm_duration
         self.jitter = kwargs.get("jitter", 0)
-        self.fix_durations = kwargs.get("fix_durations", False)
+
+        fixes = ["none", "stretch", "crop"]
+        self.fix_durations = kwargs.get("fix_durations", "stretch")
+        if self.fix_durations not in fixes:
+            raise ValueError(
+                f"Unknown fix_durations option: {self.fix_durations}, should be one of: {fixes}"
+            )
+
         self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
         self.weighting = kwargs.get("weighting", "unit")
         self.joint_weighting = kwargs.get("joint_weighting", "unit")
@@ -199,14 +206,26 @@ class ContinuousEncoder(BaseEncoder):
         df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
         df["duration"] = df.end - df.start
 
-        if self.fix_durations:
+        if self.fix_durations == "none":
+            return df
+
+        if self.fix_durations == "stretch":
             # ensure durations sum to norm duration
             df = norm_durations(df, self.norm_duration)
             # ensure last end time is norm duration
             df = fix_end_durations(df, self.norm_duration)
             df["duration"] = df.end - df.start
+            return df
 
-        return df
+        if self.fix_durations == "crop":
+            # remove any activities that end after the norm duration
+            df = df[df.end <= self.norm_duration]
+            # ensure last end time is norm duration
+            df = fix_end_durations(df, self.norm_duration)
+            df["duration"] = df.end - df.start
+            return df
+
+        raise ValueError(f"Unknown fix_durations option: {self.fix_durations}")
 
 
 class ContinuousEncoderStaggered(ContinuousEncoder):

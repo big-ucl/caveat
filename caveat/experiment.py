@@ -62,9 +62,11 @@ class Experiment(pl.LightningModule):
         print(f"Found KLD weight: {self.kld_loss_weight}")
 
         self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
-        self.duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
+        self.duration_loss_weight = kwargs.get("duration_loss_weight", 200.0)
+        self.end_loss_weight = kwargs.get("end_loss_weight", 0.0)
         print(f"Found activity loss weight: {self.activity_loss_weight}")
         print(f"Found duration loss weight: {self.duration_loss_weight}")
+        print(f"Found end loss weight: {self.end_loss_weight}")
 
         self.label_loss_weight = kwargs.get("label_loss_weight", 0.0001)
         print(f"Found labels loss weight: {self.label_loss_weight}")
@@ -91,6 +93,7 @@ class Experiment(pl.LightningModule):
         self.scheduled_kld_weight = 1.0
         self.scheduled_act_weight = 1.0
         self.scheduled_dur_weight = 1.0
+        self.scheduled_end_weight = 1.0
         self.scheduled_label_weight = 1.0
 
         self.build(**kwargs)
