@@ -119,7 +119,22 @@ Caveat is in development, hence an "editable" (`-e`) install is recommended.
 
 To run the example notebooks you will need to add a ipython kernel into the mamba environemnt: `ipython kernel install --user --name=caveat`.
 
-### Windoes and CUDA
+### GPU?
+Feeling slow? Maybe you're not utilising your GPU. Torch is no longer keeping its conda channel up to date! So it's possible that you need to pip install.
+
+First check if your GPU is available to pytorch, for example:
+
+'''{python}
+import torch
+assert torch.cuda.is_available()
+'''
+
+If not then you can pip install (but do so after activating the mamba env) using commands from [here](https://pytorch.org/get-started/locally/).
+
+### Windows Installation with CUDA
+
+Based on the above the following may be redundant now.
+
 If you want to get a cuda enabled windows install you can try the following mamba create:
 ```
 mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt

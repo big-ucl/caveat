@@ -148,12 +148,14 @@ def subsample_and_evaluate(
                 ]
 
             sub_reports = process_metrics(
-                synthetic_schedules=sub_schedules, target_schedules=sub_target
+                synthetic_schedules=sub_schedules,
+                target_schedules=sub_target,
+                verbose=verbose,
             )
             for r in sub_reports:  # add sub pop to index
-                names = list(r.index.names) + ["sub_pop"]
+                names = list(r.index.names) + ["label", "cat"]
                 r.index = MultiIndex.from_tuples(
-                    [(*i, f"{split}={cat}") for i in r.index], names=names
+                    [(*i, split, cat) for i in r.index], names=names
                 )
             descriptions.append(sub_reports[0])
             distances.append(sub_reports[1])
@@ -161,7 +163,8 @@ def subsample_and_evaluate(
     descriptions = concat(descriptions, axis=0)
     distances = concat(distances, axis=0)
 
-    frames = describe_splits(descriptions, distances)
+    frames = describe(descriptions, distances)
+    frames.update(describe_labels(descriptions, distances))
 
     if report_stats:
         columns = list(synthetic_schedules.keys())
@@ -175,9 +178,10 @@ def evaluate(
     synthetic_schedules: dict[str, DataFrame],
     target_schedules: DataFrame,
     report_stats: bool = True,
+    verbose: bool = False,
 ):
     descriptions, distances = process_metrics(
-        synthetic_schedules, target_schedules
+        synthetic_schedules, target_schedules, verbose=verbose
     )
     frames = describe(descriptions, distances)
 
@@ -190,11 +194,15 @@ def evaluate(
 
 
 def process_metrics(
-    synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
+    synthetic_schedules: dict[str, DataFrame],
+    target_schedules: DataFrame,
+    verbose: bool = False,
 ) -> Tuple[DataFrame, DataFrame]:
     # evaluate creativity
     descriptions, distances = [], []
 
+    if verbose:
+        print(">>> Evaluating creativity")
     creativity_descriptions, creativity_distances = eval_creativity(
         synthetic_schedules=synthetic_schedules,
         target_schedules=target_schedules,
@@ -202,6 +210,8 @@ def process_metrics(
     descriptions.append(creativity_descriptions)
     distances.append(creativity_distances)
 
+    if verbose:
+        print(">>> Evaluating sample quality")
     sample_quality = eval_sample_quality(
         synthetic_schedules=synthetic_schedules,
         target_schedules=target_schedules,
@@ -210,13 +220,15 @@ def process_metrics(
     distances.append(sample_quality)
 
     for domain, jobs in [
-        ("count", count_jobs),
-        ("aggregate", aggregate_jobs),
+        # ("count", count_jobs),
+        # ("aggregate", aggregate_jobs),
         ("participations", participation_rate_jobs),
         ("transitions", transition_jobs),
         ("timing", time_jobs),
     ]:
         for feature, size, description_job, distance_job in jobs:
+            if verbose:
+                print(f">>> Evaluating {domain} {feature[0]}")
             feature_descriptions, feature_distances = eval_jobs(
                 synthetic_schedules=synthetic_schedules,
                 target_schedules=target_schedules,
@@ -242,20 +254,101 @@ def describe(
     descriptions: DataFrame, distances: DataFrame
 ) -> dict[str, DataFrame]:
     # features
+    feature_descriptions = descriptions.drop("unit", axis=1)
+    feature_descriptions = feature_descriptions.groupby(
+        ["domain", "feature", "segment"]
+    ).apply(weighted_av)
+    feature_descriptions["unit"] = (
+        descriptions["unit"].groupby(["domain", "feature", "segment"]).first()
+    )
+
+    feature_distances = distances.drop("unit", axis=1)
+    feature_distances = feature_distances.groupby(
+        ["domain", "feature", "segment"]
+    ).apply(distance_weighted_av)
+    feature_distances["unit"] = (
+        descriptions["unit"].groupby(["domain", "feature", "segment"]).first()
+    )
+
+    # groups
     remove_features = [
-        ("sample quality", "not home based", "starts"),
-        ("sample quality", "not home based", "ends"),
-        ("sample quality", "consecutive", "home"),
-        ("sample quality", "consecutive", "work"),
-        ("sample quality", "consecutive", "education"),
+        ("feasibility", "not home based", "starts"),
+        ("feasibility", "not home based", "ends"),
+        ("feasibility", "consecutive", "home"),
+        ("feasibility", "consecutive", "work"),
+        ("feasibility", "consecutive", "education"),
     ]
+
+    group_descriptions = descriptions.drop("unit", axis=1)
+    for f in remove_features:
+        group_descriptions = group_descriptions.drop(f, axis=0)
+    group_descriptions = group_descriptions.groupby(
+        ["domain", "feature"]
+    ).apply(weighted_av)
+
+    group_descriptions["unit"] = (
+        descriptions["unit"].groupby(["domain", "feature"]).first()
+    )
+
+    group_distances = distances.drop("unit", axis=1)
+    for f in remove_features:
+        group_distances = group_distances.drop(f, axis=0)
+    group_distances = group_distances.groupby(["domain", "feature"]).apply(
+        distance_weighted_av
+    )
+    group_distances["unit"] = (
+        descriptions["unit"].groupby(["domain", "feature"]).first()
+    )
+
+    # themes
+    domain_descriptions = group_descriptions.drop("unit", axis=1)
+    domain_descriptions = domain_descriptions.drop(
+        ("feasibility", "not home based"), axis=0
+    )
+    domain_descriptions = domain_descriptions.drop(
+        ("feasibility", "consecutive"), axis=0
+    )
+    domain_descriptions = domain_descriptions.groupby("domain").mean()
+
+    domain_distances = group_distances.drop("unit", axis=1)
+    domain_distances = domain_distances.drop(
+        ("feasibility", "not home based"), axis=0
+    )
+    domain_distances = domain_distances.drop(
+        ("feasibility", "consecutive"), axis=0
+    )
+    domain_distances = domain_distances.groupby("domain").mean()
+    frames = {
+        "descriptions": feature_descriptions,
+        "group_descriptions": group_descriptions,
+        "domain_descriptions": domain_descriptions,
+        "distances": feature_distances,
+        "group_distances": group_distances,
+        "domain_distances": domain_distances,
+    }
+    return frames
+
+
+def describe_labels(
+    descriptions: DataFrame, distances: DataFrame
+) -> dict[str, DataFrame]:
+    # features
+    remove_features = [
+        ("feasibility", "not home based", "starts"),
+        ("feasibility", "not home based", "ends"),
+        ("feasibility", "consecutive", "home"),
+        ("feasibility", "consecutive", "work"),
+        ("feasibility", "consecutive", "education"),
+    ]
+    grouper = ["domain", "feature", "label"]
 
     features_descriptions = descriptions.drop("unit", axis=1)
     for f in remove_features:
         features_descriptions = features_descriptions.drop(f, axis=0)
-    features_descriptions = features_descriptions.groupby(
-        ["domain", "feature"]
-    ).apply(weighted_av)
+    features_descriptions = features_descriptions.groupby(grouper).apply(
+        weighted_av
+    )
+
     features_descriptions["unit"] = (
         descriptions["unit"].groupby(["domain", "feature"]).first()
     )
@@ -263,97 +356,38 @@ def describe(
     features_distances = distances.drop("unit", axis=1)
     for f in remove_features:
         features_distances = features_distances.drop(f, axis=0)
-    features_distances = features_distances.groupby(
-        ["domain", "feature"]
-    ).apply(weighted_av)
-    features_distances["unit"] = (
-        distances["unit"].groupby(["domain", "feature"]).first()
+    features_distances = features_distances.groupby(grouper).apply(
+        distance_weighted_av
     )
-
-    # domains
-    domain_descriptions = (
-        features_descriptions.drop("unit", axis=1).groupby("domain").mean()
-    )
-    domain_descriptions.loc[("sample quality")] = distances.loc[
-        ("sample quality", "invalid", "all")
-    ]
-    domain_distances = (
-        features_distances.drop("unit", axis=1).groupby("domain").mean()
-    )
-    domain_distances.loc[("sample quality")] = distances.loc[
-        ("sample quality", "invalid", "all")
-    ]
-
-    frames = {
-        "descriptions": descriptions,
-        "feature_descriptions": features_descriptions,
-        "domain_descriptions": domain_descriptions,
-        "distances": distances,
-        "feature_distances": features_distances,
-        "domain_distances": domain_distances,
-    }
-    return frames
-
-
-def describe_splits(
-    descriptions: DataFrame, distances: DataFrame
-) -> dict[str, DataFrame]:
-    # features
-    remove_features = [
-        ("sample quality", "not home based", "starts"),
-        ("sample quality", "not home based", "ends"),
-        ("sample quality", "consecutive", "home"),
-        ("sample quality", "consecutive", "work"),
-        ("sample quality", "consecutive", "education"),
-    ]
-
-    features_descriptions = descriptions.drop("unit", axis=1)
-    for f in remove_features:
-        features_descriptions = features_descriptions.drop(f, axis=0)
-    features_descriptions = features_descriptions.groupby(
-        ["domain", "feature", "sub_pop"]
-    ).apply(weighted_av)
-
-    features_descriptions["unit"] = (
-        descriptions["unit"].groupby(["domain", "feature", "sub_pop"]).first()
-    )
-
-    features_distances = distances.drop("unit", axis=1)
-    for f in remove_features:
-        features_distances = features_distances.drop(f, axis=0)
-    features_distances = features_distances.groupby(
-        ["domain", "feature", "sub_pop"]
-    ).apply(distance_weighted_av)
-    features_distances["unit"] = (
-        descriptions["unit"].groupby(["domain", "feature", "sub_pop"]).first()
-    )
+    features_distances["unit"] = descriptions["unit"].groupby(grouper).first()
 
     # themes
+    grouper = ["domain", "label"]
     domain_descriptions = features_descriptions.drop("unit", axis=1)
     domain_descriptions = domain_descriptions.drop(
-        ("sample quality", "not home based"), axis=0
+        ("feasibility", "not home based"), axis=0
     )
     domain_descriptions = domain_descriptions.drop(
-        ("sample quality", "consecutive"), axis=0
+        ("feasibility", "consecutive"), axis=0
     )
-    domain_descriptions = domain_descriptions.groupby("domain").mean()
+    domain_descriptions = domain_descriptions.groupby(grouper).mean()
 
     domain_distances = features_distances.drop("unit", axis=1)
     domain_distances = domain_distances.drop(
-        ("sample quality", "not home based"), axis=0
+        ("feasibility", "not home based"), axis=0
     )
     domain_distances = domain_distances.drop(
-        ("sample quality", "consecutive"), axis=0
+        ("feasibility", "consecutive"), axis=0
     )
-    domain_distances = domain_distances.groupby("domain").mean()
+    domain_distances = domain_distances.groupby(grouper).mean()
 
     frames = {
-        "descriptions": descriptions,
-        "feature_descriptions": features_descriptions,
-        "domain_descriptions": domain_descriptions,
-        "distances": distances,
-        "feature_distances": features_distances,
-        "domain_distances": domain_distances,
+        "label_descriptions": descriptions,
+        "label_group_descriptions": features_descriptions,
+        "label_domain_descriptions": domain_descriptions,
+        "label_distances": distances,
+        "label_group_distances": features_distances,
+        "label_domain_distances": domain_distances,
     }
     return frames
 
@@ -436,18 +470,17 @@ def eval_creativity(
 def eval_sample_quality(
     synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
 ) -> Tuple[DataFrame, DataFrame]:
-    observed_weights, observed_metrics = structural.structural_eval(
+    observed_weights, observed_metrics = structural.feasibility_eval(
         target_schedules, name="observed"
     )
     results = [observed_weights, observed_metrics]
     for model, y in synthetic_schedules.items():
         y = filter_novel(y, target_schedules)
-
-        weights, metrics = structural.structural_eval(y, name=model)
+        weights, metrics = structural.feasibility_eval(y, name=model)
         results.append(weights)
         results.append(metrics)
     results = concat(results, axis=1)
-    results["unit"] = "prob. invalid"
+    results["unit"] = "prob. infeasible"
     return results
 
 
@@ -474,10 +507,9 @@ def eval_jobs(
     # create an observed feature count and description
     feature_weight = size(observed_features)
     feature_weight.name = "observed__weight"
-
-    description_job = describe(observed_features)
+    description = describe(observed_features)
     feature_descriptions = DataFrame(
-        {"observed__weight": feature_weight, "observed": description_job}
+        {"observed__weight": feature_weight, "observed": description}
     )
 
     # sort by count and description, drop description and add distance description
@@ -492,7 +524,6 @@ def eval_jobs(
         synth_features = feature(y)
         synth_weight = size(synth_features)
         synth_weight.name = f"{model}__weight"
-
         feature_descriptions = concat(
             [
                 synth_weight,
@@ -501,7 +532,6 @@ def eval_jobs(
             ],
             axis=1,
         )
-
         # report sampled distances
         feature_distances = concat(
             [
@@ -573,13 +603,13 @@ def report(
         print("\nEvalutions (Distance):")
         print_markdown(frames["distances_short"])
 
-    print("\nFeature Descriptions:")
-    print_markdown(frames["feature_descriptions"])
-    print("\nFeature Evaluations (Distance):")
-    print_markdown(frames["feature_distances"])
+    print("\nGroup Descriptions:")
+    print_markdown(frames["group_descriptions"])
+    print("\nGroup Evaluations (Distance):")
+    print_markdown(frames["group_distances"])
     if ranking:
-        print("\nFeature Evaluations (Ranked):")
-        print_markdown(rank(frames["feature_distances"]))
+        print("\nGroup Evaluations (Ranked):")
+        print_markdown(rank(frames["group_distances"]))
 
     print("\nDomain Descriptions:")
     print_markdown(frames["domain_descriptions"])
@@ -599,20 +629,20 @@ def report_splits(
     ranking: bool = False,
 ):
     if head is not None:
-        frames["descriptions_short"] = (
-            frames["descriptions"]
-            .groupby(["domain", "feature", "sub_pop"])
+        frames["label_descriptions_short"] = (
+            frames["label_descriptions"]
+            .groupby(["domain", "feature", "label"])
             .head(head)
         )
-        frames["distances_short"] = (
-            frames["distances"]
-            .groupby(["domain", "feature", "sub_pop"])
+        frames["label_distances_short"] = (
+            frames["label_distances"]
+            .groupby(["domain", "feature", "label"])
             .head(head)
         )
     else:
         # default to full
-        frames["descriptions_short"] = frames["descriptions"]
-        frames["distances_short"] = frames["distances"]
+        frames["label_descriptions_short"] = frames["label_descriptions"]
+        frames["label_distances_short"] = frames["label_distances"]
 
     if log_dir is not None:
         for name, frame in frames.items():
@@ -620,25 +650,25 @@ def report_splits(
 
     if verbose:
         print("\nDescriptions:")
-        print_markdown(frames["descriptions_short"])
+        print_markdown(frames["label_descriptions_short"])
         print("\nEvalutions (Distance):")
-        print_markdown(frames["distances_short"])
+        print_markdown(frames["label_distances_short"])
 
-    print("\nFeature Descriptions:")
-    print_markdown(frames["feature_descriptions"])
-    print("\nFeature Evaluations (Distance):")
-    print_markdown(frames["feature_distances"])
+    print("\nGroup Descriptions:")
+    print_markdown(frames["label_group_descriptions"])
+    print("\nGroup Evaluations (Distance):")
+    print_markdown(frames["label_group_distances"])
     if ranking:
-        print("\nFeature Evaluations (Ranked):")
-        print_markdown(rank(frames["feature_distances"]))
+        print("\nGroup Evaluations (Ranked):")
+        print_markdown(rank(frames["label_group_distances"]))
 
     print("\nDomain Descriptions:")
-    print_markdown(frames["domain_descriptions"])
+    print_markdown(frames["label_domain_descriptions"])
     print("\nDomain Evaluations (Distance):")
-    print_markdown(frames["domain_distances"])
+    print_markdown(frames["label_domain_distances"])
     if ranking:
         print("\nDomain Evaluations (Ranked):")
-        print_markdown(rank(frames["domain_distances"]))
+        print_markdown(rank(frames["label_domain_distances"]))
 
 
 def add_stats(data: DataFrame, columns: dict[str, DataFrame]):
@@ -715,16 +745,16 @@ def extract_default_shape(
     print(
         f"Warning, no features found in the given dictionary: {features}, return [1]."
     )
-    return np.array([0])
+    return np.array([1])
 
 
-def weighted_av(report: DataFrame, weight_col: str = "__weight") -> Series:
+def weighted_av(report: DataFrame, suffix: str = "__weight") -> Series:
     """Weighted average of dataframe using weights in the weight column."""
     cols = list(report.columns)
-    cols = [c for c in cols if not c.endswith(weight_col)]
+    cols = [c for c in cols if not c.endswith(suffix)]
     scores = DataFrame()
     for c in cols:
-        weights = report[f"{c}{weight_col}"]
+        weights = report[f"{c}{suffix}"]
         total = weights.sum()
         scores[c] = report[c] * weights / total
     return scores.sum()
@@ -733,17 +763,17 @@ def weighted_av(report: DataFrame, weight_col: str = "__weight") -> Series:
 def distance_weighted_av(
     report: DataFrame,
     base_col: str = "observed__weight",
-    weight_col: str = "__weight",
+    suffix: str = "__weight",
 ) -> Series:
-    """Weighted avergae of dataframe using weights in the weight column and a base column.
+    """Weighted average of dataframe using weights in the weight column and a base column.
     This deals with cases where models have different features.
     """
     cols = list(report.columns)
-    cols = [c for c in cols if not c.endswith(weight_col)]
+    cols = [c for c in cols if not c.endswith(suffix)]
     base_weights = report[base_col]
     scores = DataFrame()
     for c in cols:
-        weights = report[f"{c}{weight_col}"]
+        weights = report[f"{c}{suffix}"]
         weights = (weights + base_weights) / 2
         total = weights.sum()
         scores[c] = report[c] * weights / total

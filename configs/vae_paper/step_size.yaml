@@ -1,0 +1,104 @@
+global:
+  seed: 1234
+  logging_params:
+    log_dir: "logs/vae_paper"
+    name: "steps"
+  
+  schedules_path: "tmp/nts_schedules_2023.csv"
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+  
+  trainer_params:
+    min_epochs: 50
+    max_epochs: 200
+    patience: 50
+
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.01
+  
+  model_params:
+    name: "VAEDiscCNN1D"+
+    latent_dim: 6
+    hidden_n: 6
+    hidden_size: 512
+    dropout: 0.1
+    stride: 2
+    kernel_size: 4
+    padding: 0
+
+5min:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 5
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+
+10min:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+
+15min:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 15
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+
+20min:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 20
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+
+30min:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 30
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+
+60min:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 60
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit
+
+120min:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 120
+    jitter: 0.1
+    weighting: unit
+    joint_weighting: unit

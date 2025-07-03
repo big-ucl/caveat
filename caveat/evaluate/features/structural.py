@@ -6,19 +6,17 @@ from pandas import DataFrame, MultiIndex, Series
 from caveat.evaluate.features.utils import weighted_features
 
 
-def structural_eval(
-    population: DataFrame, name: str
-) -> dict[str, tuple[ndarray, ndarray]]:
+def feasibility_eval(population: DataFrame, name: str) -> tuple[Series, Series]:
     index = MultiIndex.from_tuples(
         [
-            ("sample quality", "invalid", "all"),
-            ("sample quality", "not home based", "all"),
-            ("sample quality", "not home based", "starts"),
-            ("sample quality", "not home based", "ends"),
-            ("sample quality", "consecutive", "all"),
-            ("sample quality", "consecutive", "home"),
-            ("sample quality", "consecutive", "work"),
-            ("sample quality", "consecutive", "education"),
+            ("feasibility", "invalid", "all"),
+            ("feasibility", "not home based", "all"),
+            ("feasibility", "not home based", "starts"),
+            ("feasibility", "not home based", "ends"),
+            ("feasibility", "consecutive", "all"),
+            ("feasibility", "consecutive", "home"),
+            ("feasibility", "consecutive", "work"),
+            ("feasibility", "consecutive", "education"),
         ],
         names=["domain", "feature", "segment"],
     )
@@ -29,53 +27,54 @@ def structural_eval(
         metrics = Series([0] * len(index), index=index, name=name)
         return weights, metrics
 
+    # home based feasibility
+    first_acts = population.groupby("pid").first().act
+    last_acts = population.groupby("pid").last().act
+
+    not_start_at_home = first_acts != "home"
+    not_end_at_home = last_acts != "home"
+    not_home_based = not_start_at_home | not_end_at_home
+
+    # consecutive feasibility
+    consecutive_home = get_consecutives(population, "home")
+    consecutive_work = get_consecutives(population, "work")
+    consecutive_education = get_consecutives(population, "education")
+
+    consecutive = consecutive_home | consecutive_work | consecutive_education
+
+    # combined
+    invalid = not_home_based | consecutive
+
     n = population.pid.nunique()
-
-    invalid = 0
-    not_home_based = 0
-    consecutives = 0
-    not_start_at_home = 0
-    not_end_at_home = 0
-    consecutive_home = 0
-    consecutive_work = 0
-    consecutive_education = 0
-
-    for _, schedule in population.groupby("pid"):
-        nsh = schedule.act.iloc[0] != "home"
-        neh = schedule.act.iloc[-1] != "home"
-        nhb = any([nsh, neh])
-
-        ch = contains_consecutive(schedule, "home")
-        cw = contains_consecutive(schedule, "work")
-        ce = contains_consecutive(schedule, "education")
-        ccs = any([ch, cw, ce])
-
-        invalid += any([nhb, ccs])
-        not_home_based += nhb
-        not_start_at_home += nsh
-        not_end_at_home += neh
-        consecutives += ccs
-        consecutive_home += ch
-        consecutive_work += cw
-        consecutive_education += ce
 
     metrics = Series(
         [
-            invalid / n,
-            not_home_based / n,
-            not_start_at_home / n,
-            not_end_at_home / n,
-            consecutives / n,
-            consecutive_home / n,
-            consecutive_work / n,
-            consecutive_education / n,
+            invalid.sum() / n,
+            not_home_based.sum() / n,
+            not_start_at_home.sum() / n,
+            not_end_at_home.sum() / n,
+            consecutive.sum() / n,
+            consecutive_home.sum() / n,
+            consecutive_work.sum() / n,
+            consecutive_education.sum() / n,
         ],
         index=index,
         name=name,
+        dtype=float,
     )
-    weights = Series([n] * len(index), index=index, name=f"{name}__weight")
-
+    weights = Series(
+        [n] * len(index), index=index, name=f"{name}__weight", dtype=int
+    )
     return weights, metrics
+
+
+def get_consecutives(population: DataFrame, act: str) -> Series:
+    mask = population.act == act
+    mask = mask & mask.shift(1)
+    include = mask.groupby(population.pid).cumcount(ascending=True) > 0
+    mask = mask & include
+    mask = mask.groupby(population.pid).sum()
+    return mask > 0
 
 
 def start_and_end_acts(

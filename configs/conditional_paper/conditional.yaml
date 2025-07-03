@@ -2,25 +2,28 @@ seed: 12345
 
 logging_params:
   log_dir: "logs/TRB"
-  name: "c_discrim"
+  name: "conditional"
 
-schedules_path: "tmp/nts_home_schedules.csv"
-attributes_path: "tmp/nts_home_attributes_groups.csv"
+schedules_path: "tmp/nts_schedules_2023.csv"
+attributes_path: "tmp/nts_attributes_2023.csv"
 
 loader_params:
   train_batch_size: 1024
   val_batch_size:  1024
   num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
 
 trainer_params:
-  min_epochs: 40
-  max_epochs: 100
+  min_epochs: 20
+  max_epochs: 200
   patience: 20
 
 experiment_params:
   LR: 0.001
   weight_decay: 0.02
   scheduler_gamma: 0.975
+  duration_loss_weight: 200
 
 evaluation_params:
   split_on: [gender, age_group, car_access, work_status, income]
@@ -38,14 +41,20 @@ encoder_params:
   name: "continuous"
   max_length: 16
   norm_duration: 1440
-  jitter: 0.3
+  jitter: 0.1
   fix_durations: True
+  weighting: unit
+  joint_weighting: unit
+  label_weighting: unit
+  trim_eos: True
+  
   
 model_params:
   name: "CondContLSTM"
   latent_dim: 0
   hidden_n: 4
   hidden_size: 128
+  labels_hidden_size: 32
   dropout: 0.0
   top_sampler: True
 

@@ -77,10 +77,13 @@ def run_command(
 
     if test:
         # test the model
+        test_path = Path(f"{logger.log_dir}/test")
+        test_path.mkdir(exist_ok=True, parents=True)
         run_test(
             trainer=trainer,
             schedule_encoder=schedule_encoder,
-            write_dir=Path(logger.log_dir),
+            attribute_encoder=attribute_encoder,
+            write_dir=test_path,
             seed=seed,
         )
 
@@ -202,6 +205,7 @@ def batch_command(
             run_test(
                 trainer=trainer,
                 schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
             )
@@ -245,7 +249,7 @@ def batch_command(
             synthetic_labels=synthetic_attributes_all,
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
-            write_path=logger.log_dir,
+            write_path=log_dir,
             eval_params=global_config.get("evaluation_params", {}),
             stats=stats,
             verbose=verbose,
@@ -312,6 +316,7 @@ def nrun_command(
             run_test(
                 trainer=trainer,
                 schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
             )
@@ -766,6 +771,7 @@ def train(
 def run_test(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
+    attribute_encoder: label_encoding.BaseLabelEncoder,
     write_dir: Path,
     seed: int,
     ckpt_path: Optional[str] = None,
@@ -774,31 +780,27 @@ def run_test(
     print("\n======= Testing =======")
     if ckpt_path is None:
         ckpt_path = "best"
-    trainer.test(ckpt_path=ckpt_path, datamodule=trainer.datamodule)
-    (test_in, test_target, conditionals, predictions) = zip(
-        *list(
-            trainer.predict(
-                ckpt_path="best",
-                dataloaders=trainer.datamodule.test_dataloader(),
-            )
+
+    with open(write_dir / f"{ckpt_path}_loss.txt", "w") as fp:
+        loss = trainer.test(
+            ckpt_path=ckpt_path,
+            dataloaders=trainer.datamodule.train_dataloader(),
         )
-    )
-    test_in = torch.concat(test_in)
-    test_target = torch.concat(test_target)
-    conditionals = torch.concat(conditionals)
-    predictions = torch.concat(predictions)
 
-    test_in = schedule_encoder.decode_input(schedules=test_in)
-    data.validate_schedules(test_in)
-    test_in.to_csv(write_dir / "test_input.csv")
+        fp.write(f"TRAIN: {loss[0]}\n")
 
-    test_target = schedule_encoder.decode_target(schedules=test_target)
-    test_target.to_csv(write_dir / "test_target.csv")
+        loss = trainer.test(
+            ckpt_path=ckpt_path, dataloaders=trainer.datamodule.val_dataloader()
+        )
+        fp.write(f"VAL: {loss[0]}\n")
 
-    predictions = schedule_encoder.decode_output(schedules=predictions)
-    predictions.to_csv(write_dir / "pred.csv")
+        loss = trainer.test(
+            ckpt_path=ckpt_path,
+            dataloaders=trainer.datamodule.test_dataloader(),
+        )
+        fp.write(f"TEST: {loss[0]}\n")
 
-    return test_in, test_target, predictions
+    print(f">> Losses saved to {write_dir / f'{ckpt_path}_loss.txt'}")
 
 
 def test_inference(
@@ -993,6 +995,7 @@ def evaluate_synthetics(
             target_attributes=eval_attributes,
             split_on=split_on,
             report_stats=stats,
+            verbose=verbose,
         )
         evaluate.report_splits(
             sub_reports,

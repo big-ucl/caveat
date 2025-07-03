@@ -19,6 +19,7 @@ loader_params:
   train_batch_size: 32
   val_batch_size:  32
   num_workers: 3
+  test_split: 0.1
 
 experiment_params:
   LR: 0.005

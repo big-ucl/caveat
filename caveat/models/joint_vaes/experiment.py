@@ -9,7 +9,6 @@ from caveat.experiment import Experiment, pre_process, unpack
 
 
 class JointExperiment(Experiment):
-
     def __init__(self, *args, **kwargs):
         self.label_embed_sizes = kwargs.get("label_embed_sizes", None)
         if self.label_embed_sizes is None:
@@ -93,7 +92,7 @@ class JointExperiment(Experiment):
 
             log_probs, mu, log_var, z = self.forward(x, conditionals=labels)
             test_loss = self.loss_function(
-                log_probs_x=log_probs,
+                log_probs=log_probs,
                 mu=mu,
                 log_var=log_var,
                 targets=(y, labels),

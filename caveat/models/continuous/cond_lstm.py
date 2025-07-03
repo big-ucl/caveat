@@ -20,13 +20,16 @@ class CondContLSTM(Base):
     def build(self, **config):
         self.latent_dim = 1  # dummy value for the predict dataloader
         self.hidden_size = config["hidden_size"]
+        self.labels_hidden_size = config.get(
+            "labels_hidden_size", self.hidden_size
+        )
         self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
         self.label_encoder = LabelEncoder(
             label_embed_sizes=self.label_embed_sizes,
-            hidden_size=self.hidden_size,
+            hidden_size=self.labels_hidden_size,
         )
 
         self.decoder = Decoder(
@@ -41,7 +44,8 @@ class CondContLSTM(Base):
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_hidden = nn.Linear(self.hidden_size, flat_size_encode)
+        self.fc_step = nn.Linear(self.labels_hidden_size, self.hidden_size)
+        self.fc_hidden = nn.Linear(self.labels_hidden_size, flat_size_encode)
 
     def forward(
         self,
@@ -80,10 +84,13 @@ class CondContLSTM(Base):
         """
         batch_size = labels.shape[0]
         embeds = self.label_encoder(labels)
-        h = self.fc_hidden(embeds)
+        step_embeds = self.fc_step(embeds)
+        hidden_embeds = self.fc_hidden(embeds)
 
         # initialize hidden state
-        hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
+        hidden = hidden_embeds.unflatten(
+            1, (2 * self.hidden_n, self.hidden_size)
+        ).permute(
             1, 0, 2
         )  # ([2xhidden, N, layers])
         hidden = hidden.split(
@@ -96,14 +103,14 @@ class CondContLSTM(Base):
                 batch_size=batch_size,
                 hidden=hidden,
                 target=target,
-                conditionals=embeds,
+                conditionals=step_embeds,
             )
         else:
             log_probs = self.decoder(
                 batch_size=batch_size,
                 hidden=hidden,
                 target=None,
-                conditionals=embeds,
+                conditionals=step_embeds,
             )
 
         return log_probs

@@ -1,15 +1,16 @@
 seed: 12345
 
 logging_params:
-  log_dir: logs/vae_paper
-  name: tune_50
+  log_dir: logs/TRB
+  name: tuneL16
 
 tune:
-  trials: 400
+  trials: 200
   prune: True
   timeout:  72000 # seconds
 
-schedules_path: tmp/nts_schedules_2023_50.csv
+schedules_path: "tmp/nts_schedules_2023.csv"
+attributes_path: "tmp/nts_attributes_2023.csv"
 
 loader_params:
   train_batch_size: 1024
@@ -17,19 +18,44 @@ loader_params:
   num_workers: 8
 
 trainer_params:
-  min_epochs: 50
-  max_epochs: 150
-  patience: 50
+  min_epochs: 20
+  max_epochs: 100
+  patience: 20
 
 encoder_params:
   name: "continuous"
-  fix_durations: True
   max_length: 16
-  duration: 1440
-  jitter: 0.1
+  norm_duration: 1440
+  jitter: 0
+  fix_durations: True
+  trim_eos: True
   weighting: unit
   joint_weighting: unit
-  trim_eos: True
+
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: inverse
+  labels:
+    work_status: nominal
+    area: nominal
+    age_group: nominal
+    mobility: nominal
+    income: nominal
+    education: nominal
+    ethnicity: nominal
+    gender: nominal
+    car_access: nominal
+    license: nominal
+    WfH: nominal
+    wheelchair_user: nominal
+    ticket_holder: nominal
+    health: nominal
+    blue_badge: nominal
+    num_license_holders: nominal
+
+evaluation_params:
+  split_on: [work_status]
 
 experiment_params:
   LR: trial.suggest_float("LR", 1e-4, 0.01, log=True)
@@ -39,9 +65,13 @@ experiment_params:
   duration_loss_weight: 200
 
 model_params:
-  name: "VAEContLSTM"
+  name: "CVAEContLSTM"
   latent_dim: 6
-  hidden_n: trial.suggest_int("hidden_n", 2, 4)
-  hidden_size: trial.suggest_categorical("hidden_size", [32, 64, 128, 256])
+  hidden_n: trial.suggest_int("hidden_n", 2, 5)
+  hidden_size: trial.suggest_categorical("hidden_size", [128, 256, 512])
+  labels_hidden_size: trial.suggest_categorical("labels_hidden_size", [16, 32, 64, 128, 256])
   dropout: 0.1
   teacher_forcing_ratio: 0.5
+  encoder_conditionality: both_concat
+  latent_conditionality: add
+  decoder_conditionality: inputs_concat

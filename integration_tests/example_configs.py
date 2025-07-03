@@ -62,18 +62,18 @@ def test_run_configs(path, tmp_path):
     print(f">>> Running {name}")
     config = yaml.load(path.read_text(), Loader=yaml.FullLoader)
     if name.startswith("run"):
-        run_command(config)
+        run_command(config, test=True)
     elif name.startswith("batch"):
-        batch_command(config)
+        batch_command(config, test=True)
     elif name.startswith("nrun"):
-        nrun_command(config, n=2)
+        nrun_command(config, n=2, test=True)
     elif name.startswith("ngen"):
         ngen_command(config, n=2)
     elif name.startswith("jrun"):
-        jrun_command(config)
+        jrun_command(config, test=True)
     elif name.startswith("mmrun"):
-        mmrun_command(config)
+        mmrun_command(config, test=True)
     elif name.startswith("tune"):
-        tune_command(config)
+        tune_command(config, test=True)
     else:
         raise ValueError(f"Unknown config type: {name}")
