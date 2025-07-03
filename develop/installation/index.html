@@ -345,9 +345,18 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#windoes-and-cuda" class="md-nav__link">
+  <a href="#gpu" class="md-nav__link">
     <span class="md-ellipsis">
-      Windoes and CUDA
+      GPU?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows-installation-with-cuda" class="md-nav__link">
+    <span class="md-ellipsis">
+      Windows Installation with CUDA
     </span>
   </a>
   
@@ -1447,8 +1456,6 @@
       
         
       
-        
-      
     
     
     
@@ -1615,27 +1622,6 @@
   
   <span class="md-ellipsis">
     caveat.evaluate.features.creativity
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/caveat/evaluate/features/feasibility/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    caveat.evaluate.features.feasibility
   </span>
   
 
@@ -2810,9 +2796,18 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#windoes-and-cuda" class="md-nav__link">
+  <a href="#gpu" class="md-nav__link">
     <span class="md-ellipsis">
-      Windoes and CUDA
+      GPU?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows-installation-with-cuda" class="md-nav__link">
+    <span class="md-ellipsis">
+      Windows Installation with CUDA
     </span>
   </a>
   
@@ -2884,7 +2879,16 @@
 <p>Caveat is in development, hence an "editable" (<code>-e</code>) install is recommended.</p>
 <h3 id="jupyter-notebooks">Jupyter Notebooks<a class="headerlink" href="#jupyter-notebooks" title="Permanent link">#</a></h3>
 <p>To run the example notebooks you will need to add a ipython kernel into the mamba environemnt: <code>ipython kernel install --user --name=caveat</code>.</p>
-<h3 id="windoes-and-cuda">Windoes and CUDA<a class="headerlink" href="#windoes-and-cuda" title="Permanent link">#</a></h3>
+<h3 id="gpu">GPU?<a class="headerlink" href="#gpu" title="Permanent link">#</a></h3>
+<p>Feeling slow? Maybe you're not utilising your GPU. Torch is no longer keeping its conda channel up to date! So it's possible that you need to pip install.</p>
+<p>First check if your GPU is available to pytorch, for example:</p>
+<p>'''{python}
+import torch
+assert torch.cuda.is_available()
+'''</p>
+<p>If not then you can pip install (but do so after activating the mamba env) using commands from <a href="https://pytorch.org/get-started/locally/">here</a>.</p>
+<h3 id="windows-installation-with-cuda">Windows Installation with CUDA<a class="headerlink" href="#windows-installation-with-cuda" title="Permanent link">#</a></h3>
+<p>Based on the above the following may be redundant now.</p>
 <p>If you want to get a cuda enabled windows install you can try the following mamba create:
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
 </span></code></pre></div>
