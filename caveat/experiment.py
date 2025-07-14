@@ -17,6 +17,7 @@ class Experiment(pl.LightningModule):
         encoding_weights: Optional[Tensor] = None,
         labels_size: Optional[tuple] = None,
         sos: int = 0,
+        eos: int = 1,
         gen: bool = False,
         test: bool = False,
         LR: float = 0.001,
@@ -53,20 +54,30 @@ class Experiment(pl.LightningModule):
             print(f"Found labels size: {self.labels_size}")
         self.label_embed_sizes = kwargs.get("label_embed_sizes", None)
         self.sos = sos
-        print(f"Found start of sequence token: {self.sos}")
+        self.eos = eos
+        print(f"Found SOS token: {self.sos}, EOS token: {self.eos}")
         self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
         print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
 
         # loss function params
         self.kld_loss_weight = kwargs.get("kld_weight", 0.001)
         print(f"Found KLD weight: {self.kld_loss_weight}")
-
         self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
         self.duration_loss_weight = kwargs.get("duration_loss_weight", 200.0)
+        self.start_loss_weight = kwargs.get("start_loss_weight", 0.0)
         self.end_loss_weight = kwargs.get("end_loss_weight", 0.0)
+        self.total_duration_loss_weight = kwargs.get(
+            "total_duration_loss_weight", 0.0
+        )
         print(f"Found activity loss weight: {self.activity_loss_weight}")
         print(f"Found duration loss weight: {self.duration_loss_weight}")
+        print(f"Found start loss weight: {self.start_loss_weight}")
         print(f"Found end loss weight: {self.end_loss_weight}")
+        print(
+            f"Found total duration loss weight: {self.total_duration_loss_weight}"
+        )
+        self.norm_durations = kwargs.get("normalise_durations", True)
+        print(f"Normalising durations: {self.norm_durations}")
 
         self.label_loss_weight = kwargs.get("label_loss_weight", 0.0001)
         print(f"Found labels loss weight: {self.label_loss_weight}")
@@ -88,12 +99,16 @@ class Experiment(pl.LightningModule):
 
         self.loss = nn.NLLLoss(reduction="none")
         self.MSE = nn.MSELoss(reduction="none")
+        self.MAPE = nn.L1Loss(reduction="none")
+        self.MAE = nn.L1Loss(reduction="none")
 
         # set up scheduled loss function weights
         self.scheduled_kld_weight = 1.0
         self.scheduled_act_weight = 1.0
         self.scheduled_dur_weight = 1.0
+        self.scheduled_start_weight = 1.0
         self.scheduled_end_weight = 1.0
+        self.scheduled_total_dur_weight = 1.0
         self.scheduled_label_weight = 1.0
 
         self.build(**kwargs)
@@ -115,7 +130,8 @@ class Experiment(pl.LightningModule):
             target=y,
             weights=y_weights,
             label_weights=l_weights,
-            # batch_idx=batch_idx,
+            cat_p=z[0],
+            cat_z=z[1],
         )
         self.log_dict(
             {key: val.item() for key, val in train_loss.items()}, sync_dist=True
@@ -137,8 +153,8 @@ class Experiment(pl.LightningModule):
             target=y,
             weights=y_weights,
             label_weights=l_weights,
-            # optimizer_idx=optimizer_idx,
-            # batch_idx=batch_idx,
+            cat_p=z[0],
+            cat_z=z[1],
         )
 
         self.log_dict(
@@ -170,7 +186,8 @@ class Experiment(pl.LightningModule):
                 target=y,
                 weights=y_weights,
                 label_weights=l_weights,
-                # batch_idx=batch_idx,
+                cat_p=z[0],
+                cat_z=z[1],
             )
 
             self.log_dict(

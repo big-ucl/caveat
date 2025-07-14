@@ -69,6 +69,29 @@ def act_and_dur_inverse_weights(
     return weights
 
 
+def dur_inverse_weights(
+    sequences: Tensor, sos_idx: int = 0, eos_idx: int = 1, trim_eos: bool = True
+) -> Tensor:
+    """
+    Shorter is more important!?
+    """
+    activities = sequences[:, :, 0]
+    durations = sequences[:, :, 1]
+    weights = torch.zeros_like(durations)
+    inverse = durations.clone()
+    inverse[inverse == 0] = 1  # avoid division by zero
+    inverse = 1 / inverse  # inverse durations
+    weights = inverse / inverse.mean(dim=-1, keepdim=True)  # normalize
+    weights = weights.view(sequences.shape[0], -1)
+
+    if trim_eos:
+        eos_mask = trim_eos_mask(activities, eos_idx)
+        weights = weights * eos_mask  # apply to weights
+
+    weights = weights / weights.mean()
+    return weights
+
+
 # sequence level weighting [B, L, 2] -> [B, 1]
 
 
@@ -141,6 +164,7 @@ act_weight_library = {
     "unit": unit_weights,
     "act_inverse": act_inverse_weights,
     "act_dur_inverse": act_and_dur_inverse_weights,
+    "dur_inverse": dur_inverse_weights,
 }
 
 seq_weight_library = {

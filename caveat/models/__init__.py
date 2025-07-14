@@ -1,6 +1,8 @@
 from .base import Base
+from .cat_base import CatBase
 from .continuous.auto_attention import AutoContAtt
 from .continuous.auto_lstm import AutoContLSTM
+from .continuous.cat_vae_lstm import CatVAEContLSTM
 from .continuous.cond_lstm import CondContLSTM
 from .continuous.cvae_lstm import CVAEContLSTM
 from .continuous.vae_attention import VAEContXAtt
@@ -45,4 +47,5 @@ library = {
     "JVAEContLSTM": JVAEContLSTM,
     "JVAEContLSTMRerouted": JVAEContLSTMRerouted,
     "LabelFeedForward": Schedule2LabelFeedForward,
+    "CatVAEContLSTM": CatVAEContLSTM,
 }

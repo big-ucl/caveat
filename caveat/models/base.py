@@ -204,67 +204,6 @@ class Base(Experiment):
         z = z.to(device)
         return prob_samples, z
 
-    # def unweighted_seq_loss(
-    #     self, log_probs, mu, log_var, target, mask, **kwargs
-    # ) -> dict:
-    #     """Loss function for sequence encoding [N, L, 2]."""
-
-    #     # unpack act probs and durations
-    #     target_acts, target_durations = self.unpack_encoding(target)
-    #     pred_acts, pred_durations = self.unpack_encoding(log_probs)
-    #     pred_durations = torch.exp(pred_durations)
-
-    #     if self.use_mask:  # default is to use masking
-    #         flat_mask = mask.view(-1).bool()
-    #     else:
-    #         flat_mask = torch.ones_like(target_acts).view(-1).bool()
-
-    #     # activity loss
-    #     act_recon = self.NLLL(
-    #         pred_acts.view(-1, self.encodings)[flat_mask],
-    #         target_acts.view(-1).long()[flat_mask],
-    #     )
-    #     act_scheduled_weight = (
-    #         self.activity_loss_weight * self.scheduled_act_weight
-    #     )
-    #     w_act_recon = act_scheduled_weight * act_recon
-
-    #     # duration loss
-    #     dur_recon = self.duration_loss_weight * self.MSE(
-    #         pred_durations.view(-1)[flat_mask],
-    #         target_durations.view(-1)[flat_mask],
-    #     )
-    #     dur_scheduled_weight = (
-    #         self.duration_loss_weight * self.scheduled_dur_weight
-    #     )
-    #     w_dur_recon = dur_scheduled_weight * dur_recon
-
-    #     # reconstruction loss
-    #     w_recons_loss = act_recon + dur_recon
-
-    #     # # hamming distance
-    #     # recon_argmax = torch.argmax(pred_acts, dim=-1)
-    #     # recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
-
-    #     # kld loss
-    #     kld_loss = self.kld(mu, log_var)
-    #     scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
-    #     w_kld_loss = scheduled_kld_weight * kld_loss
-
-    #     # final loss
-    #     loss = w_recons_loss + w_kld_loss
-
-    #     return {
-    #         "loss": loss,
-    #         "KLD": w_kld_loss.detach(),
-    #         "recon_loss": w_recons_loss.detach(),
-    #         "act_recon": w_act_recon.detach(),
-    #         "dur_recon": w_dur_recon.detach(),
-    #         "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
-    #         "act_weight": torch.tensor([act_scheduled_weight]).float(),
-    #         "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
-    #     }
-
     def act_seq_loss(
         self, preds, targets, weights, seq_weights, joint_weights
     ) -> Tensor:
@@ -279,11 +218,65 @@ class Base(Experiment):
             losses = losses * joint_weights
         return losses.mean()
 
-    def dur_seq_loss(
+    def dur_mse_loss(
         self, preds, targets, weights, seq_weights, joint_weights
     ) -> Tensor:
-        """Loss function for durations [B, L]."""
+        """MSE loss function for durations [B, L]."""
         losses = self.MSE(preds, targets)
+        losses = losses * weights * seq_weights
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses.mean()
+
+    def dur_mape_loss(
+        self, preds, targets, weights, seq_weights, joint_weights
+    ) -> Tensor:
+        """MAPE loss function for durations [B, L]."""
+        absolute = self.MAE(preds, targets)
+        zero_mask = (targets == 0).float()
+        losses = absolute / (targets + zero_mask)
+        losses = losses * weights * seq_weights
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses.mean()
+
+    def dur_mspe_loss(
+        self, preds, targets, weights, seq_weights, joint_weights
+    ) -> Tensor:
+        """MSPE loss function for durations [B, L]."""
+        absolute = self.MAE(preds, targets)
+        zero_mask = (targets == 0).float()
+        losses = absolute / (targets + zero_mask)
+        losses = losses**2
+        losses = losses * weights * seq_weights
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses.mean()
+
+    def dur_combo_loss(
+        self, preds, targets, weights, seq_weights, joint_weights
+    ) -> Tensor:
+        """MAPE loss function for durations [B, L]."""
+        mse = self.dur_mse_loss(
+            preds, targets, weights, seq_weights, joint_weights
+        )
+        mape = (
+            self.dur_mape_loss(
+                preds, targets, weights, seq_weights, joint_weights
+            )
+            * 0.001
+        )
+        return 0.5 * (mse + mape)
+
+    def start_seq_loss(
+        self, preds, targets, weights, seq_weights, joint_weights
+    ) -> Tensor:
+        """Loss function for starts [B, L]."""
+        acc_preds = preds.cumsum(dim=-1).roll(1, dims=-1)
+        acc_preds[:, 0] = 0  # reset first element to zero
+        acc_targets = targets.cumsum(dim=-1).roll(1, dims=-1)
+        acc_targets[:, 0] = 0  # reset first element to zero
+        losses = self.MSE(acc_preds, acc_targets)
         losses = losses * weights * seq_weights
         if joint_weights is not None:
             losses = losses * joint_weights
@@ -292,11 +285,67 @@ class Base(Experiment):
     def end_seq_loss(
         self, preds, targets, weights, seq_weights, joint_weights
     ) -> Tensor:
-        """Loss function for starts [B, L]."""
+        """Loss function for ends [B, L]."""
         acc_preds = preds.cumsum(dim=-1)
         acc_targets = targets.cumsum(dim=-1)
         losses = self.MSE(acc_preds, acc_targets)
         losses = losses * weights * seq_weights
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses.mean()
+
+    def end_seq_loss_detached(
+        self, preds, targets, weights, seq_weights, joint_weights
+    ) -> Tensor:
+        """Loss function for ends, detached for previous activities [B, L]."""
+        acc_preds = preds.cumsum(dim=-1).roll(1, dims=-1)
+        acc_preds[:, 0] = 0  # reset first element to zero
+        acc_preds = acc_preds.detach()
+        acc_preds = acc_preds + preds
+        acc_targets = targets.cumsum(dim=-1).roll(1, dims=-1)
+        acc_targets[:, 0] = 0  # reset first element to zero
+        acc_targets = acc_targets.detach()
+        acc_targets = acc_targets + targets
+        losses = self.MSE(acc_preds, acc_targets)
+        losses = losses * weights * seq_weights
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses.mean()
+
+    def start_seq_loss_detached(
+        self, preds, targets, weights, seq_weights, joint_weights
+    ) -> Tensor:
+        """Loss function for starts, detached for previous activities [B, L]."""
+        acc_preds = preds.cumsum(dim=-1).roll(2, dims=-1)
+        acc_preds[:, :2] = 0  # reset first 2 elements to zero
+        acc_preds = acc_preds.detach()
+        preds_rolled = preds.roll(1, dims=-1)
+        preds_rolled[:, 0] = 0  # reset first element to zero
+        acc_preds = acc_preds + preds_rolled
+        acc_targets = targets.cumsum(dim=-1).roll(2, dims=-1)
+        acc_targets[:, :2] = 0  # reset first 2 elements to zero
+        acc_targets = acc_targets.detach()
+        targets_rolled = targets.roll(1, dims=-1)
+        targets_rolled[:, 0] = 0  # reset first element to zero
+        acc_targets = acc_targets + targets_rolled
+        # Compute the mean squared error between cumulative sums
+        losses = self.MSE(acc_preds, acc_targets)
+        losses = losses * weights * seq_weights
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses.mean()
+
+    def total_duration_loss(
+        self, preds, targets, seq_weights, joint_weights
+    ) -> Tensor:
+        """Loss function for total durations [B, L]."""
+        # Calculate the cumulative sum of durations
+        acc_preds = preds.sum(dim=-1)
+        acc_targets = targets.sum(dim=-1)
+        # Compute the mean squared error between cumulative sums
+        losses = self.MSE(acc_preds, acc_targets)
+        # Apply weights and sequence weights
+        losses = losses * seq_weights
         if joint_weights is not None:
             losses = losses * joint_weights
         return losses.mean()
@@ -320,6 +369,7 @@ class Base(Experiment):
         act_weights, seq_weights = weights
         _, joint_weights = label_weights
         dur_weights = utils.duration_mask(act_weights)
+        # dur_weights = seq_weights  # use seq_weights as dur_weights
 
         # # normalise weights to sum to batch size
         # B = act_weights.shape[0]
@@ -342,7 +392,7 @@ class Base(Experiment):
 
         # duration loss
         dur_weight = self.duration_loss_weight * self.scheduled_dur_weight
-        dur_recon = self.dur_seq_loss(
+        dur_recon = self.dur_mse_loss(
             preds=pred_durs,
             targets=target_durs,
             weights=dur_weights,
@@ -352,8 +402,19 @@ class Base(Experiment):
         w_dur_recon = dur_weight * dur_recon
 
         # start time loss
+        start_weight = self.start_loss_weight * self.scheduled_start_weight
+        start_recon = self.start_seq_loss_detached(
+            preds=pred_durs,
+            targets=target_durs,
+            weights=dur_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_start_recon = start_weight * start_recon
+
+        # end time loss
         end_weight = self.end_loss_weight * self.scheduled_end_weight
-        end_recon = self.end_seq_loss(
+        end_recon = self.end_seq_loss_detached(
             preds=pred_durs,
             targets=target_durs,
             weights=dur_weights,
@@ -362,8 +423,26 @@ class Base(Experiment):
         )
         w_end_recon = end_weight * end_recon
 
+        # total_duration loss
+        total_dur_weight = (
+            self.total_duration_loss_weight * self.scheduled_total_dur_weight
+        )
+        total_dur_recon = self.total_duration_loss(
+            preds=pred_durs,
+            targets=target_durs,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_total_dur_recon = total_dur_weight * total_dur_recon
+
         # reconstruction loss
-        w_recons_loss = w_act_recon + w_dur_recon + w_end_recon
+        w_recons_loss = (
+            w_act_recon
+            + w_dur_recon
+            + w_start_recon
+            + w_end_recon
+            + w_total_dur_recon
+        )
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
@@ -464,7 +543,7 @@ class Base(Experiment):
 
         # duration loss
         dur_weight = self.duration_loss_weight * self.scheduled_dur_weight
-        dur_recon = self.dur_seq_loss(
+        dur_recon = self.dur_mse_loss(
             preds=pred_durs,
             targets=target_durs,
             weights=dur_weights,
