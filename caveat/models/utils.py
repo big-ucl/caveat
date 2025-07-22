@@ -260,3 +260,69 @@ def build_hidden_layers(config: dict) -> list:
     if hidden_n is not None and hidden_size is not None:
         return [int(hidden_size)] * int(hidden_n)
     raise ValueError("Must specify hidden_layers or layer_n and layer_size")
+
+
+def mask_after_eos(acts: Tensor, sos: int = 0, eos: int = 1) -> Tensor:
+    """Mask all values after the first occurrence of the end of sequence (eos) token.
+    This is useful for ensuring that any predictions or calculations do not consider
+    values that occur after the end of a sequence, which is often required in sequence
+    models.
+
+    Args:
+        acts (Tensor): Input tensor of shape [N, steps].
+        eos (int): End of sequence token index. Defaults to 1.
+
+    Returns:
+        Tensor: Masked tensor with values after the first eos token set to 0.
+    """
+    N, C = acts.shape
+
+    idx = acts == eos
+    not_found = idx.sum(dim=-1) == 0
+    idx = idx.int().argmax(dim=-1, keepdim=True)
+
+    idx_mask = torch.arange(C).repeat(N, 1).to(acts.device)
+    mask = idx_mask >= idx
+    mask[not_found] = False  # if no eos, no mask
+    return mask
+
+
+def normalise_log_durations(
+    batch: Tensor, sos: int = 0, eos: int = 1
+) -> Tensor:
+    """Normalise the durations in the log_probs tensor to sum to 1, excluding
+    start of sequence (sos) and end of sequence (eos) tokens.
+    SOS and EOS locations are determined by the argmax of the activity logits.
+    This function is useful for ensuring that the durations of activities
+    in a sequence sum to 1, which is often required for models that predict
+    durations as part of their output. but cannot deal with all weird edge cases.
+    Args:
+        input (Tensor): Log probabilities tensor of shape [N, steps, encodings + 1].
+        batch (int): Start of sequence token index. Defaults to 0.
+        eos (int): End of sequence token index. Defaults to 1.
+    Returns:
+        Tensor: Normalised log probabilities tensor with durations summing to 1.
+    """
+    # normalise durations to sum to 1, excluding sos and eos tokens
+    _, _, C = batch.shape
+    acts, durations = torch.split(batch, [C - 1, 1], dim=-1)
+    argmax_acts = acts.argmax(dim=-1)
+    durations = torch.exp(durations.squeeze(-1))
+
+    sos_mask = argmax_acts == sos
+    eos_mask = mask_after_eos(argmax_acts, eos=eos)
+
+    mask = torch.ones_like(durations)
+    mask[sos_mask] = 0.0
+    mask[eos_mask] = 0.0
+
+    # totals
+    totals = (durations * mask).sum(dim=-1, keepdim=True)
+    totals[totals == 0] = 1.0  # avoid division by zero
+
+    durations = durations / totals
+    durations = torch.log(durations)
+    batch = torch.cat(
+        (acts, durations.unsqueeze(-1)), dim=-1  # [N, steps, encodings + 1]
+    )
+    return batch

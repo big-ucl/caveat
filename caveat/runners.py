@@ -860,6 +860,7 @@ def generate(
     if latent_dims is None:
         latent_dims = config.get("experiment_params", {}).get("latent_dims", 2)
         # default of 2
+    latent_categories = config.get("model_params", {}).get("latent_categories")
     batch_size = config.get("generator_params", {}).get("batch_size", 256)
 
     if isinstance(population, int):
@@ -871,6 +872,7 @@ def generate(
             latent_dims=latent_dims,
             seed=seed,
             ckpt_path=ckpt_path,
+            latent_categories=latent_categories,
         )
         synthetic_attributes = None
     elif isinstance(population, Tensor):
@@ -888,6 +890,7 @@ def generate(
             latent_dims=latent_dims,
             seed=seed,
             ckpt_path=ckpt_path,
+            cats=latent_categories,
         )
         synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
         synthetic_attributes.to_csv(write_dir / "synthetic_attributes.csv")
@@ -908,9 +911,12 @@ def generate_n(
     latent_dims: int,
     seed: int,
     ckpt_path: str,
+    latent_categories: Optional[Tensor] = None,
 ) -> torch.Tensor:
     torch.manual_seed(seed)
-    dataloaders = data.build_latent_dataloader(n, latent_dims, batch_size)
+    dataloaders = data.build_latent_dataloader(
+        n, latent_dims, latent_categories, batch_size
+    )
     time = datetime.datetime.now()
     synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
     duration = datetime.datetime.now() - time
@@ -930,6 +936,7 @@ def generate_from_attributes(
     latent_dims: int,
     seed: int,
     ckpt_path: str,
+    cats: Optional[Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.manual_seed(seed)
     dataloaders = data.build_latent_conditional_dataloader(

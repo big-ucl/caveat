@@ -29,6 +29,25 @@ def test_sequence_jitter():
             assert rel_diff.max() <= j
 
 
+def test_smallest_jitter():
+    for j in [0.01, 0.1, 0.5]:
+        jitterer = SequenceJitter(jitter=j)
+        seq = tensor([[0, 0], [2, 0.3], [3, 0.5], [2, 0.2], [1, 0], [1, 0]])
+        target_durations = tensor([0.3, 0.5, 0.2])
+        zero = tensor(0.0)
+        for _ in range(100):
+            out = jitterer(seq)
+            diff = seq[:, 1] - out[:, 1]
+            assert allclose(diff.sum(), zero, atol=1e-6)
+            assert diff[0] == 0
+            assert diff[-1] == 0
+            assert diff[-2] == 0
+            abs_diff = diff.abs()[1:-2]
+            rel_diff = abs_diff / target_durations
+            assert rel_diff.sum() > 0
+            assert rel_diff.max() <= j
+
+
 def test_discrete_jitter_zero():
     jitterer = DiscreteJitter(step_size=144, jitter=0)
     seq = tensor([0, 0, 1, 1, 2, 2, 1, 0, 0, 0])

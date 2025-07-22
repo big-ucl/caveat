@@ -8,7 +8,7 @@ from caveat.models import Base, utils
 from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class VAEContLSTM(Base):
+class VAEContLSTMCountdown(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -86,21 +86,6 @@ class VAEContLSTM(Base):
             )
 
         return log_probs
-
-
-class VAE_LSTM_Unweighted(VAEContLSTM):
-    def loss_function(
-        self,
-        log_probs: Tensor,
-        input: Tensor,
-        mu: Tensor,
-        log_var: Tensor,
-        mask: Tensor,
-        **kwargs,
-    ) -> dict:
-        return self.unweighted_seq_loss(
-            log_probs, input, mu, log_var, mask, **kwargs
-        )
 
 
 class Encoder(nn.Module):
@@ -186,6 +171,7 @@ class Decoder(nn.Module):
         self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
+        self.budget_fc = nn.Linear(1, hidden_size)
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
@@ -215,6 +201,7 @@ class Decoder(nn.Module):
         hidden, cell = hidden
         decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
         decoder_input[:, :, 0] = self.sos  # set as SOS
+        budget = torch.ones(batch_size, 1, 1, device=hidden.device)
         hidden = hidden.contiguous()
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
@@ -222,7 +209,7 @@ class Decoder(nn.Module):
 
         for i in range(self.max_length):
             decoder_output, decoder_hidden = self.forward_step(
-                decoder_input, decoder_hidden
+                decoder_input, decoder_hidden, budget
             )
             outputs.append(decoder_output.squeeze(-2))
 
@@ -233,31 +220,40 @@ class Decoder(nn.Module):
                 # no teacher forcing use decoder output
                 decoder_input = self.pack(decoder_output)
 
+            # remove durations from budget
+            budget = (budget - decoder_input[:, :, 1:]).detach()
+            budget = budget.clamp(
+                min=1e-6
+            )  # ensure budget is not negative and > 0
+
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
-
-        # acts_logits, durations = torch.split(
-        #     outputs, [self.output_size - 1, 1], dim=-1
-        # )
-        # acts_log_probs = self.activity_logprob_activation(acts_logits)
-        # durations = self.duration_activation(durations)
-        # durations = torch.log(durations)
-
-        # log_prob_outputs = torch.cat((acts_logits, durations), dim=-1)
         log_prob_outputs = torch.log(outputs)
         # TODO: remove logs, includes utils, losses, etc
 
         return log_prob_outputs
 
-    def forward_step(self, x, hidden):
+    def forward_step(self, x, hidden, budget):
         # [N, 1, 2]
         embedded = self.embedding(x)
+        # embedded_budget = self.budget_fc(budget)
+        # embedded = embedded + budget
+
+        # add budget to hidden and cell state
+        # hidden = (
+        #     hidden[0] + budget.permute(1, 0, 2),
+        #     hidden[1] + budget.permute(1, 0, 2),
+        # )  # add budget to cell state
+
         output, hidden = self.lstm(embedded, hidden)
+
+        # output = output + embedded_budget  # add budget to output
 
         act_prediction = self.act_fc(output)
         act_probs = self.activity_prob_activation(act_prediction)
 
         durations = self.duration_fc(output)
         durations = self.duration_activation(durations)
+        durations = durations * budget
 
         prediction = torch.cat((act_probs, durations), dim=-1)
         # [N, 1, encodings+1]
@@ -270,7 +266,7 @@ class Decoder(nn.Module):
         act = (
             topi.squeeze(-1).detach().unsqueeze(-1)
         )  # detach from history as input
-        duration = self.duration_activation(duration)
+        # duration = self.duration_activation(duration)
         outputs = torch.cat((act, duration), dim=-1)
         # [N, 1, 2]
         return outputs
@@ -284,7 +280,7 @@ class LinearHead(nn.Module):
         output_size: int,
         depth: int = 1,
         dropout: float = 0.0,
-        norm: bool = True,
+        norm: bool = False,
     ):
         """Linear head for VAE decoder.
 

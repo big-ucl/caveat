@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from torch import equal, nn, randn, tensor
+from torch import equal, log, nn, randn, tensor
 
 from caveat.models import utils
 
@@ -182,3 +182,131 @@ def test_find_out_padding(length, kernel_size, stride, padding):
     x = deconv(x)
     L2 = x.shape[-1]
     assert L2 == length
+
+
+@pytest.mark.parametrize(
+    "data,target",
+    [
+        (tensor([[0, 2, 1, 1]]), tensor([[False, False, True, True]])),
+        (tensor([[0, 2, 1, 2]]), tensor([[False, False, True, True]])),
+        (
+            tensor([[0, 2, 1, 1], [0, 2, 1, 2]]),
+            tensor([[False, False, True, True], [False, False, True, True]]),
+        ),
+        (tensor([[0, 2, 3, 3]]), tensor([[False, False, False, False]])),
+        (
+            tensor([[0, 2, 1, 3], [0, 2, 3, 3]]),
+            tensor([[False, False, True, True], [False, False, False, False]]),
+        ),
+        (tensor([[1, 1, 1, 1]]), tensor([[True, True, True, True]])),
+    ],
+    ids=["caseA", "caseB", "2Dcase", "missing_eos", "2Dmissing_eos", "all_eos"],
+)
+def test_mask_after_eos(data, target):
+    eos = 1
+    result = utils.mask_after_eos(data, eos)
+    assert equal(result, target), f"Expected {target}, got {result}"
+
+
+@pytest.mark.parametrize(
+    "data,target",
+    [
+        (
+            tensor([[[1, 0, 0, 1], [0, 0, 1, 2], [0, 1, 0, 1], [0, 1, 0, 1]]]),
+            tensor(
+                [[[1, 0, 0, 0.5], [0, 0, 1, 1], [0, 1, 0, 0.5], [0, 1, 0, 0.5]]]
+            ),
+        ),
+        (  # N = 2
+            tensor(
+                [
+                    [[1, 0, 0, 1], [0, 0, 1, 2], [0, 1, 0, 1], [0, 1, 0, 1]],
+                    [[1, 0, 0, 1], [0, 0, 1, 2], [0, 1, 0, 1], [0, 1, 0, 1]],
+                ]
+            ),
+            tensor(
+                [
+                    [
+                        [1, 0, 0, 0.5],
+                        [0, 0, 1, 1],
+                        [0, 1, 0, 0.5],
+                        [0, 1, 0, 0.5],
+                    ],
+                    [
+                        [1, 0, 0, 0.5],
+                        [0, 0, 1, 1],
+                        [0, 1, 0, 0.5],
+                        [0, 1, 0, 0.5],
+                    ],
+                ]
+            ),
+        ),
+        (
+            tensor([[[1, 0, 0, 1], [0, 0, 1, 2], [0, 1, 0, 1], [0, 0, 1, 1]]]),
+            tensor(
+                [[[1, 0, 0, 0.5], [0, 0, 1, 1], [0, 1, 0, 0.5], [0, 0, 1, 0.5]]]
+            ),
+        ),
+        (  # no activities
+            tensor([[[1, 0, 0, 1], [0, 1, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1]]]),
+            tensor([[[1, 0, 0, 1], [0, 1, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1]]]),
+        ),
+        (  # no eos
+            tensor([[[1, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 1]]]),
+            tensor([[[1, 0, 0, 0.5], [0, 0, 1, 0.5], [0, 0, 1, 0.5]]]),
+        ),
+        (  # no sos
+            tensor([[[0, 0, 1, 1], [0, 0, 1, 1]]]),
+            tensor([[[0, 0, 1, 0.5], [0, 0, 1, 0.5]]]),
+        ),
+        (  # 2 sos
+            tensor([[[1, 0, 0, 1], [1, 0, 1, 1], [0, 0, 1, 2]]]),
+            tensor([[[1, 0, 0, 0.5], [1, 0, 1, 0.5], [0, 0, 1, 1]]]),
+        ),
+        (  # sos not at start
+            tensor([[[0, 0, 1, 1], [1, 0, 1, 1], [0, 0, 1, 1]]]),
+            tensor([[[0, 0, 1, 0.5], [1, 0, 1, 0.5], [0, 0, 1, 0.5]]]),
+        ),
+        (  # sos after eos
+            tensor([[[0, 1, 0, 1], [1, 0, 1, 1], [1, 0, 0, 1]]]),
+            tensor([[[0, 1, 0, 1], [1, 0, 1, 1], [1, 0, 0, 1]]]),
+        ),
+    ],
+    ids=[
+        "caseA",
+        "two_sequences",
+        "caseB",
+        "no_activities",
+        "no_eos_in_sequence",
+        "no_sos_in_sequence",
+        "two_sos_in_sequence",
+        "sos_not_at_start",
+        "sos_after_eos",
+    ],
+)
+def test_normalise_durations(data, target):
+    data = log(data)
+    target = log(target)
+    result = utils.normalise_log_durations(data, sos=0, eos=1)
+    assert result.shape == target.shape
+    assert equal(result, target), f"Expected {target}, got {result}"
+
+
+@pytest.mark.parametrize(
+    "data,target",
+    [
+        (tensor([[1.0, 2.0, 3.0, 0.0]]), tensor([[0.0, 2.0, 0.0, 0.0]])),
+        (tensor([[1.0, 2.0, 0.0, 0.0]]), tensor([[0.0, 0.0, 0.0, 0.0]])),
+        (
+            tensor([[1.0, 2.0, 3.0, 0.0], [1.0, 2.0, 0.0, 0.0]]),
+            tensor([[0.0, 2.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]]),
+        ),
+        (tensor([[1.0, 2.0, 3.0, 4.0]]), tensor([[0.0, 2.0, 3.0, 0.0]])),
+    ],
+    ids=["caseA", "caseB", "combined_cases", "none"],
+)
+def test_durations_mask(data, target):
+    duration_weights = utils.duration_mask(data)
+    assert equal(
+        duration_weights, target
+    ), f"Expected {target}, got {duration_weights}"

@@ -202,7 +202,7 @@ def test_decode_fix_durations():
         columns=["pid", "act", "start", "end", "duration"],
     )
     encoder = seq.ContinuousEncoder(
-        max_length=6, norm_duration=duration, fix_durations=True
+        max_length=6, norm_duration=duration, fix_durations="stretch"
     )
     encoder.setup_encoder(expected)
     decoded = encoder.decode(encoded, argmax=False)

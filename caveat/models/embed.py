@@ -50,7 +50,8 @@ class CustomDurationEmbeddingConcat(nn.Module):
 
     def forward(self, x):
         embedded, durations = torch.split(x, [1, 1], dim=-1)
-        embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
+        embedded = self.embedding(embedded.int())
+        embedded = self.dropout(embedded).squeeze(-2)
         embedded = torch.cat((embedded, durations), dim=-1)
         return embedded
 
