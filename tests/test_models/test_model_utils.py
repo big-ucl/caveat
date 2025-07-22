@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from torch import equal, nn, randn, tensor
+from torch import equal, log, nn, randn, tensor
 
 from caveat.models import utils
 
@@ -253,19 +253,19 @@ def test_mask_after_eos(data, target):
         ),
         (  # no eos
             tensor([[[1, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 1]]]),
-            tensor([[[1, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 1]]]),
+            tensor([[[1, 0, 0, 0.5], [0, 0, 1, 0.5], [0, 0, 1, 0.5]]]),
         ),
         (  # no sos
             tensor([[[0, 0, 1, 1], [0, 0, 1, 1]]]),
-            tensor([[[0, 0, 1, 1], [0, 0, 1, 1]]]),
+            tensor([[[0, 0, 1, 0.5], [0, 0, 1, 0.5]]]),
         ),
         (  # 2 sos
             tensor([[[1, 0, 0, 1], [1, 0, 1, 1], [0, 0, 1, 2]]]),
-            tensor([[[1, 0, 0, 1], [1, 0, 1, 1], [0, 0, 1, 2]]]),
+            tensor([[[1, 0, 0, 0.5], [1, 0, 1, 0.5], [0, 0, 1, 1]]]),
         ),
         (  # sos not at start
             tensor([[[0, 0, 1, 1], [1, 0, 1, 1], [0, 0, 1, 1]]]),
-            tensor([[[0, 0, 1, 1], [1, 0, 1, 1], [0, 0, 1, 1]]]),
+            tensor([[[0, 0, 1, 0.5], [1, 0, 1, 0.5], [0, 0, 1, 0.5]]]),
         ),
         (  # sos after eos
             tensor([[[0, 1, 0, 1], [1, 0, 1, 1], [1, 0, 0, 1]]]),
@@ -285,7 +285,9 @@ def test_mask_after_eos(data, target):
     ],
 )
 def test_normalise_durations(data, target):
-    result = utils.normalise_durations(data, sos=0, eos=1)
+    data = log(data)
+    target = log(target)
+    result = utils.normalise_log_durations(data, sos=0, eos=1)
     assert result.shape == target.shape
     assert equal(result, target), f"Expected {target}, got {result}"
 

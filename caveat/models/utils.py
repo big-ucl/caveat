@@ -287,7 +287,9 @@ def mask_after_eos(acts: Tensor, sos: int = 0, eos: int = 1) -> Tensor:
     return mask
 
 
-def normalise_durations(input: Tensor, sos: int = 0, eos: int = 1) -> Tensor:
+def normalise_log_durations(
+    batch: Tensor, sos: int = 0, eos: int = 1
+) -> Tensor:
     """Normalise the durations in the log_probs tensor to sum to 1, excluding
     start of sequence (sos) and end of sequence (eos) tokens.
     SOS and EOS locations are determined by the argmax of the activity logits.
@@ -295,15 +297,15 @@ def normalise_durations(input: Tensor, sos: int = 0, eos: int = 1) -> Tensor:
     in a sequence sum to 1, which is often required for models that predict
     durations as part of their output. but cannot deal with all weird edge cases.
     Args:
-        input (Tensor): Probabilities tensor of shape [N, steps, encodings + 1].
-        sos (int): Start of sequence token index. Defaults to 0.
+        input (Tensor): Log probabilities tensor of shape [N, steps, encodings + 1].
+        batch (int): Start of sequence token index. Defaults to 0.
         eos (int): End of sequence token index. Defaults to 1.
     Returns:
         Tensor: Normalised log probabilities tensor with durations summing to 1.
     """
     # normalise durations to sum to 1, excluding sos and eos tokens
-    _, _, C = input.shape
-    acts, durations = torch.split(input, [C - 1, 1], dim=-1)
+    _, _, C = batch.shape
+    acts, durations = torch.split(batch, [C - 1, 1], dim=-1)
     argmax_acts = acts.argmax(dim=-1)
     durations = torch.exp(durations.squeeze(-1))
 
@@ -315,11 +317,18 @@ def normalise_durations(input: Tensor, sos: int = 0, eos: int = 1) -> Tensor:
     mask[eos_mask] = 0.0
 
     # totals
+    print(mask)
     totals = (durations * mask).sum(dim=-1, keepdim=True)
     totals[totals == 0] = 1.0  # avoid division by zero
+    print(durations)
+    print(totals)
+
     durations = durations / totals
+    print(durations)
     durations = torch.log(durations)
-    input = torch.cat(
+    print(durations)
+    batch = torch.cat(
         (acts, durations.unsqueeze(-1)), dim=-1  # [N, steps, encodings + 1]
     )
-    return input
+    print(batch)
+    return batch

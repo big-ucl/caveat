@@ -81,7 +81,7 @@ class VAEContLSTMCountdown(Base):
             )
 
         if self.norm_durations:
-            log_probs = utils.normalise_durations(
+            log_probs = utils.normalise_log_durations(
                 log_probs, sos=self.sos, eos=self.eos
             )
 
