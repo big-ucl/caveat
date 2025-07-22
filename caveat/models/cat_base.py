@@ -1,13 +1,11 @@
-from pathlib import Path
 from typing import List, Optional, Tuple
 
 import torch
-import torchvision.utils as vutils
 from pytorch_lightning import LightningModule
 from torch import Tensor, exp, nn
 from torch.distributions import Categorical, OneHotCategorical
 
-from caveat.experiment import Experiment, pre_process
+from caveat.cat_experiment import CatExperiment
 from caveat.models import utils
 
 
@@ -27,7 +25,7 @@ class BaseDecoder(LightningModule):
         raise NotImplementedError
 
 
-class CatBase(Experiment):
+class CatBase(CatExperiment):
     def build(self, **config):
         self.latent_dim = config["latent_dim", 2]
         self.latent_cats = config.get("latent_categories", 2)
@@ -71,7 +69,7 @@ class CatBase(Experiment):
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
         p = self.encode(x, labels)
-        z = self.sample(p)
+        z = self.sample_latent(p)
         log_probs_x = self.decode(z, labels=labels, target=target)
         return [log_probs_x, p.mean(-1).mean(-1), p.mean(-1).var(-1), (p, z)]
 
@@ -116,35 +114,13 @@ class CatBase(Experiment):
             **kwargs,
         )
 
-    def sample(self, probs) -> Tensor:
+    def sample_latent(self, probs) -> Tensor:
         m = OneHotCategorical(probs=probs)
         return m.sample()
 
-    def sample_sequences(self, name: str = "samples") -> None:
-        _, _, (labels, _) = next(
-            iter(self.trainer.datamodule.test_dataloader())
-        )
-        labels = labels.to(self.curr_device)
-        uniform = torch.ones((len(labels), self.latent_dim, self.latent_cats))
-        uniform /= uniform.sum(
-            dim=-1, keepdim=True
-        )  # ensure uniform distribution
-        z = OneHotCategorical(uniform).sample()
-        y_probs = self.predict(z, labels=labels, device=self.curr_device)
-        vutils.save_image(
-            pre_process(y_probs.cpu().data),
-            Path(
-                self.logger.log_dir,
-                name,
-                f"{self.logger.name}_epoch_{self.current_epoch}.png",
-            ),
-            normalize=False,
-            nrow=1,
-            pad_value=1,
-        )
-
     def entropy(self, cat_p: Tensor) -> Tensor:
-        return Categorical(probs=cat_p).entropy().sum()
+        entropy = Categorical(probs=cat_p).entropy()
+        return entropy.mean(-1).sum()
 
     def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -217,11 +193,12 @@ class CatBase(Experiment):
         Returns:
             (tensor: [N, steps, acts], tensor: [N, latent_dims]).
         """
-        log_probs_x, _, _, (cat_p, z) = self.forward(x, **kwargs)
+        log_probs_x, _, _, (_, z) = self.forward(x, **kwargs)
         prob_samples = exp(log_probs_x)
         prob_samples = prob_samples.to(device)
-        z = z.to(device)
-        return prob_samples, z
+        cats = z.argmax(dim=-1)  # [N, latent_dims]
+        cats = cats.to(device)
+        return prob_samples, cats
 
     def act_seq_loss(
         self, preds, targets, weights, seq_weights, joint_weights
@@ -235,7 +212,7 @@ class CatBase(Experiment):
         losses = losses.view(B, L) * seq_weights
         if joint_weights is not None:
             losses = losses * joint_weights
-        return losses.sum(-1)
+        return losses.mean(-1)
 
     def dur_mse_loss(
         self, preds, targets, weights, seq_weights, joint_weights
@@ -245,7 +222,7 @@ class CatBase(Experiment):
         losses = losses * weights * seq_weights
         if joint_weights is not None:
             losses = losses * joint_weights
-        return losses.sum(-1)
+        return losses.mean(-1)
 
     def continuous_loss(
         self,
@@ -267,7 +244,7 @@ class CatBase(Experiment):
 
         act_weights, seq_weights = weights
         _, joint_weights = label_weights
-        dur_weights = utils.duration_mask(act_weights)
+        dur_mask = utils.duration_mask(act_weights)
 
         # activity loss
         act_weight = self.activity_loss_weight * self.scheduled_act_weight
@@ -285,14 +262,14 @@ class CatBase(Experiment):
         dur_recon = self.dur_mse_loss(
             preds=pred_durs,
             targets=target_durs,
-            weights=dur_weights,
+            weights=dur_mask,
             seq_weights=seq_weights,
             joint_weights=joint_weights,
         )
         w_dur_recon = dur_weight * dur_recon
 
         # decoder loss
-        w_recons_loss = w_act_recon.sum() + w_dur_recon.sum()
+        w_recons_loss = w_act_recon.mean() + w_dur_recon.mean()
 
         # encoder loss
         entropy = self.entropy(cat_p)
@@ -300,25 +277,23 @@ class CatBase(Experiment):
         p_sampled = torch.masked_select(cat_p, cat_z == 1.0).reshape(
             cat_p.shape[0], -1
         )  # probabilites corresponding to sampled z
-        B = 100  # this is a baseline, which simply reduces the variance of the gradient estimator without changing the expected value
         expectation = torch.sum(
-            (w_act_recon + w_dur_recon - B).detach()
-            * torch.log(p_sampled).sum(-1)
+            (w_act_recon + w_dur_recon).detach() * torch.log(p_sampled).mean(-1)
         )
 
-        encoder_loss = entropy - expectation
+        encoder_loss = expectation - entropy
         scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * encoder_loss
 
         # final loss
-        loss = -w_recons_loss + w_kld_loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
             "loss": loss,
             "KLD": w_kld_loss.detach(),
             "recon_loss": w_recons_loss.detach(),
-            "act_recon": w_act_recon.sum().detach(),
-            "dur_recon": w_dur_recon.sum().detach(),
+            "act_recon": w_act_recon.mean().detach(),
+            "dur_recon": w_dur_recon.mean().detach(),
             "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
             "act_weight": torch.tensor([act_weight]).float(),
             "dur_weight": torch.tensor([dur_weight]).float(),

@@ -2,6 +2,7 @@ from typing import Optional, Union
 
 import torch
 from pytorch_lightning import LightningDataModule
+from torch.distributions import OneHotCategorical
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -96,7 +97,7 @@ class DataModule(LightningDataModule):
         )
 
 
-class ZDataset(Dataset):
+class ZNormDataset(Dataset):
     def __init__(self, num_samples: int, latent_dim: int):
         self.z = torch.randn(num_samples, latent_dim)
 
@@ -107,15 +108,42 @@ class ZDataset(Dataset):
         return self.z[idx], torch.tensor(0)
 
 
+class ZCatDataset(Dataset):
+    def __init__(
+        self, num_samples: int, latent_dim: int, latent_categories: int
+    ):
+        uniform = torch.ones((num_samples, latent_dim, latent_categories))
+        uniform /= uniform.sum(dim=-1, keepdim=True)
+        self.z = OneHotCategorical(uniform).sample()
+
+    def __len__(self):
+        return len(self.z)
+
+    def __getitem__(self, idx):
+        return self.z[idx], torch.tensor(0)
+
+
 def build_latent_dataloader(
-    num_samples, latent_dim: int, batch_size: int = 256, num_workers: int = 4
+    num_samples,
+    latent_dim: int,
+    latent_categories: Optional[int] = None,
+    batch_size: int = 256,
+    num_workers: int = 4,
 ):
-    return DataLoader(
-        ZDataset(num_samples, latent_dim),
-        batch_size=batch_size,
-        num_workers=num_workers,
-        persistent_workers=True,
-    )
+    if latent_categories is None:
+        return DataLoader(
+            ZNormDataset(num_samples, latent_dim),
+            batch_size=batch_size,
+            num_workers=num_workers,
+            persistent_workers=True,
+        )
+    else:
+        return DataLoader(
+            ZCatDataset(num_samples, latent_dim, latent_categories),
+            batch_size=batch_size,
+            num_workers=num_workers,
+            persistent_workers=True,
+        )
 
 
 class ConditionalDataset(Dataset):

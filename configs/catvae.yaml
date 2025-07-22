@@ -1,0 +1,85 @@
+global:
+  seed: 1234
+
+  logging_params:
+    log_dir: "logs/catvae"
+    name: "klds"
+
+  schedules_path: "tmp/nts_schedules_2023.csv"
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 20
+    max_epochs: 120
+    patience: 20
+
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.0
+    duration_loss_weight: 200
+    end_loss_weight: 0
+    total_duration_loss_weight: 0
+
+  encoder_params:
+    name: "continuous"
+    fix_durations: "stretch"
+    max_length: 16
+    duration: 1440
+    jitter: 0.0
+    weighting: unit
+    joint_weighting: unit
+    trim_eos: True
+
+8x8:
+  model_params:
+    name: "CatVAEContLSTM"
+    latent_dim: 8
+    latent_categories: 8
+    hidden_n: 2
+    hidden_size: 128
+    dropout: 0.1
+    normalise_durations: True
+    head_depth: 1
+    head_hidden_size: 8
+
+
+16x16:
+  model_params:
+    name: "CatVAEContLSTM"
+    latent_dim: 16
+    latent_categories: 16
+    hidden_n: 2
+    hidden_size: 128
+    dropout: 0.1
+    normalise_durations: True
+    head_depth: 1
+    head_hidden_size: 8
+
+32x32:
+  model_params:
+    name: "CatVAEContLSTM"
+    latent_dim: 32
+    latent_categories: 32
+    hidden_n: 2
+    hidden_size: 128
+    dropout: 0.1
+    normalise_durations: True
+    head_depth: 1
+    head_hidden_size: 8
+
+64x64:
+  model_params:
+    name: "CatVAEContLSTM"
+    latent_dim: 32
+    latent_categories: 32
+    hidden_n: 2
+    hidden_size: 128
+    dropout: 0.1
+    normalise_durations: True
+    head_depth: 1
+    head_hidden_size: 8

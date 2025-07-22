@@ -5,11 +5,12 @@ import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
 from torch import Tensor, nn, optim
+from torch.distributions import OneHotCategorical
 
 from caveat.models.utils import ScheduledOptim
 
 
-class Experiment(pl.LightningModule):
+class CatExperiment(pl.LightningModule):
     def __init__(
         self,
         in_shape: tuple,
@@ -24,7 +25,7 @@ class Experiment(pl.LightningModule):
         weight_decay: float = 0.01,
         **kwargs,
     ) -> None:
-        super(Experiment, self).__init__()
+        super(CatExperiment, self).__init__()
         self.gen = gen
         self.test = test
         self.LR = LR
@@ -130,6 +131,8 @@ class Experiment(pl.LightningModule):
             target=y,
             weights=y_weights,
             label_weights=l_weights,
+            cat_p=z[0],
+            cat_z=z[1],
         )
         self.log_dict(
             {key: val.item() for key, val in train_loss.items()}, sync_dist=True
@@ -151,6 +154,8 @@ class Experiment(pl.LightningModule):
             target=y,
             weights=y_weights,
             label_weights=l_weights,
+            cat_p=z[0],
+            cat_z=z[1],
         )
 
         self.log_dict(
@@ -182,6 +187,8 @@ class Experiment(pl.LightningModule):
                 target=y,
                 weights=y_weights,
                 label_weights=l_weights,
+                cat_p=z[0],
+                cat_z=z[1],
             )
 
             self.log_dict(
@@ -232,7 +239,11 @@ class Experiment(pl.LightningModule):
             iter(self.trainer.datamodule.test_dataloader())
         )
         labels = labels.to(self.curr_device)
-        z = torch.randn(len(labels), self.latent_dim)
+        uniform = torch.ones((len(labels), self.latent_dim, self.latent_cats))
+        uniform /= uniform.sum(
+            dim=-1, keepdim=True
+        )  # ensure uniform distribution
+        z = OneHotCategorical(uniform).sample()
         y_probs = self.predict(z, labels=labels, device=self.curr_device)
         vutils.save_image(
             pre_process(y_probs.cpu().data),
@@ -290,7 +301,7 @@ class Experiment(pl.LightningModule):
             return (
                 labels,
                 self.predict(zs, labels=labels, device=self.curr_device),
-                zs,
+                zs.argmax(dim=-1),
             )
         # inference process
         (x, _), (_, _), (labels, _) = batch

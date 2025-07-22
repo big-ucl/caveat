@@ -371,14 +371,6 @@ class Base(Experiment):
         dur_weights = utils.duration_mask(act_weights)
         # dur_weights = seq_weights  # use seq_weights as dur_weights
 
-        # # normalise weights to sum to batch size
-        # B = act_weights.shape[0]
-        # act_weights = B * act_weights / act_weights.sum()
-        # seq_weights = B * seq_weights / seq_weights.sum()
-        # if joint_weights is not None:
-        #     joint_weights = B * joint_weights / joint_weights.sum()
-        # dur_weights = B * dur_weights / dur_weights.sum()
-
         # activity loss
         act_weight = self.activity_loss_weight * self.scheduled_act_weight
         act_recon = self.act_seq_loss(

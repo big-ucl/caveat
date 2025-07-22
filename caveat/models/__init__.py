@@ -10,6 +10,7 @@ from .continuous.vae_cnn1d import VAEContCNN1D
 from .continuous.vae_cnn2d import VAEContCNN2D
 from .continuous.vae_fc import VAEContFC
 from .continuous.vae_lstm import VAEContLSTM
+from .continuous.vae_lstm_countdown import VAEContLSTMCountdown
 from .discrete.auto_discrete_lstm import AutoDiscLSTM
 from .discrete.cond_discrete_conv import CondDiscCNN2D
 from .discrete.cond_discrete_lstm import CondDiscLSTM
@@ -48,4 +49,5 @@ library = {
     "JVAEContLSTMRerouted": JVAEContLSTMRerouted,
     "LabelFeedForward": Schedule2LabelFeedForward,
     "CatVAEContLSTM": CatVAEContLSTM,
+    "VAEContLSTMCountdown": VAEContLSTMCountdown,
 }
