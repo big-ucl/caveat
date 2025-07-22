@@ -317,18 +317,12 @@ def normalise_log_durations(
     mask[eos_mask] = 0.0
 
     # totals
-    print(mask)
     totals = (durations * mask).sum(dim=-1, keepdim=True)
     totals[totals == 0] = 1.0  # avoid division by zero
-    print(durations)
-    print(totals)
 
     durations = durations / totals
-    print(durations)
     durations = torch.log(durations)
-    print(durations)
     batch = torch.cat(
         (acts, durations.unsqueeze(-1)), dim=-1  # [N, steps, encodings + 1]
     )
-    print(batch)
     return batch
