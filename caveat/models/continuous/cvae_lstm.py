@@ -280,7 +280,6 @@ class LabelEncoder(nn.Module):
         )
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.activation = nn.ReLU()
-        # self.fc_out = nn.Linear(hidden_size * 4, hidden_size)
 
     def forward(self, x):
         x = torch.stack(

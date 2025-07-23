@@ -4,6 +4,7 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
+from pytorch_lightning.utilities import grad_norm
 from torch import Tensor, nn, optim
 
 from caveat.models.utils import ScheduledOptim
@@ -42,6 +43,11 @@ class Experiment(pl.LightningModule):
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
+        # debug
+        self.debug = kwargs.get("debug", False)
+        if self.debug:
+            print("Debug mode enabled")
+
         # encoding params
         self.in_shape = in_shape
         print(f"Found input shape: {self.in_shape}")
@@ -296,6 +302,27 @@ class Experiment(pl.LightningModule):
         (x, _), (_, _), (labels, _) = batch
         preds, zs = self.infer(x, labels=labels, device=self.curr_device)
         return x, preds, zs, labels
+
+    def on_before_optimizer_step(self, optimizer):
+        if self.debug:
+            norm_order = 2.0
+            norms = grad_norm(self, norm_type=norm_order)
+            self.log(
+                "Total gradient (norm)",
+                norms[f"grad_{norm_order}_norm_total"],
+                on_step=True,
+                on_epoch=False,
+            )
+
+    def on_after_backward(self):
+        if self.debug:
+            global_step = self.global_step
+            for name, param in self.named_parameters():
+                self.logger.experiment.add_histogram(name, param, global_step)
+                if param.grad is not None:
+                    self.logger.experiment.add_histogram(
+                        f"{name}_grad", param.grad, global_step
+                    )
 
 
 def unpack(x, y, current_device):

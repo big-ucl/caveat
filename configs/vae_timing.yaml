@@ -2,12 +2,12 @@ seed: 1234
 
 logging_params:
   log_dir: "logs/timing"
-  name: "VAEContLSTM_countdown_none"
+  name: "VAEContLSTM_countdown_tune"
 
-# tune:
-#   trials: 500
-#   prune: True
-#   timeout:  100000 # seconds
+tune:
+  trials: 500
+  prune: True
+  timeout:  100000 # seconds
 
 schedules_path: "tmp/nts_schedules_2023.csv"
 
@@ -21,15 +21,28 @@ trainer_params:
   min_epochs: 20
   max_epochs: 150
   patience: 20
+  # loss_scheduling:
+  #   kld_loss_schedule: [0, 20]
 
 experiment_params:
-  LR: 0.001
-  weight_decay: 0.02
-  scheduler_gamma: 0.975
+  debug: False
+  LR: trial.suggest_float("LR", 0.0001, 0.01, log=True)
+  weight_decay: trial.suggest_float("weight_decay", 0.0, 0.1)
+  scheduler_gamma: trial.suggest_float("scheduler_gamma", 0.9, 0.999, log=True)
   kld_weight: 0.01
-  duration_loss_weight: 100
+  duration_loss_weight: 200
   end_loss_weight: 0
   total_duration_loss_weight: 0
+
+# experiment_params:
+#   debug: True
+#   LR: 0.001
+#   weight_decay: 0.02
+#   scheduler_gamma: 0.975
+#   kld_weight: 0.01
+#   duration_loss_weight: 200
+#   end_loss_weight: 0
+#   total_duration_loss_weight: 0
 
 encoder_params:
   name: "continuous"
@@ -39,24 +52,28 @@ encoder_params:
   jitter: 0.0
   weighting: unit
   joint_weighting: unit
-  trim_eos: True
-
-# model_params:
-#   name: "VAEContLSTMCountdown"
-#   latent_dim: 6
-#   hidden_n: trial.suggest_int("hidden_n", 2, 4)
-#   hidden_size: trial.suggest_categorical("hidden_size", [32, 64, 128, 256])
-#   dropout: trial.suggest_categorical("dropout", [0.0, 0.02, 0.05, 0.1, 0.2])
-#   normalise_durations: True
-#   head_depth: trial.suggest_int("head_n", 1, 4)
-#   head_hidden_size: trial.suggest_categorical("head_hidden_size", [4, 8, 16, 32, 64, 128])
+  trim_eos: trial.suggest_categorical("trim_eos", [True, False])
 
 model_params:
   name: "VAEContLSTMCountdown"
   latent_dim: 6
-  hidden_n: 2
-  hidden_size: 128
-  dropout: 0.1
+  hidden_n: trial.suggest_int("hidden_n", 1, 4)
+  hidden_size: trial.suggest_categorical("hidden_size", [32, 64, 128, 256])
+  dropout: trial.suggest_categorical("dropout", [0.0, 0.01, 0.1, 0.2])
   normalise_durations: True
-  head_depth: 2
-  head_hidden_size: 16
+  head_depth: trial.suggest_int("head_n", 1, 3)
+  head_hidden_size: trial.suggest_categorical("head_hidden_size", [4, 8, 16, 32, 64, 128, 256])
+  budget_depth: trial.suggest_int("budget_depth", 0, 3)
+  budget_hidden_size: trial.suggest_categorical("budget_hidden_size", [4, 8, 16, 32, 64, 128, 256])
+
+# model_params:
+#   name: "VAEContLSTMCountdown"
+#   latent_dim: 6
+#   hidden_n: 2
+#   hidden_size: 256
+#   dropout: 0.01
+#   normalise_durations: True
+#   head_depth: 2
+#   head_hidden_size: 128
+#   budget_depth: 0
+#   budget_hidden_size: 128

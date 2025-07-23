@@ -21,6 +21,10 @@ class VAEContLSTMCountdown(Base):
         length, _ = self.in_shape
         self.head_hidden_size = config.get("head_hidden_size", self.hidden_size)
         self.head_depth = config.get("head_depth", 2)
+        self.budget_hidden_size = config.get(
+            "budget_hidden_size", self.hidden_size
+        )
+        self.budget_depth = config.get("budget_depth", 1)
 
         self.encoder = Encoder(
             input_size=self.encodings,
@@ -39,6 +43,8 @@ class VAEContLSTMCountdown(Base):
             eos=self.eos,
             head_depth=self.head_depth,
             head_hidden_size=self.head_hidden_size,
+            budget_depth=self.budget_depth,
+            budget_hidden_size=self.budget_hidden_size,
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
@@ -143,7 +149,9 @@ class Decoder(nn.Module):
         sos: int = 0,
         eos: int = 1,
         head_depth: int = 2,
-        head_hidden_size: Optional[int] = None,
+        head_hidden_size: int = 16,
+        budget_depth: int = 1,
+        budget_hidden_size: int = 16,
     ):
         """LSTM Decoder with teacher forcing.
 
@@ -157,7 +165,9 @@ class Decoder(nn.Module):
             sos (int): start of sequence token. Defaults to 0.
             eos (int): end of sequence token. Defaults to 1.
             head_depth (int): number of hidden layers in the linear head. Defaults to 2.
-            head_hidden_size (Optional[int]): hidden size of the linear head. Defaults to None.
+            head_hidden_size (Optional[int]): hidden size of the linear head. Defaults to 16.
+            budget_depth (int): number of hidden layers in the budget head. Defaults to 1.
+            budget_hidden_size (int): hidden size of the budget head. Defaults to 16.
         """
         super(Decoder, self).__init__()
         self.current_device = current_device()
@@ -171,7 +181,6 @@ class Decoder(nn.Module):
         self.embedding = CustomDurationEmbeddingConcat(
             input_size, hidden_size, dropout=dropout
         )
-        self.budget_fc = nn.Linear(1, hidden_size)
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
@@ -179,23 +188,31 @@ class Decoder(nn.Module):
             batch_first=True,
             bidirectional=False,
         )
-        self.act_fc = LinearHead(
+        self.budget_head = LinearHead(
+            input_size=1,
+            hidden_size=budget_hidden_size,
+            output_size=hidden_size,
+            depth=budget_depth,
+            dropout=dropout,
+        )
+        self.act_head = LinearHead(
             input_size=hidden_size,
             hidden_size=head_hidden_size,
-            output_size=output_size,  # exclude duration
+            output_size=output_size,
             depth=head_depth,
-            dropout=0,
+            dropout=dropout,
         )
-        self.duration_fc = LinearHead(
+        self.duration_head = LinearHead(
             input_size=hidden_size,
             hidden_size=head_hidden_size,
             output_size=1,  # single duration output
             depth=head_depth,
-            dropout=0,
+            dropout=dropout,
         )
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
+        self.budget_activation = nn.Sigmoid()
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
         hidden, cell = hidden
@@ -222,9 +239,9 @@ class Decoder(nn.Module):
 
             # remove durations from budget
             budget = (budget - decoder_input[:, :, 1:]).detach()
-            budget = budget.clamp(
-                min=1e-6
-            )  # ensure budget is not negative and > 0
+
+            # ensure budget > 0
+            budget = self.budget_activation(budget)
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
         log_prob_outputs = torch.log(outputs)
@@ -235,7 +252,7 @@ class Decoder(nn.Module):
     def forward_step(self, x, hidden, budget):
         # [N, 1, 2]
         embedded = self.embedding(x)
-        # embedded_budget = self.budget_fc(budget)
+        embedded_budget = self.budget_head(budget)
         # embedded = embedded + budget
 
         # add budget to hidden and cell state
@@ -248,10 +265,10 @@ class Decoder(nn.Module):
 
         # output = output + embedded_budget  # add budget to output
 
-        act_prediction = self.act_fc(output)
+        act_prediction = self.act_head(output + embedded_budget)
         act_probs = self.activity_prob_activation(act_prediction)
 
-        durations = self.duration_fc(output)
+        durations = self.duration_head(output + embedded_budget)
         durations = self.duration_activation(durations)
         durations = durations * budget
 
@@ -281,6 +298,7 @@ class LinearHead(nn.Module):
         depth: int = 1,
         dropout: float = 0.0,
         norm: bool = False,
+        init: Optional[str] = None,
     ):
         """Linear head for VAE decoder.
 
@@ -290,10 +308,12 @@ class LinearHead(nn.Module):
             output_size (int): output size.
             depth (int): number of hidden layers.
             dropout (float): dropout probability.
+            norm (bool): whether to apply layer normalization. Defaults to False.
+            init (Optional[str]): initialization method. Defaults to None.
         """
         super(LinearHead, self).__init__()
-        if depth == 0:
-            raise ValueError("Depth must be greater than 0")
+        # if depth == 0:
+        #     raise ValueError("Depth must be greater than 0")
         if input_size <= 0 or hidden_size <= 0 or output_size <= 0:
             raise ValueError(
                 "Input, hidden, and output sizes must be positive integers"
@@ -301,12 +321,15 @@ class LinearHead(nn.Module):
         if dropout < 0 or dropout > 1:
             raise ValueError("Dropout must be between 0 and 1")
 
-        if depth == 1:
+        if depth == 0:
+            # return a vector of zeros
+            layers = [Zeros(output_size)]
+        elif depth == 1:
             layers = [nn.Linear(input_size, output_size)]
         else:
             layers = []
             in_features = input_size
-            for _ in range(depth):
+            for _ in range(depth - 1):
                 layers.append(nn.Linear(in_features, hidden_size))
                 layers.append(nn.LeakyReLU())
                 if dropout > 0:
@@ -316,6 +339,46 @@ class LinearHead(nn.Module):
                 in_features = hidden_size
             layers.append(nn.Linear(hidden_size, output_size))
         self.block = nn.Sequential(*layers)
+
+        if init is not None:
+            if init == "xavier_normal":
+                self.init_xavier_normal()
+            elif init == "xavier_uniform":
+                self.init_xavier_uniform()
+            elif init == "kaiming_normal":
+                self.init_kaiming_normal()
+            elif init == "kaiming_uniform":
+                self.init_kaiming_uniform()
+
+    def init_xavier_normal(self):
+        for layer in self.block:
+            if isinstance(layer, nn.Linear):
+                nn.init.xavier_normal_(layer.weight)
+                if layer.bias is not None:
+                    nn.init.zeros_(layer.bias)
+
+    def init_xavier_uniform(self):
+        for layer in self.block:
+            if isinstance(layer, nn.Linear):
+                nn.init.xavier_uniform_(layer.weight)
+                if layer.bias is not None:
+                    nn.init.zeros_(layer.bias)
+
+    def init_kaiming_normal(self):
+        for layer in self.block:
+            if isinstance(layer, nn.Linear):
+                nn.init.kaiming_normal_(layer.weight, nonlinearity="leaky_relu")
+                if layer.bias is not None:
+                    nn.init.zeros_(layer.bias)
+
+    def init_kaiming_uniform(self):
+        for layer in self.block:
+            if isinstance(layer, nn.Linear):
+                nn.init.kaiming_uniform_(
+                    layer.weight, nonlinearity="leaky_relu"
+                )
+                if layer.bias is not None:
+                    nn.init.zeros_(layer.bias)
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward pass through the linear head.
@@ -327,3 +390,12 @@ class LinearHead(nn.Module):
             Tensor: output tensor with activity probabilities.
         """
         return self.block(x)
+
+
+class Zeros(nn.Module):
+    def __init__(self, output_size: int):
+        super().__init__()
+        self.par = nn.Parameter(torch.rand(1, 1, output_size))
+
+    def forward(self, batch: Tensor) -> Tensor:
+        return self.par.expand(batch.size(0), -1, -1) * batch.sum() * 0.0
