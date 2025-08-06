@@ -19,8 +19,12 @@ class VAEContLSTMCountdown(Base):
         self.hidden_n = config["hidden_n"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
-        self.head_hidden_size = config.get("head_hidden_size", self.hidden_size)
-        self.head_depth = config.get("head_depth", 2)
+        self.act_head_depth = config.get("act_head_depth", 2)
+        self.act_hidden_size = config.get("act_hidden_size", self.hidden_size)
+
+        self.dur_head_depth = config.get("dur_head_depth", 2)
+        self.dur_hidden_size = config.get("dur_hidden_size", self.hidden_size)
+
         self.budget_hidden_size = config.get(
             "budget_hidden_size", self.hidden_size
         )
@@ -41,8 +45,10 @@ class VAEContLSTMCountdown(Base):
             dropout=self.dropout,
             sos=self.sos,
             eos=self.eos,
-            head_depth=self.head_depth,
-            head_hidden_size=self.head_hidden_size,
+            act_head_depth=self.act_head_depth,
+            act_hidden_size=self.act_hidden_size,
+            dur_head_depth=self.dur_head_depth,
+            dur_hidden_size=self.dur_hidden_size,
             budget_depth=self.budget_depth,
             budget_hidden_size=self.budget_hidden_size,
         )
@@ -148,8 +154,10 @@ class Decoder(nn.Module):
         dropout: float = 0.0,
         sos: int = 0,
         eos: int = 1,
-        head_depth: int = 2,
-        head_hidden_size: int = 16,
+        act_head_depth: int = 2,
+        act_hidden_size: int = 16,
+        dur_head_depth: int = 2,
+        dur_hidden_size: int = 16,
         budget_depth: int = 1,
         budget_hidden_size: int = 16,
     ):
@@ -164,8 +172,10 @@ class Decoder(nn.Module):
             dropout (float): dropout probability. Defaults to 0.
             sos (int): start of sequence token. Defaults to 0.
             eos (int): end of sequence token. Defaults to 1.
-            head_depth (int): number of hidden layers in the linear head. Defaults to 2.
-            head_hidden_size (Optional[int]): hidden size of the linear head. Defaults to 16.
+            act_head_depth (int): number of hidden layers in the activity head. Defaults to 2.
+            act_hidden_size (int): hidden size of the activity head. Defaults to 16.
+            dur_head_depth (int): number of hidden layers in the duration head. Defaults to 2.
+            dur_hidden_size (int): hidden size of the duration head. Defaults to
             budget_depth (int): number of hidden layers in the budget head. Defaults to 1.
             budget_hidden_size (int): hidden size of the budget head. Defaults to 16.
         """
@@ -197,16 +207,16 @@ class Decoder(nn.Module):
         )
         self.act_head = LinearHead(
             input_size=hidden_size,
-            hidden_size=head_hidden_size,
+            hidden_size=act_hidden_size,
             output_size=output_size,
-            depth=head_depth,
+            depth=act_head_depth,
             dropout=dropout,
         )
         self.duration_head = LinearHead(
             input_size=hidden_size,
-            hidden_size=head_hidden_size,
+            hidden_size=dur_hidden_size,
             output_size=1,  # single duration output
-            depth=head_depth,
+            depth=dur_head_depth,
             dropout=dropout,
         )
         self.activity_prob_activation = nn.Softmax(dim=-1)

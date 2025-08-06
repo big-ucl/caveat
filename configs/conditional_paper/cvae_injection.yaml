@@ -1,4 +1,5 @@
 global:
+  seed: 12345
   logging_params:
     log_dir: "logs/TRB"
     name: "cvae_injection"
@@ -25,7 +26,7 @@ global:
     max_length: 16
     norm_duration: 1440
     jitter: 0
-    fix_durations: True
+    fix_durations: "stretch"
     trim_eos: True
     weighting: unit
     joint_weighting: unit
