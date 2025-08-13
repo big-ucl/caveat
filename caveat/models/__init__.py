@@ -5,6 +5,7 @@ from .continuous.auto_lstm import AutoContLSTM
 from .continuous.cat_vae_lstm import CatVAEContLSTM
 from .continuous.cond_lstm import CondContLSTM
 from .continuous.cvae_lstm import CVAEContLSTM
+from .continuous.cvae_lstm_countdown import CVAEContLSTMCountdown
 from .continuous.vae_attention import VAEContXAtt
 from .continuous.vae_cnn1d import VAEContCNN1D
 from .continuous.vae_cnn2d import VAEContCNN2D
@@ -50,4 +51,5 @@ library = {
     "LabelFeedForward": Schedule2LabelFeedForward,
     "CatVAEContLSTM": CatVAEContLSTM,
     "VAEContLSTMCountdown": VAEContLSTMCountdown,
+    "CVAEContLSTMCountdown": CVAEContLSTMCountdown,
 }
