@@ -42,7 +42,7 @@ encoder_params:
   max_length: 16
   norm_duration: 1440
   jitter: 0.1
-  fix_durations: True
+  fix_durations: stretch
   weighting: unit
   joint_weighting: unit
   label_weighting: unit

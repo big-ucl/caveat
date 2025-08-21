@@ -2,9 +2,10 @@ seed: 12345
 
 logging_params:
   log_dir: "logs/TRB"
-  name: "vae"
+  name: "vae_labels"
 
 schedules_path: "tmp/nts_schedules_2023.csv"
+attributes_path: "tmp/nts_attributes_2023.csv"
 
 loader_params:
   train_batch_size: 1024
@@ -13,7 +14,6 @@ loader_params:
   val_split: 0.1
   test_split: 0.1
 
-
 trainer_params:
   min_epochs: 50
   max_epochs: 200
@@ -21,13 +21,27 @@ trainer_params:
 
 encoder_params:
   name: "continuous"
-  fix_durations: True
+  fix_durations: stretch
   max_length: 16
   duration: 1440
   jitter: 0.1
   weighting: unit
   joint_weighting: unit
   trim_eos: True
+
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: unit
+  labels:
+    gender: nominal
+    age_group: nominal
+    car_access: nominal
+    work_status: nominal
+    income: nominal
+
+evaluation_params:
+  split_on: [gender, age_group, car_access, work_status, income]
 
 experiment_params:
   LR: 0.001

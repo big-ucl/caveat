@@ -1,8 +1,7 @@
 global:
-
   logging_params:
     log_dir: "logs/TRB"
-    name: "vae"
+    name: "vae_labels"
 
   schedules_path: "tmp/nts_schedules_2023.csv"
   attributes_path: "tmp/nts_attributes_2023.csv"
@@ -47,18 +46,18 @@ global:
     hidden_size: 256
     dropout: 0.1
 
-vae_nrun0:
+vae_labels_nrun0:
   seed: 12345
 
-vae_nrun1:
+vae_labels_nrun1:
   seed: 12345
 
-vae_nrun2:
+vae_labels_nrun2:
+  seed: 12345
+  
+vae_labels_nrun3:
   seed: 12345
 
-vae_nrun3:
-  seed: 12345
-
-vae_nrun4:  
+vae_labels_nrun4:  
   seed: 12345
 

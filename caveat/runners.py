@@ -765,6 +765,10 @@ def train(
     print(
         f">>> Training took {duration.seconds + duration.microseconds / 1e6} seconds"
     )
+    with open(Path(logger.log_dir) / "timer.csv", "a") as fp:
+        fp.write(
+            f"train,{duration.seconds + duration.microseconds / 1e6},seconds\n"
+        )
     return trainer
 
 
@@ -781,12 +785,13 @@ def run_test(
     if ckpt_path is None:
         ckpt_path = "best"
 
+    time = datetime.datetime.now()
+
     with open(write_dir / f"{ckpt_path}_loss.txt", "w") as fp:
         loss = trainer.test(
             ckpt_path=ckpt_path,
             dataloaders=trainer.datamodule.train_dataloader(),
         )
-
         fp.write(f"TRAIN: {loss[0]}\n")
 
         loss = trainer.test(
@@ -800,7 +805,16 @@ def run_test(
         )
         fp.write(f"TEST: {loss[0]}\n")
 
-    print(f">> Losses saved to {write_dir / f'{ckpt_path}_loss.txt'}")
+        print(f">> Losses saved to {write_dir / f'{ckpt_path}_loss.txt'}")
+
+    duration = datetime.datetime.now() - time
+    print(
+        f">>> Testing took {duration.seconds + duration.microseconds / 1e6} seconds"
+    )
+    with open(write_dir / "timer.csv", "a") as fp:
+        fp.write(
+            f"test,{duration.seconds + duration.microseconds / 1e6},seconds\n"
+        )
 
 
 def test_inference(
@@ -872,6 +886,7 @@ def generate(
             latent_dims=latent_dims,
             seed=seed,
             ckpt_path=ckpt_path,
+            write_dir=write_dir,
             latent_categories=latent_categories,
         )
         synthetic_attributes = None
@@ -890,6 +905,7 @@ def generate(
             latent_dims=latent_dims,
             seed=seed,
             ckpt_path=ckpt_path,
+            write_dir=write_dir,
             cats=latent_categories,
         )
         synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
@@ -911,6 +927,7 @@ def generate_n(
     latent_dims: int,
     seed: int,
     ckpt_path: str,
+    write_dir: Path,
     latent_categories: Optional[Tensor] = None,
 ) -> torch.Tensor:
     torch.manual_seed(seed)
@@ -923,6 +940,11 @@ def generate_n(
     print(
         f">>> Generation took {duration.seconds + duration.microseconds / 1e6} seconds"
     )
+    with open(write_dir / "timer.csv", "a") as fp:
+        fp.write(
+            f"generate,{duration.seconds + duration.microseconds / 1e6},seconds\n"
+        )
+
     _, synthetic_schedules, zs = zip(*synth)
     synthetic_schedules = torch.concat(synthetic_schedules)
     zs = torch.concat(zs)
@@ -936,6 +958,7 @@ def generate_from_attributes(
     latent_dims: int,
     seed: int,
     ckpt_path: str,
+    write_dir: Path,
     cats: Optional[Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.manual_seed(seed)
@@ -948,6 +971,10 @@ def generate_from_attributes(
     print(
         f">>> Generation took {duration.seconds + duration.microseconds / 1e6} seconds"
     )
+    with open(write_dir / "timer.csv", "a") as fp:
+        fp.write(
+            f"generate,{duration.seconds + duration.microseconds / 1e6},seconds\n"
+        )
 
     synthetic_attributes, synthetic_schedules, zs = zip(*synth)
     synthetic_attributes = torch.concat(synthetic_attributes)

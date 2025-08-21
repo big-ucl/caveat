@@ -1,31 +1,28 @@
 global:
+  seed: 12345
   logging_params:
     log_dir: "logs/TRB"
-    name: "cvae_ageing_scenario"
+    name: "cvae_nomis_scenario"
 
   schedules_path: "tmp/nts_schedules_2023.csv"
   attributes_path: "tmp/nts_attributes_2023.csv"
 
   evaluation_params:
-    split_on: [gender, age_group, car_access, work_status, income]
+    split_on: [age_group]
 
   labels_encoder:
     name: "tokens"
     weighting: unit
     joint_weighting: inverse
     labels:
-      gender: nominal
       age_group: nominal
-      car_access: nominal
-      work_status: nominal
-      income: nominal
 
   encoder_params:
     name: "continuous"
     max_length: 16
     norm_duration: 1440
     jitter: 0
-    fix_durations: True
+    fix_durations: stretch
     trim_eos: True
     weighting: unit
     joint_weighting: unit
@@ -46,13 +43,14 @@ global:
     name: "CVAEContLSTM"
     hidden_n: 4
     hidden_size: 256
-    labels_hidden_size: 32
+    labels_hidden_size: 64
     latent_dim: 6
-    dropout: 0.1
+    dropout: 0.0
     teacher_forcing_ratio: 0.5
-    encoder_conditionality: both_concat
+    hidden_conditionality: add
+    encoder_conditionality: none
     latent_conditionality: add
-    decoder_conditionality: inputs_concat
+    decoder_conditionality: none
 
   experiment_params:
     LR: 0.001
@@ -60,19 +58,18 @@ global:
     scheduler_gamma: 0.975
     kld_weight: 0.01
     duration_loss_weight: 200
-    duration_loss_weight: 200
 
 a2023:
-  synthetic_attributes_path: "tmp/nts_attributes_2023.csv"
+  synthetic_attributes_path: "tmp/nomis_ages_2023.csv"
 
-a2033:
-  synthetic_attributes_path: "tmp/nts_attributes_2023_aged10.csv"
+a2030:
+  synthetic_attributes_path: "tmp/nomis_ages_2030.csv"
 
-a2043:
-  synthetic_attributes_path: "tmp/nts_attributes_2023_aged20.csv"
+a2040:
+  synthetic_attributes_path: "tmp/nomis_ages_2040.csv"
 
-a2053:
-  synthetic_attributes_path: "tmp/nts_attributes_2023_aged30.csv"
+a2050:
+  synthetic_attributes_path: "tmp/nomis_ages_2050.csv"
 
 
 
