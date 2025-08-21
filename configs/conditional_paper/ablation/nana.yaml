@@ -1,6 +1,6 @@
 logging_params:
-  log_dir: "logs/TRB"
-  name: "cvae"
+  log_dir: "logs/TRB/ablation"
+  name: "nana"
 
 schedules_path: "tmp/nts_schedules_2023.csv"
 attributes_path: "tmp/nts_attributes_2023.csv"
@@ -49,10 +49,10 @@ model_params:
   latent_dim: 6
   dropout: 0.0
   teacher_forcing_ratio: 0.5
-  hidden_conditionality: add
-  encoder_conditionality: none
-  latent_conditionality: add
-  decoder_conditionality: none
+  hidden_conditionality: none
+  encoder_conditionality: add
+  latent_conditionality: none
+  decoder_conditionality: add
 
 experiment_params:
   LR: 0.001

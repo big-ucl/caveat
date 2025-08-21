@@ -1,6 +1,6 @@
 logging_params:
-  log_dir: "logs/TRB"
-  name: "cvae"
+  log_dir: "logs/TRB/ablation"
+  name: "no_weighting"
 
 schedules_path: "tmp/nts_schedules_2023.csv"
 attributes_path: "tmp/nts_attributes_2023.csv"
@@ -11,7 +11,7 @@ evaluation_params:
 labels_encoder:
   name: "tokens"
   weighting: unit
-  joint_weighting: inverse
+  joint_weighting: unit
   labels:
     gender: nominal
     age_group: nominal
@@ -47,7 +47,7 @@ model_params:
   hidden_size: 256
   labels_hidden_size: 64
   latent_dim: 6
-  dropout: 0.0
+  dropout: 0.25
   teacher_forcing_ratio: 0.5
   hidden_conditionality: add
   encoder_conditionality: none

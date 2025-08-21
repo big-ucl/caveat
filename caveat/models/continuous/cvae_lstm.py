@@ -137,7 +137,7 @@ class CVAEContLSTM(Base):
             return ConcatLatent(
                 latent_dim=self.latent_dim,
                 labels_size=self.labels_hidden_size,
-                flat_size_encode=self.act_seq_lossflat_size_encode,
+                flat_size_encode=self.flat_size_encode,
                 hidden_n=self.hidden_n,
                 hidden_size=self.hidden_size,
                 dropout=self.dropout,

@@ -1,6 +1,6 @@
 logging_params:
-  log_dir: "logs/TRB"
-  name: "cvae"
+  log_dir: "logs/TRB/ablation"
+  name: "deep"
 
 schedules_path: "tmp/nts_schedules_2023.csv"
 attributes_path: "tmp/nts_attributes_2023.csv"
@@ -43,7 +43,7 @@ trainer_params:
 
 model_params:
   name: "CVAEContLSTM"
-  hidden_n: 4
+  hidden_n: 5
   hidden_size: 256
   labels_hidden_size: 64
   latent_dim: 6
