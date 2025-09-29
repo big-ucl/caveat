@@ -75,6 +75,8 @@ class Base(Experiment):
         log_var: Tensor,
         target: Tensor,
         weights: Tuple[Tensor, Tensor],
+        z: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
         **kwargs,
     ) -> dict:
         """Computes the loss function. Different models are expected to need different loss functions

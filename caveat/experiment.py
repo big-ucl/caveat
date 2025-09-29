@@ -136,6 +136,8 @@ class Experiment(pl.LightningModule):
             target=y,
             weights=y_weights,
             label_weights=l_weights,
+            z=z,
+            labels=labels,
         )
         self.log_dict(
             {key: val.item() for key, val in train_loss.items()}, sync_dist=True
@@ -157,6 +159,8 @@ class Experiment(pl.LightningModule):
             target=y,
             weights=y_weights,
             label_weights=l_weights,
+            z=z,
+            labels=labels,
         )
 
         self.log_dict(
@@ -188,6 +192,8 @@ class Experiment(pl.LightningModule):
                 target=y,
                 weights=y_weights,
                 label_weights=l_weights,
+                z=z,
+                labels=labels,
             )
 
             self.log_dict(
