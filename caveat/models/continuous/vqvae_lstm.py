@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
@@ -8,7 +8,103 @@ from caveat.models import Base, utils
 from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class VAEContLSTM(Base):
+class VectorQuantizer(nn.Module):
+    def __init__(self, num_embeddings, embedding_dim, commitment_cost):
+        super().__init__()
+        self.K = num_embeddings
+        self.D = embedding_dim
+        self.commitment_cost = commitment_cost
+        self.mse_loss = nn.MSELoss()
+        self.embeddings = nn.Embedding(num_embeddings, embedding_dim)
+        self.embeddings.weight.data.uniform_(
+            -1 / num_embeddings, 1 / num_embeddings
+        )
+
+    def forward(self, inputs):
+        # Compute distances
+        inputs_shape = inputs.shape  # [B, K, D]
+        inputs_flat = inputs.view(-1, self.D)  # [B*K, D]
+        distances = (
+            torch.sum(inputs_flat**2, dim=1, keepdim=True)
+            - 2 * torch.matmul(inputs_flat, self.embeddings.weight.t())
+            + torch.sum(self.embeddings.weight**2, dim=1)
+        )  # [B*K, D]
+
+        # Get encoding indices
+        encoding_indices = torch.argmin(distances, dim=1)
+        encodings = nn.functional.one_hot(encoding_indices, self.K).type(
+            inputs.dtype
+        )
+
+        # Quantized vectors: [B*K, D]
+        quantized = torch.matmul(encodings, self.embeddings.weight)
+        quantized = quantized.view(inputs_shape)  # [B, K, D]
+
+        # Losses
+        e_latent_loss = self.mse_loss(quantized.detach(), inputs)
+        q_latent_loss = self.mse_loss(quantized, inputs.detach())
+        loss = q_latent_loss + self.commitment_cost * e_latent_loss
+
+        # Straight-through estimator
+        quantized = inputs + (quantized - inputs).detach()
+
+        return quantized, loss, encoding_indices
+
+
+class PriorRNN(nn.Module):
+    def __init__(
+        self, num_embeddings, embedding_dim, hidden_dim=128, num_layers=1
+    ):
+        super().__init__()
+        self.K = num_embeddings
+        self.D = embedding_dim
+        self.token_embedding = nn.Embedding(num_embeddings, embedding_dim)
+        self.rnn = nn.GRU(
+            embedding_dim, hidden_dim, num_layers, batch_first=True
+        )
+        self.output = nn.Linear(hidden_dim, embedding_dim)
+        self.activation = nn.LogSoftmax(dim=-1)
+
+    def forward(self, batch_size, device, target=None):
+        """
+        Autoregressive training.
+        Returns logits: [B, H, num_embeddings]
+        """
+        logprobs = []
+        hidden = None
+        token = torch.zeros(
+            batch_size, 1, device=device
+        ).int()  # start token [B, 1]
+
+        for t in range(self.K):
+            logprob, hidden = self.forward_step(
+                token, hidden
+            )  # [B, num_embeddings], [num_layers, B, hidden_dim]
+            logprobs.append(logprob)  # [B, num_embeddings]
+            if target is not None:
+                token = target[:, t].unsqueeze(1)  # [B, 1]
+            else:
+                prob = torch.exp(logprob)  # [B, num_embeddings]
+                token = torch.multinomial(prob, num_samples=1)  # [B, 1]
+        return torch.stack(logprobs, dim=1)  # [B, H, num_embeddings]
+
+    def forward_step(self, token, hidden):
+        """
+        Autoregressive generation step.
+        token: [B, 1]
+        hidden: [num_layers, B, hidden_dim]
+        Returns logits: [B, num_embeddings], hidden: [num_layers, B, hidden_dim]
+        """
+        x = self.token_embedding(token)  # [B, embedding_dim]
+        out, hidden = self.rnn(
+            x, hidden
+        )  # [B, 1, hidden_dim], [num_layers, B, hidden_dim]
+        logit = self.output(out.squeeze(1))  # [B, num_embeddings]
+        logprobs = self.activation(logit)  # [B, num_embeddings]
+        return logprobs, hidden
+
+
+class VQVAEContLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -21,12 +117,25 @@ class VAEContLSTM(Base):
         length, _ = self.in_shape
         self.head_hidden_size = config.get("head_hidden_size", self.hidden_size)
         self.head_depth = config.get("head_depth", 2)
+        self.num_embeddings = config.get("num_embeddings", 64)
+
+        self.prior = PriorRNN(
+            self.latent_dim,
+            self.num_embeddings,
+            hidden_dim=self.hidden_size,
+            num_layers=3,
+        )
 
         self.encoder = Encoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_n,
             dropout=self.dropout,
+        )
+        self.vq_block = VectorQuantizer(
+            num_embeddings=self.num_embeddings,
+            embedding_dim=self.latent_dim,
+            commitment_cost=config.get("commitment_cost", 0.25),
         )
         self.decoder = Decoder(
             input_size=self.encodings,
@@ -42,12 +151,129 @@ class VAEContLSTM(Base):
         )
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
-        self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+        self.fc_encode = nn.Linear(
+            flat_size_encode, self.latent_dim * self.num_embeddings
+        )
+        self.fc_decode = nn.Linear(
+            self.latent_dim * self.num_embeddings, flat_size_encode
+        )
+        self.prior_loss = nn.NLLLoss()
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
+
+    def forward(
+        self, x: Tensor, labels: Optional[Tensor] = None, target=None, **kwargs
+    ) -> List[Tensor]:
+        """Forward pass, also return latent parameterization.
+
+        Args:
+            x (tensor): Input sequences [N, L, Cin].
+
+        Returns:
+            list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
+        """
+        B = x.size(0)
+        z = self.encode(x, labels)  # [N, latent]
+        q, vq_loss, indices = self.vq_block(z)
+        log_probs_x = self.decode(q, labels=labels, target=target)
+        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
+            indices_logits = self.prior(
+                batch_size=B, device=x.device, target=indices
+            )  # [B, H-1, num_embeddings]
+        else:
+            indices_logits = self.prior(
+                batch_size=B, device=x.device, target=None
+            )  # [B, H-1, num_embeddings]
+        prior_loss = self.prior_loss(
+            indices_logits.view(-1, self.latent_dim), indices
+        )  # predict next token
+        return [log_probs_x, prior_loss, vq_loss, z]
+
+    def loss_function(
+        self,
+        log_probs: Tensor,
+        mu: Tensor,  # actually indices_loss
+        log_var: Tensor,  # actually vq_loss
+        target: Tensor,
+        weights: Tuple[Tensor, Tensor],
+        label_weights: Optional[Tuple[Tensor, Tensor]] = (None, None),
+        z: Optional[Tensor] = None,
+        labels: Optional[Tensor] = None,
+        **kwargs,
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        # unpack act probs and durations
+        target_acts, target_durs = self.unpack_encoding(target)
+        pred_acts, pred_durs = self.unpack_encoding(log_probs)
+        pred_durs = torch.exp(pred_durs)
+
+        act_weights, seq_weights = weights
+        _, joint_weights = label_weights
+        dur_weights = utils.duration_mask(act_weights)
+        # dur_weights = seq_weights  # use seq_weights as dur_weights
+
+        # activity loss
+        act_weight = self.activity_loss_weight * self.scheduled_act_weight
+        act_recon = self.act_seq_loss(
+            preds=pred_acts,
+            targets=target_acts,
+            weights=act_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_act_recon = act_weight * act_recon
+
+        # duration loss
+        dur_weight = self.duration_loss_weight * self.scheduled_dur_weight
+        dur_recon = self.dur_mse_loss(
+            preds=pred_durs,
+            targets=target_durs,
+            weights=dur_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_dur_recon = dur_weight * dur_recon
+
+        # reconstruction loss
+        w_recons_loss = w_act_recon + w_dur_recon
+
+        # prior loss
+        # mu is actually indices_loss
+        prior_loss = mu
+
+        # regularisation loss
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_vq_loss = scheduled_kld_weight * log_var
+
+        # final loss
+        loss = w_recons_loss + w_vq_loss + prior_loss
+
+        return {
+            "loss": loss,
+            "vq_loss": w_vq_loss.detach(),
+            "prior_loss": prior_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "vq_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_weight]).float(),
+            "dur_weight": torch.tensor([dur_weight]).float(),
+        }
+
+    def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
+        """Encodes the input by passing through the encoder network.
+
+        Args:
+            input (tensor): Input sequence batch [N, steps, acts].
+
+        Returns:
+            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
+        """
+        # [N, L, C]
+        hidden = self.encoder(input)
+        hidden = self.fc_encode(hidden)
+        return hidden.view(-1, self.latent_dim, self.num_embeddings)
 
     def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
@@ -59,7 +285,8 @@ class VAEContLSTM(Base):
             tensor: Output sequence batch [N, steps, acts].
         """
         # initialize hidden state as inputs
-        h = self.fc_hidden(z)
+        z = z.view(-1, self.latent_dim * self.num_embeddings)
+        h = self.fc_decode(z)
 
         # initialize hidden state
         hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
@@ -86,21 +313,6 @@ class VAEContLSTM(Base):
             )
 
         return log_probs
-
-
-class VAE_LSTM_Unweighted(VAEContLSTM):
-    def loss_function(
-        self,
-        log_probs: Tensor,
-        input: Tensor,
-        mu: Tensor,
-        log_var: Tensor,
-        mask: Tensor,
-        **kwargs,
-    ) -> dict:
-        return self.unweighted_seq_loss(
-            log_probs, input, mu, log_var, mask, **kwargs
-        )
 
 
 class Encoder(nn.Module):
@@ -142,7 +354,6 @@ class Encoder(nn.Module):
         h1 = self.norm(h1)
         h2 = self.norm(h2)
         hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
-        # [N, flatsize]
         return hidden
 
 

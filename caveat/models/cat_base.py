@@ -3,7 +3,8 @@ from typing import List, Optional, Tuple
 import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor, exp, nn
-from torch.distributions import Categorical, OneHotCategorical
+from torch.distributions import OneHotCategorical
+from torch.nn import functional as F
 
 from caveat.cat_experiment import CatExperiment
 from caveat.models import utils
@@ -69,7 +70,7 @@ class CatBase(CatExperiment):
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
         p = self.encode(x, labels)
-        z = self.sample_latent(p)
+        z = self.sample_latent_gumbel(p)
         log_probs_x = self.decode(z, labels=labels, target=target)
         return [log_probs_x, p.mean(-1).mean(-1), p.mean(-1).var(-1), (p, z)]
 
@@ -118,9 +119,18 @@ class CatBase(CatExperiment):
         m = OneHotCategorical(probs=probs)
         return m.sample()
 
-    def entropy(self, cat_p: Tensor) -> Tensor:
-        entropy = Categorical(probs=cat_p).entropy()
-        return entropy.mean(-1).sum()
+    def sample_latent_gumbel(
+        self, logits: Tensor, temperature: float = 0.5
+    ) -> Tensor:
+        """
+        Sample from categorical distribution using Gumbel-Softmax.
+        Returns a soft one-hot vector of shape [B, K].
+        """
+        return F.gumbel_softmax(logits, tau=temperature, hard=False, dim=-1)
+
+    def entropy(self, probs: Tensor) -> Tensor:
+        entropy = -torch.sum(probs * torch.log(probs + 1e-10), dim=-1).mean()
+        return entropy
 
     def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -212,7 +222,7 @@ class CatBase(CatExperiment):
         losses = losses.view(B, L) * seq_weights
         if joint_weights is not None:
             losses = losses * joint_weights
-        return losses.mean(-1)
+        return losses.mean()
 
     def dur_mse_loss(
         self, preds, targets, weights, seq_weights, joint_weights
@@ -222,7 +232,7 @@ class CatBase(CatExperiment):
         losses = losses * weights * seq_weights
         if joint_weights is not None:
             losses = losses * joint_weights
-        return losses.mean(-1)
+        return losses.mean()
 
     def continuous_loss(
         self,
@@ -244,7 +254,8 @@ class CatBase(CatExperiment):
 
         act_weights, seq_weights = weights
         _, joint_weights = label_weights
-        dur_mask = utils.duration_mask(act_weights)
+        dur_weights = utils.duration_mask(act_weights)
+        # dur_weights = seq_weights  # use seq_weights as dur_weights
 
         # activity loss
         act_weight = self.activity_loss_weight * self.scheduled_act_weight
@@ -262,39 +273,30 @@ class CatBase(CatExperiment):
         dur_recon = self.dur_mse_loss(
             preds=pred_durs,
             targets=target_durs,
-            weights=dur_mask,
+            weights=dur_weights,
             seq_weights=seq_weights,
             joint_weights=joint_weights,
         )
         w_dur_recon = dur_weight * dur_recon
 
-        # decoder loss
-        w_recons_loss = w_act_recon.mean() + w_dur_recon.mean()
+        # reconstruction loss
+        w_recons_loss = w_act_recon + w_dur_recon
 
-        # encoder loss
+        # kld loss
         entropy = self.entropy(cat_p)
-
-        p_sampled = torch.masked_select(cat_p, cat_z == 1.0).reshape(
-            cat_p.shape[0], -1
-        )  # probabilites corresponding to sampled z
-        expectation = torch.sum(
-            (w_act_recon + w_dur_recon).detach() * torch.log(p_sampled).mean(-1)
-        )
-
-        encoder_loss = expectation - entropy
         scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
-        w_kld_loss = scheduled_kld_weight * encoder_loss
+        w_entropy_loss = scheduled_kld_weight * entropy
 
         # final loss
-        loss = w_recons_loss + w_kld_loss
+        loss = w_recons_loss + w_entropy_loss
 
         return {
             "loss": loss,
-            "KLD": w_kld_loss.detach(),
+            "entropy": w_entropy_loss.detach(),
             "recon_loss": w_recons_loss.detach(),
-            "act_recon": w_act_recon.mean().detach(),
-            "dur_recon": w_dur_recon.mean().detach(),
-            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "entropy_weight": torch.tensor([scheduled_kld_weight]).float(),
             "act_weight": torch.tensor([act_weight]).float(),
             "dur_weight": torch.tensor([dur_weight]).float(),
         }

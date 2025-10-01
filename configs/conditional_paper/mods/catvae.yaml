@@ -1,0 +1,47 @@
+tune:
+  trials: 200
+  prune: True
+  timeout:  72000 # seconds
+
+seed: 1234
+
+logging_params:
+  log_dir: "logs/TRB"
+  name: "catvae_tune"
+
+schedules_path: "tmp/nts_schedules_2023.csv"
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+
+trainer_params:
+  min_epochs: 10
+  max_epochs: 100
+  patience: 10
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
+  kld_weight: 1
+  duration_loss_weight: 200
+
+encoder_params:
+  name: "continuous"
+  fix_durations: stretch
+  max_length: 16
+  duration: 1440
+  jitter: 0.1
+  weighting: unit
+  joint_weighting: unit
+  trim_eos: True
+
+model_params:
+  name: "CatVAEContLSTM"
+  latent_dim: trial.suggest_categorical("latent_dim", [16, 32, 64, 128, 256])
+  latent_categories: trial.suggest_categorical("num_embeddings", [16, 32, 64, 128, 256])
+  hidden_n: 4
+  hidden_size: 256
+  dropout: 0.1
+  normalise_durations: True
