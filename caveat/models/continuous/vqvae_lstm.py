@@ -22,19 +22,23 @@ class VectorQuantizer(nn.Module):
 
     def forward(self, inputs):
         # Compute distances
-        inputs_shape = inputs.shape  # [B, K, D]
-        inputs_flat = inputs.view(-1, self.D)  # [B*K, D]
+        inputs_shape = inputs.shape  # [B, L, D]
+        print("inputs_shape: ", inputs_shape)
+        inputs_flat = inputs.view(-1, self.D)  # [BL, D]
+        print("inputs_flat: ", inputs_flat.shape)
         distances = (
             torch.sum(inputs_flat**2, dim=1, keepdim=True)
             - 2 * torch.matmul(inputs_flat, self.embeddings.weight.t())
             + torch.sum(self.embeddings.weight**2, dim=1)
-        )  # [B*K, D]
+        )  # [BL, K]
+        print("distances: ", distances.shape)
 
         # Get encoding indices
         encoding_indices = torch.argmin(distances, dim=1)
         encodings = nn.functional.one_hot(encoding_indices, self.K).type(
             inputs.dtype
         )
+        encoding_indices = encoding_indices.view(inputs_shape[0], -1)  # [B, L]
 
         # Quantized vectors: [B*K, D]
         quantized = torch.matmul(encodings, self.embeddings.weight)
@@ -53,16 +57,22 @@ class VectorQuantizer(nn.Module):
 
 class PriorRNN(nn.Module):
     def __init__(
-        self, num_embeddings, embedding_dim, hidden_dim=128, num_layers=1
+        self,
+        len_embeddings,
+        num_embeddings,
+        embedding_dim,
+        hidden_dim=128,
+        num_layers=1,
     ):
         super().__init__()
+        self.L = len_embeddings
         self.K = num_embeddings
         self.D = embedding_dim
         self.token_embedding = nn.Embedding(num_embeddings, embedding_dim)
         self.rnn = nn.GRU(
             embedding_dim, hidden_dim, num_layers, batch_first=True
         )
-        self.output = nn.Linear(hidden_dim, embedding_dim)
+        self.output = nn.Linear(hidden_dim, num_embeddings)
         self.activation = nn.LogSoftmax(dim=-1)
 
     def forward(self, batch_size, device, target=None):
@@ -76,7 +86,7 @@ class PriorRNN(nn.Module):
             batch_size, 1, device=device
         ).int()  # start token [B, 1]
 
-        for t in range(self.K):
+        for t in range(self.L):
             logprob, hidden = self.forward_step(
                 token, hidden
             )  # [B, num_embeddings], [num_layers, B, hidden_dim]
@@ -117,11 +127,13 @@ class VQVAEContLSTM(Base):
         length, _ = self.in_shape
         self.head_hidden_size = config.get("head_hidden_size", self.hidden_size)
         self.head_depth = config.get("head_depth", 2)
-        self.num_embeddings = config.get("num_embeddings", 64)
+        self.num_embeddings = config.get("num_embeddings", 10)
+        self.embedding_dim = config.get("embedding_dim", 64)
 
         self.prior = PriorRNN(
-            self.latent_dim,
-            self.num_embeddings,
+            len_embeddings=self.latent_dim,
+            num_embeddings=self.num_embeddings,
+            embedding_dim=self.embedding_dim,
             hidden_dim=self.hidden_size,
             num_layers=3,
         )
@@ -134,7 +146,7 @@ class VQVAEContLSTM(Base):
         )
         self.vq_block = VectorQuantizer(
             num_embeddings=self.num_embeddings,
-            embedding_dim=self.latent_dim,
+            embedding_dim=self.embedding_dim,
             commitment_cost=config.get("commitment_cost", 0.25),
         )
         self.decoder = Decoder(
@@ -152,10 +164,10 @@ class VQVAEContLSTM(Base):
         self.unflattened_shape = (2 * self.hidden_n, self.hidden_size)
         flat_size_encode = self.hidden_n * self.hidden_size * 2
         self.fc_encode = nn.Linear(
-            flat_size_encode, self.latent_dim * self.num_embeddings
+            flat_size_encode, self.latent_dim * self.embedding_dim
         )
         self.fc_decode = nn.Linear(
-            self.latent_dim * self.num_embeddings, flat_size_encode
+            self.latent_dim * self.embedding_dim, flat_size_encode
         )
         self.prior_loss = nn.NLLLoss()
 
@@ -186,7 +198,7 @@ class VQVAEContLSTM(Base):
                 batch_size=B, device=x.device, target=None
             )  # [B, H-1, num_embeddings]
         prior_loss = self.prior_loss(
-            indices_logits.view(-1, self.latent_dim), indices
+            indices_logits.view(-1, self.num_embeddings), indices.view(-1)
         )  # predict next token
         return [log_probs_x, prior_loss, vq_loss, z]
 
@@ -273,7 +285,7 @@ class VQVAEContLSTM(Base):
         # [N, L, C]
         hidden = self.encoder(input)
         hidden = self.fc_encode(hidden)
-        return hidden.view(-1, self.latent_dim, self.num_embeddings)
+        return hidden.view(-1, self.latent_dim, self.embedding_dim)
 
     def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
@@ -285,7 +297,8 @@ class VQVAEContLSTM(Base):
             tensor: Output sequence batch [N, steps, acts].
         """
         # initialize hidden state as inputs
-        z = z.view(-1, self.latent_dim * self.num_embeddings)
+        print("z before view: ", z.shape)
+        z = z.view(-1, self.latent_dim * self.embedding_dim)
         h = self.fc_decode(z)
 
         # initialize hidden state

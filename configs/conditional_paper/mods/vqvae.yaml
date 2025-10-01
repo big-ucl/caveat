@@ -9,8 +9,11 @@ logging_params:
   log_dir: "logs/TRB"
   name: "vqvae"
 
-schedules_path: "tmp/nts_schedules_2023.csv"
-attributes_path: "tmp/nts_attributes_2023.csv"
+# schedules_path: "tmp/nts_schedules_2023.csv"
+# attributes_path: "tmp/nts_attributes_2023.csv"
+
+schedules_path: "tests/fixtures/test_schedules.csv"
+# attributes_path: "tests/fixtures/test_attributes.csv"
 
 loader_params:
   train_batch_size: 1024
@@ -34,16 +37,16 @@ encoder_params:
   joint_weighting: unit
   trim_eos: True
 
-labels_encoder:
-  name: "tokens"
-  weighting: unit
-  joint_weighting: unit
-  labels:
-    gender: nominal
-    age_group: nominal
-    car_access: nominal
-    work_status: nominal
-    income: nominal
+# labels_encoder:
+#   name: "tokens"
+#   weighting: unit
+#   joint_weighting: unit
+#   labels:
+#     gender: nominal
+#     age_group: nominal
+#     car_access: nominal
+#     work_status: nominal
+#     income: nominal
 
 # evaluation_params:
 #   split_on: [gender, age_group, car_access, work_status, income]
@@ -61,4 +64,5 @@ model_params:
   hidden_n: 4
   hidden_size: 256
   dropout: 0.1
-  num_embeddings: 64
+  num_embeddings: 10
+  embedding_dim: 64
