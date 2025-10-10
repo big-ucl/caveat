@@ -13,10 +13,10 @@
       
       
       
-        <link rel="prev" href="../cvae_lstm_nudger_adversarial/">
+        <link rel="prev" href="../cond_lstm/">
       
       
-        <link rel="next" href="../swae_lstm/">
+        <link rel="next" href="../cvae_lstm/">
       
       
       <link rel="icon" href="../../../../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>caveat.models.continuous.scwae_lstm - caveat</title>
+        <title>caveat.models.continuous.cswae_lstm - caveat</title>
       
     
     
@@ -70,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM" class="md-skip">
+        <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              caveat.models.continuous.scwae_lstm
+              caveat.models.continuous.cswae_lstm
             
           </span>
         </div>
@@ -2010,6 +2010,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2168,6 +2172,105 @@
                 
   
   
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cswae_lstm
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cswae_lstm
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM" class="md-nav__link">
+    <span class="md-ellipsis">
+      CSWAEContLSTM
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CSWAEContLSTM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.extra_sliced_wasserstein_distance" class="md-nav__link">
+    <span class="md-ellipsis">
+      extra_sliced_wasserstein_distance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.loss_function" class="md-nav__link">
+    <span class="md-ellipsis">
+      loss_function
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.sliced_wasserstein_distance" class="md-nav__link">
+    <span class="md-ellipsis">
+      sliced_wasserstein_distance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
   
   
     <li class="md-nav__item">
@@ -2294,96 +2397,18 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    caveat.models.continuous.scwae_lstm
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../cvqvae_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.continuous.scwae_lstm
+    caveat.models.continuous.cvqvae_lstm
   </span>
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM" class="md-nav__link">
-    <span class="md-ellipsis">
-      SCWAEContLSTM
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="SCWAEContLSTM">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.extra_sliced_wasserstein_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      extra_sliced_wasserstein_distance
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.loss_function" class="md-nav__link">
-    <span class="md-ellipsis">
-      loss_function
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.sliced_wasserstein_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      sliced_wasserstein_distance
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2527,6 +2552,27 @@
   
   <span class="md-ellipsis">
     caveat.models.continuous.vae_lstm_countdown
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vqvae_lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.vqvae_lstm
   </span>
   
 
@@ -2941,17 +2987,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM" class="md-nav__link">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM" class="md-nav__link">
     <span class="md-ellipsis">
-      SCWAEContLSTM
+      CSWAEContLSTM
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="SCWAEContLSTM">
+    <nav class="md-nav" aria-label="CSWAEContLSTM">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.extra_sliced_wasserstein_distance" class="md-nav__link">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.extra_sliced_wasserstein_distance" class="md-nav__link">
     <span class="md-ellipsis">
       extra_sliced_wasserstein_distance
     </span>
@@ -2960,7 +3006,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.loss_function" class="md-nav__link">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.loss_function" class="md-nav__link">
     <span class="md-ellipsis">
       loss_function
     </span>
@@ -2969,7 +3015,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.sliced_wasserstein_distance" class="md-nav__link">
+  <a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.sliced_wasserstein_distance" class="md-nav__link">
     <span class="md-ellipsis">
       sliced_wasserstein_distance
     </span>
@@ -3003,7 +3049,7 @@
   
 
 
-  <h1>caveat.models.continuous.scwae_lstm</h1>
+  <h1>caveat.models.continuous.cswae_lstm</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -3033,10 +3079,10 @@
 
 
 
-<h2 id="caveat.models.continuous.scwae_lstm.SCWAEContLSTM" class="doc doc-heading">
-              <code class="highlight language-python"><span class="n">SCWAEContLSTM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+<h2 id="caveat.models.continuous.cswae_lstm.CSWAEContLSTM" class="doc doc-heading">
+              <code class="highlight language-python"><span class="n">CSWAEContLSTM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-<a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM" class="headerlink" title="Permanent link">#</a></h2>
 
 
     <div class="doc doc-contents ">
@@ -3095,10 +3141,10 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="caveat.models.continuous.scwae_lstm.SCWAEContLSTM.extra_sliced_wasserstein_distance" class="doc doc-heading">
+<h3 id="caveat.models.continuous.cswae_lstm.CSWAEContLSTM.extra_sliced_wasserstein_distance" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">extra_sliced_wasserstein_distance</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">prior_z</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">num_projections</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span></code>
 
-<a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.extra_sliced_wasserstein_distance" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.extra_sliced_wasserstein_distance" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -3199,7 +3245,7 @@
 
 
             <details class="quote">
-              <summary>Source code in <code>caveat/models/continuous/scwae_lstm.py</code></summary>
+              <summary>Source code in <code>caveat/models/continuous/cswae_lstm.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-155">155</a></span>
 <span class="normal"><a href="#__codelineno-0-156">156</a></span>
 <span class="normal"><a href="#__codelineno-0-157">157</a></span>
@@ -3304,10 +3350,10 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="caveat.models.continuous.scwae_lstm.SCWAEContLSTM.loss_function" class="doc doc-heading">
+<h3 id="caveat.models.continuous.cswae_lstm.CSWAEContLSTM.loss_function" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">loss_function</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">log_var</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">label_weights</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">z</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-<a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.loss_function" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.loss_function" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -3316,7 +3362,7 @@
 
 
             <details class="quote">
-              <summary>Source code in <code>caveat/models/continuous/scwae_lstm.py</code></summary>
+              <summary>Source code in <code>caveat/models/continuous/cswae_lstm.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11"> 11</a></span>
 <span class="normal"><a href="#__codelineno-0-12"> 12</a></span>
 <span class="normal"><a href="#__codelineno-0-13"> 13</a></span>
@@ -3518,7 +3564,7 @@
 </span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="c1"># kld loss</span>
 </span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a>    <span class="n">prior_z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="n">kld_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_sliced_wasserstein_distance</span><span class="p">(</span>
-</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="n">z</span><span class="p">,</span> <span class="n">prior_z</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">num_projections</span><span class="o">=</span><span class="mi">20</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="n">z</span><span class="p">,</span> <span class="n">prior_z</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">num_projections</span><span class="o">=</span><span class="mi">32</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>    <span class="p">)</span>
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="n">scheduled_kld_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kld_loss_weight</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduled_kld_weight</span>
 </span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="n">w_kld_loss</span> <span class="o">=</span> <span class="n">scheduled_kld_weight</span> <span class="o">*</span> <span class="n">kld_loss</span>
@@ -3547,10 +3593,10 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="caveat.models.continuous.scwae_lstm.SCWAEContLSTM.sliced_wasserstein_distance" class="doc doc-heading">
+<h3 id="caveat.models.continuous.cswae_lstm.CSWAEContLSTM.sliced_wasserstein_distance" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">sliced_wasserstein_distance</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">prior_z</span><span class="p">,</span> <span class="n">num_projections</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span></code>
 
-<a href="#caveat.models.continuous.scwae_lstm.SCWAEContLSTM.sliced_wasserstein_distance" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.continuous.cswae_lstm.CSWAEContLSTM.sliced_wasserstein_distance" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -3651,7 +3697,7 @@
 
 
             <details class="quote">
-              <summary>Source code in <code>caveat/models/continuous/scwae_lstm.py</code></summary>
+              <summary>Source code in <code>caveat/models/continuous/cswae_lstm.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-123">123</a></span>
 <span class="normal"><a href="#__codelineno-0-124">124</a></span>
 <span class="normal"><a href="#__codelineno-0-125">125</a></span>

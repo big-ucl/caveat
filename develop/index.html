@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#research" class="md-skip">
+        <a href="#motivation" class="md-skip">
           Skip to content
         </a>
       
@@ -265,6 +265,15 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Motivation
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#research" class="md-nav__link">
@@ -2230,6 +2239,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2391,6 +2404,27 @@
   
   
     <li class="md-nav__item">
+      <a href="reference/caveat/models/continuous/cswae_lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cswae_lstm
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="reference/caveat/models/continuous/cvae_lstm/" class="md-nav__link">
         
   
@@ -2517,11 +2551,11 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/caveat/models/continuous/scwae_lstm/" class="md-nav__link">
+      <a href="reference/caveat/models/continuous/cvqvae_lstm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.continuous.scwae_lstm
+    caveat.models.continuous.cvqvae_lstm
   </span>
   
 
@@ -2669,6 +2703,27 @@
   
   <span class="md-ellipsis">
     caveat.models.continuous.vae_lstm_countdown
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/caveat/models/continuous/vqvae_lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.vqvae_lstm
   </span>
   
 
@@ -3083,6 +3138,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Motivation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#research" class="md-nav__link">
     <span class="md-ellipsis">
       Research
@@ -3303,8 +3367,25 @@
 <a href="https://big-ucl.github.io/caveat"><img alt="Documentation" src="https://github.com/big-ucl/caveat/actions/workflows/pages/pages-build-deployment/badge.svg" /></a></p>
 <p>Caveat is for building and evaluating models of human activity schedules. Activity schedules are a useful representation of human behaviours, used for modelling transport, energy and epidemiological systems.</p>
 <p>Activity scheduling is required component of activity-based models. But Caveat also has application for (i) diverse upsampling, (ii) bias correction, (iii) simple forecasting.</p>
+<h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">#</a></h2>
+<p>The core motivation or philosophy behind Caveat is that people behave in diverse ways, well beyond what is currently represented with existing modelling approaches. If you often grumble about existing human behavioral models being <em>too complex</em>, <em>slow</em> or <em>unrealistic</em> then Caveat may be of interest. We introduce generative modelling ideas (stollen perhaps from the fancy genAI domain but scaled down and carefully crafted for human modelling) so that we can better represent real human behavioral diversity.</p>
+<p>We also add focus on the distribution of outputs rather than simple key metrics or expectations. If you think distributions matter, that everyone should be fairly represented, then you might like our work.</p>
+<p>Also, with access to even a <em>somewhat</em> modern GPU, our models can be trained in minutes and take seconds to run for national scale populations.</p>
 <h2 id="research">Research<a class="headerlink" href="#research" title="Permanent link">#</a></h2>
 <p>Caveat is part of an ongoing research project. Overview of presented work can be found in the <a href="https://github.com/big-ucl/caveat/blob/main/papers/README.md">papers</a> module, including key information allowing presented results to be <strong>reproduced</strong>.</p>
+<p>We currently have published work using Caveat for generative modelling/synthesis of activity schedules - <strong>Synthesising activity participations and scheduling with deep generative machine learning</strong>, available <a href="https://www.sciencedirect.com/science/article/pii/S0968090X25002773">here</a> or <a href="https://arxiv.org/abs/2501.10221">here</a>. Please consider referencing us:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>@article{SHONE,
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>title = {Synthesising activity participations and scheduling with deep generative machine learning},
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>journal = {Transportation Research Part C: Emerging Technologies},
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>volume = {179},
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pages = {105273},
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>year = {2025},
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>issn = {0968-090X},
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>doi = {https://doi.org/10.1016/j.trc.2025.105273},
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>url = {https://www.sciencedirect.com/science/article/pii/S0968090X25002773},
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>author = {Fred Shone and Tim Hillel},
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>}
+</span></code></pre></div>
 <h2 id="example-applications">Example Applications<a class="headerlink" href="#example-applications" title="Permanent link">#</a></h2>
 <p><strong>Generation</strong> for up-sampling or anonymisation an observed population of activity schedules:
 - <code>caveat run configs/example_run.yaml</code> - train a generative model using an observed population of schedules, sample a new synthetic population of schedules, and evaluate it's quality.</p>
@@ -3362,11 +3443,11 @@
 <p>For help with configuration refer to our <a href="https://big-ucl.github.io/caveat/latest/configuration">documentation</a>.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">#</a></h2>
 <p>To install caveat, we recommend using the <a href="https://mamba.readthedocs.io/en/latest/index.html">mamba</a> package manager:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:big-ucl/caveat.git
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>caveat
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>caveat<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>-c<span class="w"> </span>city-modelling-lab<span class="w"> </span>-c<span class="w"> </span>pytorch<span class="w"> </span>--file<span class="w"> </span>requirements/base.txt<span class="w"> </span>--file<span class="w"> </span>requirements/dev.txt
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>mamba<span class="w"> </span>activate<span class="w"> </span>caveat
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:big-ucl/caveat.git
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>caveat
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>caveat<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>-c<span class="w"> </span>city-modelling-lab<span class="w"> </span>-c<span class="w"> </span>pytorch<span class="w"> </span>--file<span class="w"> </span>requirements/base.txt<span class="w"> </span>--file<span class="w"> </span>requirements/dev.txt
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>mamba<span class="w"> </span>activate<span class="w"> </span>caveat
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
 </span></code></pre></div>
 <p>Caveat is in development, hence an "editable" (<code>-e</code>) install is recommended.</p>
 <h3 id="jupyter-notebooks">Jupyter Notebooks<a class="headerlink" href="#jupyter-notebooks" title="Permanent link">#</a></h3>
@@ -3382,7 +3463,7 @@ assert torch.cuda.is_available()
 <h3 id="windows-installation-with-cuda">Windows Installation with CUDA<a class="headerlink" href="#windows-installation-with-cuda" title="Permanent link">#</a></h3>
 <p>Based on the above the following may be redundant now.</p>
 <p>If you want to get a cuda enabled windows install you can try the following mamba create:
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
 </span></code></pre></div>
 Or lake a look <a href="https://pytorch.org/get-started/locally/">here</a>. Note that you need to have the right version of python.
 For more detailed instructions, see our <a href="https://big-ucl.github.io/caveat/latest/installation/">documentation</a>.</p>
@@ -3394,8 +3475,8 @@ For more detailed instructions, see our <a href="https://big-ucl.github.io/cavea
 <h2 id="building-the-documentation">Building the documentation<a class="headerlink" href="#building-the-documentation" title="Permanent link">#</a></h2>
 <p>If you are unable to access the online documentation, you can build the documentation locally.
 First, <a href="https://big-ucl.github.io/caveat/latest/installation/">install a development environment of caveat</a>, then deploy the documentation using <a href="https://github.com/jimporter/mike">mike</a>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mike deploy develop
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>mike serve
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>mike deploy develop
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>mike serve
 </span></code></pre></div>
 <p>Then you can view the documentation in a browser at http://localhost:8000/.</p>
 <h2 id="credits">Credits<a class="headerlink" href="#credits" title="Permanent link">#</a></h2>
