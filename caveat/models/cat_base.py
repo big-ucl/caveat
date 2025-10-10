@@ -190,7 +190,11 @@ class CatBase(CatExperiment):
         Returns:
             tensor: [N, steps, acts].
         """
-        z = z.to(device)
+        # sample latent_dim tokens from range latent_cats with uniform distribution
+        z = torch.randint(
+            0, self.latent_cats, (z.shape[0], self.latent_dim), device=device
+        )
+        z = F.one_hot(z, num_classes=self.latent_cats).float()
         prob_samples = exp(self.decode(z, **kwargs))
         return prob_samples
 

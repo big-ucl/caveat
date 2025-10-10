@@ -52,33 +52,50 @@ class VectorQuantizer(nn.Module):
         return quantized, loss, encoding_indices
 
 
-class PriorRNN(nn.Module):
+class ConditionalPriorRNN(nn.Module):
     def __init__(
         self,
         len_embeddings,
         num_embeddings,
         embedding_dim,
-        hidden_dim=128,
-        num_layers=2,
+        labels_dim,
+        hidden_size=128,
+        hidden_layers=2,
     ):
         super().__init__()
         self.L = len_embeddings
         self.K = num_embeddings
         self.D = embedding_dim
+        self.hidden_layers = hidden_layers
+        self.hidden_size = hidden_size
+        flat_size = 2 * hidden_layers * hidden_size
+        self.hidden_fc = nn.Linear(labels_dim, flat_size)
         self.token_embedding = nn.Embedding(num_embeddings, embedding_dim)
-        self.rnn = nn.GRU(
-            embedding_dim, hidden_dim, num_layers, batch_first=True
+        self.rnn = nn.LSTM(
+            embedding_dim, hidden_size, hidden_layers, batch_first=True
         )
-        self.output = nn.Linear(hidden_dim, num_embeddings)
+        self.output = nn.Linear(hidden_size, num_embeddings)
         self.activation = nn.LogSoftmax(dim=-1)
 
-    def forward(self, batch_size, device, target=None):
+    def hidden_init(self, labels):
+        h1, h2 = (
+            self.hidden_fc(labels)
+            .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
+            .permute(1, 0, 2)
+            .split(self.hidden_layers)
+        )
+        h1 = h1.contiguous()
+        h2 = h2.contiguous()
+        return (h1, h2)
+
+    def forward(self, labels, batch_size, device, target=None):
         """
         Autoregressive training.
         Returns logits: [B, H, num_embeddings]
         """
         logprobs = []
-        hidden = None
+        hidden = self.hidden_init(labels)
+
         token = torch.zeros(
             batch_size, 1, device=device
         ).int()  # start token [B, 1]
@@ -110,13 +127,13 @@ class PriorRNN(nn.Module):
         logprobs = self.activation(logit)  # [B, num_embeddings]
         return logprobs, hidden
 
-    def generate(self, batch_size, device, **kwargs):
+    def generate(self, labels, batch_size, device, **kwargs):
         """
         Autoregressive generation.
         Returns logits: [B, H, num_embeddings]
         """
         samples = []
-        hidden = None
+        hidden = self.hidden_init(labels)
         token = torch.zeros(
             batch_size, 1, device=device
         ).int()  # start token [B, 1]
@@ -131,28 +148,66 @@ class PriorRNN(nn.Module):
         return torch.stack(samples, dim=1)  # [B, L]
 
 
-class VQVAEContLSTM(Base):
+class LabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size):
+        """Label Encoder using token embedding.
+        Embedding outputs are the same size but use different weights so that they can be different sizes.
+        Each embedding is then stacked and summed to give single encoding."""
+        super(LabelEncoder, self).__init__()
+        self.embeds = nn.ModuleList(
+            [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
+        )
+        # self.fc = nn.Linear(hidden_size, hidden_size)
+        # self.activation = nn.ReLU()
+
+    def forward(self, x):
+        x = torch.stack(
+            [embed(x[:, i]) for i, embed in enumerate(self.embeds)], dim=-1
+        ).sum(dim=-1)
+        return x
+
+
+class CVQVAEContLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
+        if self.labels_size is None:
+            raise UserWarning(
+                "ConditionalLSTM requires labels_size, please check you have configures a compatible encoder and condition attributes"
+            )
+        if self.label_embed_sizes is None:
+            raise UserWarning("ConditionalLSTM requires label_embed_sizes")
+        if not isinstance(self.label_embed_sizes, list):
+            raise UserWarning(
+                "ConditionalLSTM requires label_embed_sizes to be a list of label embedding sizes"
+            )
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
         self.hidden_n = config["hidden_n"]
-        self.dropout = config.get("dropout", 0.0)
+        self.dropout = config["dropout"]
         length, _ = self.in_shape
         self.head_hidden_size = config.get("head_hidden_size", self.hidden_size)
         self.head_depth = config.get("head_depth", 2)
         self.num_embeddings = config.get("num_embeddings", 10)
         self.embedding_dim = config.get("embedding_dim", 64)
+        self.labels_hidden_size = config.get(
+            "labels_hidden_size", self.hidden_size
+        )
 
-        self.prior = PriorRNN(
+        self.label_encoder = LabelEncoder(
+            label_embed_sizes=self.label_embed_sizes,
+            hidden_size=self.labels_hidden_size,
+        )
+
+        self.prior = ConditionalPriorRNN(
             len_embeddings=self.latent_dim,
             num_embeddings=self.num_embeddings,
             embedding_dim=self.embedding_dim,
-            hidden_dim=self.hidden_size,
-            num_layers=3,
+            labels_dim=self.labels_hidden_size,
+            hidden_size=self.hidden_size,
+            hidden_layers=3,
         )
 
         self.encoder = Encoder(
@@ -203,23 +258,28 @@ class VQVAEContLSTM(Base):
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
         B = x.size(0)
-        z = self.encode(x, labels)  # [N, latent]
+        labels_hidden = (
+            self.label_encoder(labels) if labels is not None else None
+        )
+        z = self.encode(x, labels_hidden)  # [N, latent]
         q, vq_loss, indices = self.vq_block(z)
-        log_probs_x = self.decode(q, labels=labels, target=target)
+        log_probs_x = self.decode(q, labels=labels_hidden, target=target)
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             indices_logits = self.prior(
-                batch_size=B, device=x.device, target=indices
+                labels_hidden, batch_size=B, device=x.device, target=indices
             )  # [B, H-1, num_embeddings]
         else:
             indices_logits = self.prior(
-                batch_size=B, device=x.device, target=None
+                labels_hidden, batch_size=B, device=x.device, target=None
             )  # [B, H-1, num_embeddings]
         prior_loss = self.prior_loss(
             indices_logits.view(-1, self.num_embeddings), indices.view(-1)
         )  # predict next token
         return [log_probs_x, prior_loss, vq_loss, indices]
 
-    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
+    def predict(
+        self, z: Tensor, device: int, labels: Optional[Tensor] = None, **kwargs
+    ) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -229,8 +289,12 @@ class VQVAEContLSTM(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        # z = z.to(device)
-        z = self.prior.generate(batch_size=z.size(0), device=device)
+        labels_hidden = (
+            self.label_encoder(labels) if labels is not None else None
+        )
+        z = self.prior.generate(
+            labels_hidden, batch_size=z.size(0), device=device
+        )
         z = self.vq_block.embeddings(z)  # [N, latent_dim, embedding_dim]
         prob_samples = exp(self.decode(z, **kwargs))
         return prob_samples

@@ -2,7 +2,7 @@ seed: 12345
 
 logging_params:
   log_dir: "logs/TRB"
-  name: "swae"
+  name: "cvqvae"
 
 schedules_path: "tmp/nts_schedules_2023.csv"
 attributes_path: "tmp/nts_attributes_2023.csv"
@@ -13,7 +13,7 @@ loader_params:
   num_workers: 8
   val_split: 0.1
   test_split: 0.1
-  
+
 trainer_params:
   min_epochs: 20
   max_epochs: 200
@@ -51,8 +51,10 @@ experiment_params:
   duration_loss_weight: 200
 
 model_params:
-  name: "SWAEContLSTM"
-  latent_dim: 6
+  name: "CVQVAEContLSTM"
+  latent_dim: 8
   hidden_n: 4
   hidden_size: 256
   dropout: 0.1
+  num_embeddings: 128
+  embedding_dim: 128

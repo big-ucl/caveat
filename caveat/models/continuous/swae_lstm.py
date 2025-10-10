@@ -51,53 +51,13 @@ class SWAEContLSTM(VAEContLSTM):
         )
         w_dur_recon = dur_weight * dur_recon
 
-        # start time loss
-        start_weight = self.start_loss_weight * self.scheduled_start_weight
-        start_recon = self.start_seq_loss_detached(
-            preds=pred_durs,
-            targets=target_durs,
-            weights=dur_weights,
-            seq_weights=seq_weights,
-            joint_weights=joint_weights,
-        )
-        w_start_recon = start_weight * start_recon
-
-        # end time loss
-        end_weight = self.end_loss_weight * self.scheduled_end_weight
-        end_recon = self.end_seq_loss_detached(
-            preds=pred_durs,
-            targets=target_durs,
-            weights=dur_weights,
-            seq_weights=seq_weights,
-            joint_weights=joint_weights,
-        )
-        w_end_recon = end_weight * end_recon
-
-        # total_duration loss
-        total_dur_weight = (
-            self.total_duration_loss_weight * self.scheduled_total_dur_weight
-        )
-        total_dur_recon = self.total_duration_loss(
-            preds=pred_durs,
-            targets=target_durs,
-            seq_weights=seq_weights,
-            joint_weights=joint_weights,
-        )
-        w_total_dur_recon = total_dur_weight * total_dur_recon
-
         # reconstruction loss
-        w_recons_loss = (
-            w_act_recon
-            + w_dur_recon
-            + w_start_recon
-            + w_end_recon
-            + w_total_dur_recon
-        )
+        w_recons_loss = w_act_recon + w_dur_recon
 
         # kld loss
         prior_z = torch.randn_like(mu)
         kld_loss = self.sliced_wasserstein_distance(
-            z, prior_z, num_projections=100
+            z, prior_z, num_projections=128
         )
         scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
@@ -111,11 +71,9 @@ class SWAEContLSTM(VAEContLSTM):
             "recon_loss": w_recons_loss.detach(),
             "act_recon": w_act_recon.detach(),
             "dur_recon": w_dur_recon.detach(),
-            "end_recon": w_end_recon.detach(),
             "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
             "act_weight": torch.tensor([act_weight]).float(),
             "dur_weight": torch.tensor([dur_weight]).float(),
-            "end_weight": torch.tensor([end_weight]).float(),
         }
 
     def sliced_wasserstein_distance(

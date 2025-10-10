@@ -4,9 +4,10 @@ from .continuous.auto_attention import AutoContAtt
 from .continuous.auto_lstm import AutoContLSTM
 from .continuous.cat_vae_lstm import CatVAEContLSTM
 from .continuous.cond_lstm import CondContLSTM
+from .continuous.cswae_lstm import CSWAEContLSTM
 from .continuous.cvae_lstm import CVAEContLSTM
 from .continuous.cvae_lstm_countdown import CVAEContLSTMCountdown
-from .continuous.scwae_lstm import SCWAEContLSTM
+from .continuous.cvqvae_lstm import CVQVAEContLSTM
 from .continuous.swae_lstm import SWAEContLSTM
 from .continuous.vae_attention import VAEContXAtt
 from .continuous.vae_cnn1d import VAEContCNN1D
@@ -48,7 +49,7 @@ library = {
     "VAEContFC": VAEContFC,
     "VAEContXAtt": VAEContXAtt,
     "CVAEContLSTM": CVAEContLSTM,
-    "SCWAEContLSTM": SCWAEContLSTM,
+    "CSWAEContLSTM": CSWAEContLSTM,
     "Seq2SeqLSTM": Seq2SeqLSTM,
     "Seq2ScoreLSTM": Seq2ScoreLSTM,
     "JVAEContLSTM": JVAEContLSTM,
@@ -58,4 +59,5 @@ library = {
     "VAEContLSTMCountdown": VAEContLSTMCountdown,
     "CVAEContLSTMCountdown": CVAEContLSTMCountdown,
     "VQVAEContLSTM": VQVAEContLSTM,
+    "CVQVAEContLSTM": CVQVAEContLSTM,
 }

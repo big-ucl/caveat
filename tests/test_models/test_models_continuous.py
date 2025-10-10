@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from caveat.models.continuous.auto_lstm import AutoContLSTM
+from caveat.models.continuous.cat_vae_lstm import CatVAEContLSTM
 from caveat.models.continuous.cond_lstm import CondContLSTM
 from caveat.models.continuous.cvae_lstm import CVAEContLSTM
 from caveat.models.continuous.cvae_lstm_nudger import CVAEContLSTMNudger
@@ -9,10 +10,12 @@ from caveat.models.continuous.cvae_lstm_nudger_adversarial import (
     CVAEContLSTMNudgerAdversarial,
     Discriminator,
 )
+from caveat.models.continuous.swae_lstm import SWAEContLSTM
 from caveat.models.continuous.vae_cnn1d import VAEContCNN1D
 from caveat.models.continuous.vae_cnn2d import VAEContCNN2D
 from caveat.models.continuous.vae_fc import VAEContFC
 from caveat.models.continuous.vae_lstm import VAEContLSTM
+from caveat.models.continuous.vqvae_lstm import VQVAEContLSTM
 
 
 def test_auto_lstm_forward():
@@ -78,46 +81,6 @@ def test_conditional_lstm_forward():
         label_weights=label_weights,
     )
     assert "loss" in losses
-
-
-# testdata = [
-#     ("none", "concat", "none"),
-#     ("none", "add", "none"),
-#     ("hidden", "concat", "none"),
-#     ("hidden", "add", "none"),
-#     ("inputs_add", "concat", "none"),
-#     ("inputs_add", "add", "none"),
-#     ("inputs_concat", "concat", "none"),
-#     ("inputs_concat", "add", "none"),
-#     ("both_add", "concat", "none"),
-#     ("both_add", "add", "none"),
-#     ("both_concat", "concat", "none"),
-#     ("both_concat", "add", "none"),
-#     ("none", "concat", "inputs_add"),
-#     ("none", "add", "inputs_add"),
-#     ("hidden", "concat", "inputs_add"),
-#     ("hidden", "add", "inputs_add"),
-#     ("inputs_add", "concat", "inputs_add"),
-#     ("inputs_add", "add", "inputs_add"),
-#     ("inputs_concat", "concat", "inputs_add"),
-#     ("inputs_concat", "add", "inputs_add"),
-#     ("both_add", "concat", "inputs_add"),
-#     ("both_add", "add", "inputs_add"),
-#     ("both_concat", "concat", "inputs_add"),
-#     ("both_concat", "add", "inputs_add"),
-#     ("none", "concat", "inputs_concat"),
-#     ("none", "add", "inputs_concat"),
-#     ("hidden", "concat", "inputs_concat"),
-#     ("hidden", "add", "inputs_concat"),
-#     ("inputs_add", "concat", "inputs_concat"),
-#     ("inputs_add", "add", "inputs_concat"),
-#     ("inputs_concat", "concat", "inputs_concat"),
-#     ("inputs_concat", "add", "inputs_concat"),
-#     ("both_add", "concat", "inputs_concat"),
-#     ("both_add", "add", "inputs_concat"),
-#     ("both_concat", "concat", "inputs_concat"),
-#     ("both_concat", "add", "inputs_concat"),
-# ]
 
 
 @pytest.mark.parametrize("hidden_conditionality", ["none", "add"])
@@ -362,6 +325,102 @@ def test_fc_forward():
     losses = model.loss_function(
         log_probs=log_prob_y,
         mu=mu,
+        log_var=log_var,
+        target=x_encoded,
+        weights=weights,
+    )
+    assert "loss" in losses
+    assert "recon_loss" in losses
+
+
+def test_catvae_forward():
+    x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
+    acts, durations = x.split([5, 1], dim=-1)
+    acts_max = acts.argmax(dim=-1).unsqueeze(-1)
+    x_encoded = torch.cat([acts_max, durations], dim=-1)
+    model = CatVAEContLSTM(
+        in_shape=x_encoded[0].shape,
+        encodings=5,
+        encoding_weights=torch.ones((5)),
+        **{
+            "hidden_n": 2,
+            "hidden_size": 16,
+            "latent_categories": 8,
+            "latent_dim": 4,
+        },
+    )
+    log_prob_y, mu, log_var, z = model(x_encoded)
+    assert log_prob_y.shape == x.shape
+    assert mu.shape[0] == 3
+    assert log_var.shape[0] == 3
+    assert z[0].shape == (3, 4, 8)
+    assert z[1].shape == (3, 4, 8)
+    losses = model.loss_function(
+        log_probs=log_prob_y,
+        mu=mu,
+        log_var=log_var,
+        target=x_encoded,
+        weights=weights,
+        cat_p=z[0],
+        cat_z=z[1],
+    )
+    assert "loss" in losses
+    assert "recon_loss" in losses
+
+
+def test_vqvae_forward():
+    x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
+    acts, durations = x.split([5, 1], dim=-1)
+    acts_max = acts.argmax(dim=-1).unsqueeze(-1)
+    x_encoded = torch.cat([acts_max, durations], dim=-1)
+    model = VQVAEContLSTM(
+        in_shape=x_encoded[0].shape,
+        encodings=5,
+        encoding_weights=torch.ones((5)),
+        **{
+            "latent_dim": 4,
+            "hidden_n": 2,
+            "hidden_size": 16,
+            "num_embeddings": 8,
+            "embedding_dim": 4,
+        },
+    )
+    log_probs_x, prior_loss, vq_loss, indices = model(x_encoded)
+    assert log_probs_x.shape == x.shape
+    losses = model.loss_function(
+        log_probs=log_probs_x,
+        mu=prior_loss,
+        log_var=vq_loss,
+        target=x_encoded,
+        weights=weights,
+    )
+    assert "loss" in losses
+    assert "recon_loss" in losses
+
+
+def test_swae_forward():
+    x = torch.randn(3, 10, 6)  # (batch, steps, acts+1)
+    weights = (torch.ones((3, 10)), torch.ones((3, 1)))
+    acts, durations = x.split([5, 1], dim=-1)
+    acts_max = acts.argmax(dim=-1).unsqueeze(-1)
+    x_encoded = torch.cat([acts_max, durations], dim=-1)
+    model = SWAEContLSTM(
+        in_shape=x_encoded[0].shape,
+        encodings=5,
+        encoding_weights=torch.ones((5)),
+        **{"hidden_n": 2, "hidden_size": 16, "latent_dim": 2},
+    )
+    log_prob_y, mu, log_var, z = model(x_encoded)
+    assert log_prob_y.shape == x.shape
+    assert mu.shape == (3, 2)
+    assert log_var.shape == (3, 2)
+    assert z.shape == (3, 2)
+    losses = model.loss_function(
+        log_probs=log_prob_y,
+        mu=mu,
+        z=z,
         log_var=log_var,
         target=x_encoded,
         weights=weights,
