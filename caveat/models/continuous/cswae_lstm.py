@@ -7,7 +7,7 @@ from caveat.models import utils
 from caveat.models.continuous.cvae_lstm import CVAEContLSTM
 
 
-class SCWAEContLSTM(CVAEContLSTM):
+class CSWAEContLSTM(CVAEContLSTM):
     def loss_function(
         self,
         log_probs,
@@ -99,7 +99,7 @@ class SCWAEContLSTM(CVAEContLSTM):
         # kld loss
         prior_z = torch.randn_like(mu)
         kld_loss = self.extra_sliced_wasserstein_distance(
-            z, prior_z, labels=labels, num_projections=20
+            z, prior_z, labels=labels, num_projections=32
         )
         scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss

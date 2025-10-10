@@ -17,7 +17,7 @@ class VAEContLSTM(Base):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
         self.hidden_n = config["hidden_n"]
-        self.dropout = config["dropout"]
+        self.dropout = config.get("dropout", 0.0)
         length, _ = self.in_shape
         self.head_hidden_size = config.get("head_hidden_size", self.hidden_size)
         self.head_depth = config.get("head_depth", 2)
@@ -234,15 +234,6 @@ class Decoder(nn.Module):
                 decoder_input = self.pack(decoder_output)
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
-
-        # acts_logits, durations = torch.split(
-        #     outputs, [self.output_size - 1, 1], dim=-1
-        # )
-        # acts_log_probs = self.activity_logprob_activation(acts_logits)
-        # durations = self.duration_activation(durations)
-        # durations = torch.log(durations)
-
-        # log_prob_outputs = torch.cat((acts_logits, durations), dim=-1)
         log_prob_outputs = torch.log(outputs)
         # TODO: remove logs, includes utils, losses, etc
 

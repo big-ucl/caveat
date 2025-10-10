@@ -11,9 +11,33 @@ Caveat is for building and evaluating models of human activity schedules. Activi
 
 Activity scheduling is required component of activity-based models. But Caveat also has application for (i) diverse upsampling, (ii) bias correction, (iii) simple forecasting.
 
+## Motivation
+
+The core motivation or philosophy behind Caveat is that people behave in diverse ways, well beyond what is currently represented with existing modelling approaches. If you often grumble about existing human behavioral models being *too complex*, *slow* or *unrealistic* then Caveat may be of interest. We introduce generative modelling ideas (stollen perhaps from the fancy genAI domain but scaled down and carefully crafted for human modelling) so that we can better represent real human behavioral diversity.
+
+We also add focus on the distribution of outputs rather than simple key metrics or expectations. If you think distributions matter, that everyone should be fairly represented, then you might like our work.
+
+Also, with access to even a *somewhat* modern GPU, our models can be trained in minutes and take seconds to run for national scale populations.
+
 ## Research
 
 Caveat is part of an ongoing research project. Overview of presented work can be found in the [papers](https://github.com/big-ucl/caveat/blob/main/papers/README.md) module, including key information allowing presented results to be **reproduced**.
+
+We currently have published work using Caveat for generative modelling/synthesis of activity schedules - **Synthesising activity participations and scheduling with deep generative machine learning**, available [here](https://www.sciencedirect.com/science/article/pii/S0968090X25002773) or [here](https://arxiv.org/abs/2501.10221). Please consider referencing us:
+
+```
+@article{SHONE,
+title = {Synthesising activity participations and scheduling with deep generative machine learning},
+journal = {Transportation Research Part C: Emerging Technologies},
+volume = {179},
+pages = {105273},
+year = {2025},
+issn = {0968-090X},
+doi = {https://doi.org/10.1016/j.trc.2025.105273},
+url = {https://www.sciencedirect.com/science/article/pii/S0968090X25002773},
+author = {Fred Shone and Tim Hillel},
+}
+```
 
 ## Example Applications
 
