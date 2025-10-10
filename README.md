@@ -25,7 +25,8 @@ Caveat is part of an ongoing research project. Overview of presented work can be
 
 We currently have published work using Caveat for generative modelling/synthesis of activity schedules - **Synthesising activity participations and scheduling with deep generative machine learning**, available [here](https://www.sciencedirect.com/science/article/pii/S0968090X25002773) or [here](https://arxiv.org/abs/2501.10221). Please consider referencing us:
 
-```@article{SHONE,
+```
+@article{SHONE,
 title = {Synthesising activity participations and scheduling with deep generative machine learning},
 journal = {Transportation Research Part C: Emerging Technologies},
 volume = {179},
