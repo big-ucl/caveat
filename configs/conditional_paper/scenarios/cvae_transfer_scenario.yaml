@@ -1,25 +1,12 @@
 global:
   logging_params:
     log_dir: "logs/TRB"
-    name: "cvae_transfer_scenario"
+    name: "cvae_foundation"
   
   synthetic_attributes_path: "tmp/nts_attributes_2023.csv"
-  # synthetic_schedules_path: "tmp/nts_schedules_2019_2023_50.csv"
   
   evaluation_params:
     split_on: [gender, age_group, car_access, work_status, income]
-
-  labels_encoder:
-    name: "tokens"
-    weighting: unit
-    joint_weighting: inverse
-    labels:
-      gender: nominal
-      age_group: nominal
-      car_access: nominal
-      work_status: nominal
-      income: nominal
-      year: nominal
 
   encoder_params:
     name: "continuous"
@@ -62,16 +49,32 @@ global:
     scheduler_gamma: 0.975
     kld_weight: 0.01
     duration_loss_weight: 200
-    duration_loss_weight: 200
 
-transfer:
+conditioned:
   schedules_path: "tmp/nts_schedules_2019_2023_200.csv"
   attributes_path: "tmp/nts_attributes_2019_2023_200.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      gender: nominal
+      age_group: nominal
+      car_access: nominal
+      work_status: nominal
+      income: nominal
+      year: nominal
 
-1yr_base:
-  schedules_path: "tmp/nts_schedules_2023.csv"
-  attributes_path: "tmp/nts_attributes_2023.csv"
-
-# 5yr_base:
-#   schedules_path: "tmp/nts_schedules_2019_2023_200.csv"
-#   attributes_path: "tmp/nts_attributes_2019_2023_200.csv"
+unconditioned:
+  schedules_path: "tmp/nts_schedules_2019_2023_200.csv"
+  attributes_path: "tmp/nts_attributes_2019_2023_200.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      gender: nominal
+      age_group: nominal
+      car_access: nominal
+      work_status: nominal
+      income: nominal
