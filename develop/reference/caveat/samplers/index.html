@@ -3355,7 +3355,7 @@
 
 
 <h3 id="caveat.samplers.TargetLabelSampler.found_sizes" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">found_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="mi">0</span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_labels_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())}</span></code>
+            <code class="highlight language-python"><span class="n">found_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_labels_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())}</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -3495,7 +3495,7 @@
 
 
 <h3 id="caveat.samplers.TargetLabelSampler.target_labels_dict" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">target_labels_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">vfor</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="n">target_labels</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">target_columns</span><span class="p">))}</span></code>
+            <code class="highlight language-python"><span class="n">target_labels_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">target_labels</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">target_columns</span><span class="p">))}</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -3515,7 +3515,7 @@
 
 
 <h3 id="caveat.samplers.TargetLabelSampler.target_sizes" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">target_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">))</span><span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_labels_dict</span><span class="o">.</span><span class="n">items</span><span class="p">())}</span></code>
+            <code class="highlight language-python"><span class="n">target_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_labels_dict</span><span class="o">.</span><span class="n">items</span><span class="p">())}</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
