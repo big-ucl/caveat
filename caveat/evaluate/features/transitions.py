@@ -4,75 +4,41 @@ from pandas import DataFrame, MultiIndex, Series
 from caveat.evaluate.features.utils import weighted_features
 
 
-def transitions_by_act(
-    population: DataFrame,
-) -> dict[str, tuple[ndarray, ndarray]]:
-    transitions = population.reset_index()
-    transitions = transitions.set_index(["index", "pid"])
-    transitions.act = transitions.act.astype(str)
-    transitions = transitions.act + ">" + transitions.act.shift(-1)
-    transitions = transitions.drop(transitions.groupby("pid").tail(1).index)
-    transitions = (
-        transitions.groupby("pid")
+def _build_ngrams(population: DataFrame, n: int) -> dict[str, tuple[ndarray, ndarray]]:
+    """Build n-gram transition features from a population DataFrame."""
+    t = population.reset_index().set_index(["index", "pid"])
+    acts = t.act.astype(str)
+    ngram = acts
+    for i in range(1, n):
+        ngram = ngram + ">" + acts.shift(-i)
+    ngram = ngram.drop(ngram.groupby("pid").tail(n - 1).index)
+    result = (
+        ngram.groupby("pid")
         .value_counts()
         .unstack()
         .fillna(0)
         .astype(int)
         .to_dict(orient="list")
     )
-    return weighted_features(transitions)
+    return weighted_features(result)
+
+
+def transitions_by_act(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    return _build_ngrams(population, 2)
 
 
 def transition_3s_by_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    transitions = population.reset_index()
-    transitions = transitions.set_index(["index", "pid"])
-    transitions.act = transitions.act.astype(str)
-    transitions = (
-        transitions.act
-        + ">"
-        + transitions.act.shift(-1)
-        + ">"
-        + transitions.act.shift(-2)
-    )
-    transitions = transitions.drop(transitions.groupby("pid").tail(2).index)
-    transitions = (
-        transitions.groupby("pid")
-        .value_counts()
-        .unstack()
-        .fillna(0)
-        .astype(int)
-        .to_dict(orient="list")
-    )
-    return weighted_features(transitions)
+    return _build_ngrams(population, 3)
 
 
 def transition_4s_by_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    transitions = population.reset_index()
-    transitions = transitions.set_index(["index", "pid"])
-    transitions.act = transitions.act.astype(str)
-    transitions = (
-        transitions.act
-        + ">"
-        + transitions.act.shift(-1)
-        + ">"
-        + transitions.act.shift(-2)
-        + ">"
-        + transitions.act.shift(-3)
-    )
-    transitions = transitions.drop(transitions.groupby("pid").tail(3).index)
-    transitions = (
-        transitions.groupby("pid")
-        .value_counts()
-        .unstack()
-        .fillna(0)
-        .astype(int)
-        .to_dict(orient="list")
-    )
-    return weighted_features(transitions)
+    return _build_ngrams(population, 4)
 
 
 def tour(acts: Series) -> str:

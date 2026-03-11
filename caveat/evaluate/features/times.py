@@ -1,7 +1,14 @@
 from numpy import array, ndarray
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from caveat.evaluate.features.utils import weighted_features
+
+
+def _act_enum_key(population: DataFrame) -> Series:
+    """Compute act+cumcount key used by act_plan_enum features."""
+    return population.act.astype(str) + population.groupby(
+        ["pid", "act"], as_index=False, observed=False
+    ).cumcount().astype(str)
 
 
 def start_times_by_act(
@@ -86,9 +93,7 @@ def start_times_by_act_plan_seq(
 def start_times_by_act_plan_enum(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    actseq = population.act.astype(str) + population.groupby(
-        ["pid", "act"], as_index=False, observed=False
-    ).cumcount().astype(str)
+    actseq = _act_enum_key(population)
     return weighted_features(
         population.groupby(actseq).start.apply(list).to_dict(), factor=1440
     )
@@ -108,9 +113,7 @@ def end_times_by_act_plan_seq(
 def end_times_by_act_plan_enum(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    actseq = population.act.astype(str) + population.groupby(
-        ["pid", "act"], as_index=False, observed=False
-    ).cumcount().astype(str)
+    actseq = _act_enum_key(population)
     return weighted_features(
         population.groupby(actseq).end.apply(list).to_dict(), factor=1440
     )
@@ -130,9 +133,7 @@ def durations_by_act_plan_seq(
 def durations_by_act_plan_enum(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    actseq = population.act.astype(str) + population.groupby(
-        ["pid", "act"], as_index=False, observed=False
-    ).cumcount().astype(str)
+    actseq = _act_enum_key(population)
     return weighted_features(
         population.groupby(actseq).duration.apply(list).to_dict(), factor=1440
     )

@@ -227,8 +227,11 @@ def process_metrics(
         ("timing", time_jobs),
     ]:
         for feature, size, description_job, distance_job in jobs:
+            feature_name, feature_fn = feature
             if verbose:
-                print(f">>> Evaluating {domain} {feature[0]}")
+                print(f">>> Evaluating {domain} {feature_name}")
+            # pre-compute target features once per job
+            observed_features = feature_fn(target_schedules)
             feature_descriptions, feature_distances = eval_jobs(
                 synthetic_schedules=synthetic_schedules,
                 target_schedules=target_schedules,
@@ -237,6 +240,7 @@ def process_metrics(
                 size=size,
                 description_job=description_job,
                 distance_job=distance_job,
+                observed_features=observed_features,
             )
             descriptions.append(feature_descriptions)
             distances.append(feature_distances)
@@ -492,61 +496,57 @@ def eval_jobs(
     size: Callable,
     description_job: Tuple[str, Callable],
     distance_job: Tuple[str, Callable],
+    observed_features=None,
 ) -> Tuple[DataFrame, DataFrame]:
     # unpack tuples
-    feature_name, feature = feature
+    feature_name, feature_fn = feature
     description_name, describe = description_job
     distance_name, distance_metric = distance_job
 
-    # build observed features
-    observed_features = feature(target_schedules)
+    # build observed features (use cached if provided)
+    if observed_features is None:
+        observed_features = feature_fn(target_schedules)
 
     # need to create a default feature for missing sampled features
     default = extract_default(observed_features)
 
     # create an observed feature count and description
-    feature_weight = size(observed_features)
-    feature_weight.name = "observed__weight"
-    description = describe(observed_features)
-    feature_descriptions = DataFrame(
-        {"observed__weight": feature_weight, "observed": description}
+    observed_weight = size(observed_features)
+    observed_weight.name = "observed__weight"
+    description_observed = describe(observed_features)
+    base = DataFrame(
+        {"observed__weight": observed_weight, "observed": description_observed}
     )
 
-    # sort by count and description, drop description and add distance description
-    feature_descriptions = feature_descriptions.sort_values(
+    # sort by count and description
+    base = base.sort_values(
         ascending=False, by=["observed__weight", "observed"]
     )
 
-    feature_distances = feature_descriptions.copy()
+    distance_observed = base.copy()
 
-    # iterate through samples
+    # collect parts in lists, concat once after the loop (avoids O(M²) concat)
+    desc_parts = [base]
+    dist_parts = [distance_observed]
     for model, y in synthetic_schedules.items():
-        synth_features = feature(y)
+        synth_features = feature_fn(y)
         synth_weight = size(synth_features)
         synth_weight.name = f"{model}__weight"
-        feature_descriptions = concat(
-            [
-                synth_weight,
-                feature_descriptions,
-                describe_feature(model, synth_features, describe),
-            ],
-            axis=1,
+        desc_parts.append(synth_weight)
+        desc_parts.append(describe_feature(model, synth_features, describe))
+        dist_parts.append(synth_weight)
+        dist_parts.append(
+            score_features(
+                model,
+                observed_features,
+                synth_features,
+                distance_metric,
+                default,
+            )
         )
-        # report sampled distances
-        feature_distances = concat(
-            [
-                synth_weight,
-                feature_distances,
-                score_features(
-                    model,
-                    observed_features,
-                    synth_features,
-                    distance_metric,
-                    default,
-                ),
-            ],
-            axis=1,
-        )
+
+    feature_descriptions = concat(desc_parts, axis=1)
+    feature_distances = concat(dist_parts, axis=1)
 
     # add domain and feature name to index
     feature_descriptions["unit"] = description_name
@@ -778,3 +778,102 @@ def distance_weighted_av(
         total = weights.sum()
         scores[c] = report[c] * weights / total
     return scores.sum()
+
+
+def _all_feature_jobs():
+    """Yield (domain, feature_tuple, size, desc_job, dist_job) for all active jobs."""
+    for domain, jobs in [
+        ("participations", participation_rate_jobs),
+        ("transitions", transition_jobs),
+        ("timing", time_jobs),
+    ]:
+        for feature, size, description_job, distance_job in jobs:
+            yield domain, feature, size, description_job, distance_job
+
+
+class Evaluator:
+    """Pre-computes target features once; compare multiple synthetic populations."""
+
+    def __init__(self, target: DataFrame):
+        self._target = target
+        self._target_features: dict[str, dict] = {}
+        self._precompute()
+
+    def _precompute(self) -> None:
+        for domain, feature, size, desc_job, dist_job in _all_feature_jobs():
+            feature_name, feature_fn = feature
+            key = (domain, feature_name)
+            self._target_features[key] = feature_fn(self._target)
+
+    def compare(
+        self,
+        synthetic: dict[str, DataFrame],
+        report_stats: bool = True,
+    ) -> dict[str, DataFrame]:
+        """Compare synthetic populations against pre-computed target features."""
+        descriptions, distances = [], []
+
+        creativity_descriptions, creativity_distances = eval_creativity(
+            synthetic_schedules=synthetic,
+            target_schedules=self._target,
+        )
+        descriptions.append(creativity_descriptions)
+        distances.append(creativity_distances)
+
+        sample_quality = eval_sample_quality(
+            synthetic_schedules=synthetic,
+            target_schedules=self._target,
+        )
+        descriptions.append(sample_quality)
+        distances.append(sample_quality)
+
+        for domain, feature, size, description_job, distance_job in _all_feature_jobs():
+            feature_name, _ = feature
+            key = (domain, feature_name)
+            observed_features = self._target_features[key]
+            feat_desc, feat_dist = eval_jobs(
+                synthetic_schedules=synthetic,
+                target_schedules=self._target,
+                domain=domain,
+                feature=feature,
+                size=size,
+                description_job=description_job,
+                distance_job=distance_job,
+                observed_features=observed_features,
+            )
+            descriptions.append(feat_desc)
+            distances.append(feat_dist)
+
+        descriptions = concat(descriptions, axis=0)
+        distances = concat(distances, axis=0)
+        descriptions = descriptions.fillna(0.0)
+        distances = distances.fillna(0.0)
+
+        frames = describe(descriptions, distances)
+
+        if report_stats:
+            columns = list(synthetic.keys())
+            for frame in frames.values():
+                add_stats(data=frame, columns=columns)
+
+        return frames
+
+
+def compare(
+    observed: DataFrame,
+    synthetic,
+    report_stats: bool = True,
+) -> dict[str, DataFrame]:
+    """Compare observed and synthetic activity schedule populations.
+
+    Args:
+        observed: Observed schedules with columns pid, act, start, end, duration.
+        synthetic: Single synthetic DataFrame or dict mapping model names to DataFrames.
+        report_stats: Whether to append mean/std columns.
+
+    Returns:
+        Dict of result DataFrames (descriptions, distances, grouped variants).
+    """
+    if isinstance(synthetic, DataFrame):
+        synthetic = {"synthetic": synthetic}
+    return Evaluator(observed).compare(synthetic, report_stats=report_stats)
