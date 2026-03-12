@@ -1,14 +1,19 @@
+import numpy as np
 from numpy import array, ndarray
 from pandas import DataFrame
 
-from caveat.evaluate.features.utils import weighted_features
+from caveat.evaluate.features.utils import (
+    _collect_by_group,
+    _count_matrix,
+    _cumcount,
+    weighted_features,
+)
 
 
 def participation_prob_by_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    """
-    Calculate the participations by activity for a given population.
+    """Calculate the participations by activity for a given population.
 
     Args:
         population (DataFrame): The population data.
@@ -16,54 +21,94 @@ def participation_prob_by_act(
     Returns:
         dict[str, tuple[array, array]]: A dictionary containing the participation for each activity.
     """
-    metrics = population.groupby(["pid", "act"], observed=False).size() > 0
-    metrics = metrics.groupby("act", observed=False).sum().to_dict()
-    n = population.pid.nunique()
-    compressed = {}
-    for k, v in metrics.items():
-        compressed[k] = (array([0, 1]), array([(n - v), v]))
-    return compressed
+    pids = population.pid.values
+    acts = population.act.values
+    matrix, unique_pids, unique_acts = _count_matrix(pids, acts)
+    participated = (matrix > 0).sum(axis=0)
+    n = len(unique_pids)
+    return {
+        act: (array([0, 1]), array([n - participated[j], participated[j]]))
+        for j, act in enumerate(unique_acts)
+    }
 
 
 def participation_rates(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    rates = population.groupby("pid").act.count()
-    return weighted_features({"all": rates.to_list()})
+    _, counts = np.unique(population.pid.values, return_counts=True)
+    return weighted_features({"all": counts})
 
 
 def participation_rates_by_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    rates = population.groupby("pid").act.value_counts().unstack().fillna(0)
-    return weighted_features(rates.to_dict(orient="list"))
+    pids = population.pid.values
+    acts = population.act.values
+    matrix, _, unique_acts = _count_matrix(pids, acts)
+    return weighted_features(
+        {act: matrix[:, j] for j, act in enumerate(unique_acts)}
+    )
 
 
 def participation_rates_by_seq_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    actseq = population.groupby("pid", as_index=False).cumcount().astype(
-        str
-    ) + population.act.astype(str)
-    rates = actseq.groupby(population.pid).value_counts().unstack().fillna(0)
-    return weighted_features(rates.to_dict(orient="list"))
+    pids = population.pid.values
+    acts = population.act.values
+    cumcounts = _cumcount(pids)
+    # Build composite key: "0home", "1work", etc.
+    keys = np.array(
+        [str(c) + str(a) for c, a in zip(cumcounts, acts)], dtype=object
+    )
+    matrix, _, unique_keys = _count_matrix(pids, keys)
+    return weighted_features(
+        {k: matrix[:, j] for j, k in enumerate(unique_keys)}
+    )
 
 
 def participation_rates_by_act_enum(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    act_enum = population.act.astype(str) + population.groupby(
-        ["pid", "act"], as_index=False, observed=False
-    ).cumcount().astype(str)
-    rates = act_enum.groupby(population.pid).value_counts().unstack().fillna(0)
-    return weighted_features(rates.to_dict(orient="list"))
+    pids = population.pid.values
+    acts = population.act.values
+    # Cumcount within (pid, act) groups using compound integer key
+    _, pid_codes = np.unique(pids, return_inverse=True)
+    _, act_codes = np.unique(acts, return_inverse=True)
+    n_acts = len(np.unique(acts))
+    compound = pid_codes * n_acts + act_codes
+    cumcounts = _cumcount(compound)
+    # Build composite key: "home0", "work1", etc.
+    keys = np.array(
+        [str(a) + str(c) for a, c in zip(acts, cumcounts)], dtype=object
+    )
+    matrix, _, unique_keys = _count_matrix(pids, keys)
+    return weighted_features(
+        {k: matrix[:, j] for j, k in enumerate(unique_keys)}
+    )
+
+
+def calc_pair_prob(act_counts, pair):
+    a, b = pair
+    if a == b:
+        return (act_counts[a] > 1).sum()
+    return ((act_counts[a] > 0) & (act_counts[b] > 0)).sum()
+
+
+def calc_pair_rate(act_counts, pair):
+    a, b = pair
+    if a == b:
+        return ((act_counts[a] / 2).astype(int)).value_counts().to_dict()
+    return (
+        ((act_counts[[a, b]].min(axis=1) / 2).astype(int))
+        .value_counts()
+        .to_dict()
+    )
 
 
 def combinations_with_replacement(
     targets: list, length: int, prev_array=[]
 ) -> list[list]:
-    """
-    Returns all possible combinations of elements in the input array with replacement,
+    """Returns all possible combinations of elements in the input array with replacement,
     where each combination has a length of tuple_length.
 
     Args:
@@ -86,72 +131,59 @@ def combinations_with_replacement(
     return combs
 
 
-def calc_pair_prob(act_counts, pair):
-    a, b = pair
-    if a == b:
-        return (act_counts[a] > 1).sum()
-    return ((act_counts[a] > 0) & (act_counts[b] > 0)).sum()
-
-
 def joint_participation_prob(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    """
-    Calculate the participation prob for all pairs of activities in the given population.
+    """Calculate the participation prob for all pairs of activities in the given population.
 
     Args:
         population (pandas.DataFrame): A DataFrame containing the population data.
 
     Returns:
-        pandas.Series: A Series containing the participation rate for all pairs of activities.
+        dict: A dictionary containing the participation probability for all pairs of activities.
     """
-    act_counts = (
-        population.groupby("pid").act.value_counts().unstack(fill_value=0)
-    )
-    acts = list(population.act.unique())
-    pairs = combinations_with_replacement(acts, 2)
-    n = population.pid.nunique()
+    pids = population.pid.values
+    acts = population.act.values
+    matrix, _, unique_acts = _count_matrix(pids, acts)
+    act_list = list(unique_acts)
+    act_idx = {a: i for i, a in enumerate(act_list)}
+    n = matrix.shape[0]
+    pairs = combinations_with_replacement(act_list, 2)
     metric = {}
     for pair in pairs:
-        p = calc_pair_prob(act_counts, pair)
+        ai, bi = act_idx[pair[0]], act_idx[pair[1]]
+        if pair[0] == pair[1]:
+            p = int((matrix[:, ai] > 1).sum())
+        else:
+            p = int(((matrix[:, ai] > 0) & (matrix[:, bi] > 0)).sum())
         metric["+".join(pair)] = (array([0, 1]), array([n - p, p]))
-
     return metric
-
-
-def calc_pair_rate(act_counts, pair):
-    a, b = pair
-    if a == b:
-        return ((act_counts[a] / 2).astype(int)).value_counts().to_dict()
-    return (
-        ((act_counts[[a, b]].min(axis=1) / 2).astype(int))
-        .value_counts()
-        .to_dict()
-    )
 
 
 def joint_participation_rate(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    """
-    Calculate the participation rate for all pairs of activities in the given population.
+    """Calculate the participation rate for all pairs of activities in the given population.
 
     Args:
         population (pandas.DataFrame): A DataFrame containing the population data.
 
     Returns:
-        pandas.Series: A Series containing the participation rate for all pairs of activities.
+        dict: A dictionary containing the participation rate for all pairs of activities.
     """
-    act_counts = (
-        population.groupby("pid").act.value_counts().unstack(fill_value=0)
-    )
-    acts = list(population.act.unique())
-    pairs = combinations_with_replacement(acts, 2)
+    pids = population.pid.values
+    acts = population.act.values
+    matrix, _, unique_acts = _count_matrix(pids, acts)
+    act_list = list(unique_acts)
+    act_idx = {a: i for i, a in enumerate(act_list)}
+    pairs = combinations_with_replacement(act_list, 2)
     metric = {}
     for pair in pairs:
-        counts = calc_pair_rate(act_counts, pair)
-        keys = array(list(counts.keys()))
-        values = array(list(counts.values()))
-        metric["+".join(pair)] = (keys, values)
-
+        ai, bi = act_idx[pair[0]], act_idx[pair[1]]
+        if pair[0] == pair[1]:
+            vals = matrix[:, ai] // 2
+        else:
+            vals = np.minimum(matrix[:, ai], matrix[:, bi]) // 2
+        keys, counts = np.unique(vals, return_counts=True)
+        metric["+".join(pair)] = (keys, counts)
     return metric

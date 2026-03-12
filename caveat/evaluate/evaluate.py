@@ -1,3 +1,6 @@
+import time
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
@@ -58,21 +61,23 @@ participation_rate_jobs = [
         ("EMD", emd),
     ),
 ]
+NGRAM_MIN_COUNT = 3  # drop n-grams seen fewer than 3 times across the population
+
 transition_jobs = [
     (
-        ("2-gram", transitions.transitions_by_act),
+        ("2-gram", partial(transitions.transitions_by_act, min_count=NGRAM_MIN_COUNT)),
         (feature_weight),
         ("av. rate", average),
         ("EMD", emd),
     ),
     (
-        ("3-gram", transitions.transition_3s_by_act),
+        ("3-gram", partial(transitions.transition_3s_by_act, min_count=NGRAM_MIN_COUNT)),
         (feature_weight),
         ("av. rate", average),
         ("EMD", emd),
     ),
     (
-        ("4-gram", transitions.transition_4s_by_act),
+        ("4-gram", partial(transitions.transition_4s_by_act, min_count=NGRAM_MIN_COUNT)),
         (feature_weight),
         ("av. rate", average),
         ("EMD", emd),
@@ -200,22 +205,27 @@ def process_metrics(
 ) -> Tuple[DataFrame, DataFrame]:
     # evaluate creativity
     descriptions, distances = [], []
+    timings = {}
 
     if verbose:
         print(">>> Evaluating creativity")
+    t0 = time.perf_counter()
     creativity_descriptions, creativity_distances = eval_creativity(
         synthetic_schedules=synthetic_schedules,
         target_schedules=target_schedules,
     )
+    timings["creativity"] = time.perf_counter() - t0
     descriptions.append(creativity_descriptions)
     distances.append(creativity_distances)
 
     if verbose:
         print(">>> Evaluating sample quality")
+    t0 = time.perf_counter()
     sample_quality = eval_sample_quality(
         synthetic_schedules=synthetic_schedules,
         target_schedules=target_schedules,
     )
+    timings["sample_quality"] = time.perf_counter() - t0
     descriptions.append(sample_quality)
     distances.append(sample_quality)
 
@@ -230,6 +240,7 @@ def process_metrics(
             feature_name, feature_fn = feature
             if verbose:
                 print(f">>> Evaluating {domain} {feature_name}")
+            t0 = time.perf_counter()
             # pre-compute target features once per job
             observed_features = feature_fn(target_schedules)
             feature_descriptions, feature_distances = eval_jobs(
@@ -242,6 +253,7 @@ def process_metrics(
                 distance_job=distance_job,
                 observed_features=observed_features,
             )
+            timings[f"{domain}/{feature_name}"] = time.perf_counter() - t0
             descriptions.append(feature_descriptions)
             distances.append(feature_distances)
 
@@ -251,6 +263,13 @@ def process_metrics(
     # remove nans
     descriptions = descriptions.fillna(0.0)
     distances = distances.fillna(0.0)
+
+    if verbose:
+        print("\n--- Job timings ---")
+        for job_name, elapsed in sorted(timings.items(), key=lambda x: -x[1]):
+            print(f"  {job_name:40s} {elapsed:.3f}s")
+        print(f"  {'TOTAL':40s} {sum(timings.values()):.3f}s")
+
     return descriptions, distances
 
 
@@ -690,6 +709,9 @@ def describe_feature(
     return feature_description
 
 
+_PARALLEL_THRESHOLD = 50
+
+
 def score_features(
     model: str,
     a: dict[str, tuple[np.array, np.array]],
@@ -697,18 +719,30 @@ def score_features(
     distance: Callable,
     default: tuple[np.array, np.array],
 ):
-    index = set(a.keys()) | set(b.keys())
-    metrics = Series(
-        {
-            k: distance(
+    index = list(set(a.keys()) | set(b.keys()))
+
+    if len(index) > _PARALLEL_THRESHOLD:
+        # POT's C extensions release the GIL — threads give real parallelism
+        def _compute(k):
+            return distance(
                 defaulting_get(a, k, default), defaulting_get(b, k, default)
             )
-            for k in index
-        },
-        name=model,
-    )
+
+        with ThreadPoolExecutor() as executor:
+            values = list(executor.map(_compute, index))
+        metrics = Series(dict(zip(index, values)), name=model)
+    else:
+        metrics = Series(
+            {
+                k: distance(
+                    defaulting_get(a, k, default),
+                    defaulting_get(b, k, default),
+                )
+                for k in index
+            },
+            name=model,
+        )
     metrics = metrics.fillna(0)
-    # metrics = metrics[np.isfinite(metrics)]
     return metrics
 
 
