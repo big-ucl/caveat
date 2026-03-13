@@ -78,7 +78,7 @@ caveat = []
 
 
 [tool.uv.sources]
-acteval = { path = "../acteval", editable = true }
+acteval = { git = "https://github.com/fredshone/acteval" }
 
 [build-system]
 requires = ["setuptools"]
