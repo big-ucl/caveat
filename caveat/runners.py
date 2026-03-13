@@ -20,7 +20,7 @@ from caveat import cuda_available, data, encoding, label_encoding, models
 from caveat.callbacks import LinearLossScheduler
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
-from caveat.evaluate import evaluate
+from acteval import evaluate
 from caveat.label_encoding.base import BaseLabelEncoder
 
 
