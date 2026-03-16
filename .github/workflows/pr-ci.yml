@@ -65,7 +65,7 @@ jobs:
           cache-environment: true
           post-cleanup: none
 
-      - name: Install package
+      - name: Install acteval
         run: pip install acteval
         
       - name: Install package

@@ -24,9 +24,9 @@ jobs:
           cache-environment: false
           post-cleanup: none
 
-      - name: Install package
+      - name: Install acteval
         run: pip install acteval
-        
+
       - name: Install package
         run: pip install --no-deps -e .
 
