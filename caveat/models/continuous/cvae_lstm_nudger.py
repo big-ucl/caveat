@@ -139,7 +139,9 @@ class CVAEContLSTMNudger(Base):
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
-            current_device (int): Device to run the model.
+            z (tensor): [N, latent_dims].
+            labels (tensor): Conditional labels.
+            device (int): Device to run the model.
 
         Returns:
             tensor: [N, steps, acts].

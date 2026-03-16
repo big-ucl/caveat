@@ -735,10 +735,15 @@ def train(
 
     Args:
         name (str): The name of the experiment.
-        schedules (pandas.DataFrame): The "observed" population data to train the model on.
-        conditionals (pandas.DataFrame): The "conditionals" data to train the model on.
+        data_loader (DataModule): The data module wrapping encoded training data.
+        encoded_schedules (BaseDataset): The encoded schedule dataset.
         config (dict): A dictionary containing the configuration parameters for the experiment.
+        test (bool): Whether to run test evaluation after training.
+        gen (bool): Whether to generate samples after training.
         logger (TensorBoardLogger): Logger.
+        seed (Optional[int]): Random seed.
+        ckpt_path (Optional[Path]): Path to checkpoint to resume from.
+        label_encoder (Optional[BaseLabelEncoder]): Optional label encoder.
 
     Returns:
         Tuple(pytorch.Trainer, BaseEncoder).

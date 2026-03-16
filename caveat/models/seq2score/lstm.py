@@ -95,12 +95,12 @@ class Seq2ScoreLSTM(Base):
 
         return {"loss": loss}
 
-    def predict_step(self, batch, device: int, **kwargs) -> Tensor:
-        """Given samples from the latent space, return the corresponding decoder space map.
+    def predict_step(self, batch: tuple, device: int, **kwargs) -> Tensor:
+        """Run a prediction step on a batch.
 
         Args:
-            batch
-            current_device (int): Device to run the model.
+            batch: Input batch tuple of (sequences, targets, labels).
+            device (int): Device to run the model.
 
         Returns:
             tensor: [N, steps, acts].

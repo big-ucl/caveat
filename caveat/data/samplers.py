@@ -6,7 +6,7 @@ from pandas import DataFrame, Series
 
 def sample_data(
     sequences: DataFrame, attributes: Optional[DataFrame], config: dict
-):
+) -> tuple:
     """Sample a proportion of the data based on sampler config.
 
     Args:
@@ -15,7 +15,7 @@ def sample_data(
         config (dict): configuration.
 
     Returns:
-        DataFrame: sampled sequences.
+        Tuple[DataFrame, Optional[DataFrame]]: sampled sequences and attributes.
     """
     sequences = sample_sequences(sequences, config)
     if attributes is not None:
@@ -66,7 +66,7 @@ def random_sample(data: DataFrame, p: float) -> DataFrame:
     return sampled
 
 
-def biased_sample(data: DataFrame, p: float, threshold: int = 20):
+def biased_sample(data: DataFrame, p: float, threshold: int = 20) -> DataFrame:
     """
     Sample sequences that contain short activities according to the threshold.
 

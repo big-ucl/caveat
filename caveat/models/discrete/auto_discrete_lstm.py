@@ -136,7 +136,7 @@ class Decoder(nn.Module):
             max_length (int): max length of sequences.
             dropout (float): dropout probability. Defaults to 0.
             sos (int): start of sequence token. Defaults to 0.
-            top (bool): top1 sampling. Defaults to False.
+            top_sampler (bool): top1 sampling. Defaults to False.
             bidirectional (bool): bidirectional lstm. Defaults to False.
         """
         super(Decoder, self).__init__()

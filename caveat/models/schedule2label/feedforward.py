@@ -52,9 +52,9 @@ class Schedule2LabelFeedForward(LabelExperiment):
         """Calculate the loss function for the model.
 
         Args:
-            log_probs ((tensor, tensor)): Log probabilities for the output sequence.
-            mu (tensor): Mean of the latent space.
-            log_var (tensor): Log variance of the latent space.
+            probs (tensor): Predicted probabilities for each label.
+            target (tensor): Target label values.
+            mask (tensor): Mask tensor for valid labels.
 
         Returns:
             dict: Loss dictionary.
