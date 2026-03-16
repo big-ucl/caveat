@@ -19,33 +19,53 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         py3version: ["9", "11"]
       fail-fast: false
-    uses: fredshone/actions/.github/workflows/python-install-lint-test.yml@main
-    with:
-      os: ${{ matrix.os }}
-      py3version: ${{ matrix.py3version }}
-      notebook_kernel: caveat
-      lint: false
-      pytest_args: '--no-cov'  # ignore coverage
-      upload_to_codecov: false
-      additional_mamba_args: '-c conda-forge -c pytorch -c nvidia'
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: caveat
+          create-args: >-
+            python=3.${{ matrix.py3version }}
+            -c conda-forge -c pytorch -c nvidia
+            --file=requirements/base.txt
+            --file=requirements/dev.txt
+          cache-environment: true
+
+      - name: Install package
+        run: pip install --no-deps -e .
+
+      - name: Run tests
+        run: pytest --no-cov
 
   test-coverage:
-    uses: fredshone/actions/.github/workflows/python-install-lint-test.yml@main
-    with:
-      os: ubuntu-latest
-      py3version: "11"
-      notebook_kernel: caveat
-      lint: false
-      pytest_args: 'tests/'  # ignore example notebooks
-      upload_to_codecov: true
-      additional_mamba_args: '-c conda-forge -c pytorch -c nvidia'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
 
-  # memory-profile:
-  #   uses: fredshone/actions/.github/workflows/python-memory-profile.yml@main
-  #   with:
-  #     py3version: "11"
-  #     upload_flamegraph: true
-  #     additional_mamba_args: '-c conda-forge -c pytorch -c nvidia'
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: caveat
+          create-args: >-
+            python=3.11
+            -c conda-forge -c pytorch -c nvidia
+            --file=requirements/base.txt
+            --file=requirements/dev.txt
+          cache-environment: true
 
-  # cruft-check:
-  #   uses: fredshone/actions/.github/workflows/template-check.yml@main
+      - name: Install package
+        run: pip install --no-deps -e .
+
+      - name: Run tests with coverage
+        run: pytest tests/
+
+      - uses: codecov/codecov-action@v4
+        with:
+          file: reports/coverage/coverage.xml

@@ -6,17 +6,72 @@ on:
 
 jobs:
   conda-upload:
-    uses: fredshone/actions/.github/workflows/conda-upload.yml@main
-    secrets:
-      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-    with:
-      package_name: caveat
-      build_workflow: pre-release.yml
+    runs-on: ubuntu-latest
+    environment: release
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: publish
+          create-args: >-
+            python=3.11
+            anaconda-client
+            -c conda-forge
+          cache-environment: true
+
+      - name: Download build artifact
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: pre-release.yml
+          name: conda-package-${{ github.ref_name }}
+          path: conda-bld/
+
+      - name: Upload to Anaconda
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          anaconda --token ${{ secrets.ANACONDA_TOKEN }} upload \
+            --user city-modelling-lab \
+            conda-bld/**/*.tar.bz2
 
   docs-stable:
     permissions:
       contents: write
-    uses: fredshone/actions/.github/workflows/docs-deploy.yml@main
-    with:
-      deploy_type: update_stable
-      notebook_kernel: caveat
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: caveat
+          create-args: >-
+            python=3.11
+            -c conda-forge -c pytorch -c nvidia
+            --file=requirements/base.txt
+            --file=requirements/dev.txt
+          cache-environment: true
+
+      - name: Install package
+        run: pip install --no-deps -e .
+
+      - name: Install kernel
+        run: python -m ipykernel install --user --name caveat
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy stable docs
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          mike deploy --push --update-aliases $VERSION stable
+          mike set-default --push stable

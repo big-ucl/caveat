@@ -7,8 +7,32 @@ on:
 
 jobs:
   conda-build:
-    uses: fredshone/actions/.github/workflows/conda-build.yml@main
-    secrets:
-      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-    with:
-      package_name: caveat
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: build
+          create-args: >-
+            python=3.11
+            boa
+            conda-verify
+            -c conda-forge -c city-modelling-lab
+          cache-environment: true
+
+      - name: Build conda package
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          conda mambabuild conda.recipe/ --no-anaconda-upload \
+            -c conda-forge -c city-modelling-lab \
+            --output-folder ./conda-bld
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conda-package-${{ github.ref_name }}
+          path: conda-bld/**/*.tar.bz2
+          retention-days: 3
