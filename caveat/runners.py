@@ -1027,10 +1027,10 @@ def evaluate_synthetics(
         else:
             eval_attributes = default_eval_attributes
 
-        sub_reports = evaluate.subsample_and_evaluate(
+        sub_reports = evaluate.compare_splits(
+            observed=eval_schedules,
             synthetic_schedules=synthetic_schedules,
             synthetic_attributes=synthetic_labels,
-            target_schedules=eval_schedules,
             target_attributes=eval_attributes,
             split_on=split_on,
             report_stats=stats,
