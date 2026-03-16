@@ -22,7 +22,7 @@ jobs:
           environment-name: caveat
           create-args: >-
             python=3.11
-            -c conda-forge -c pytorch -c nvidia
+            -c conda-forge -c pytorch -c nvidia - c city-modelling-lab
             --file=requirements/base.txt
             --file=requirements/dev.txt
           cache-environment: true
@@ -55,12 +55,15 @@ jobs:
           environment-name: caveat
           create-args: >-
             python=3.11
-            -c conda-forge -c pytorch -c nvidia
+            -c conda-forge -c pytorch -c nvidia -c city-modelling-lab
             --file=requirements/base.txt
             --file=requirements/dev.txt
           cache-environment: true
           post-cleanup: none
 
+      - name: Install package
+        run: pip install acteval
+        
       - name: Install package
         run: pip install --no-deps -e .
 

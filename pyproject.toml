@@ -1,4 +1,9 @@
-
+[project]
+dependencies = [
+  # ... existing deps ...
+  "acteval",
+  "cml-pam",
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
