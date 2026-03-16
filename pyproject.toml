@@ -77,9 +77,6 @@ include = ["caveat*"]
 caveat = []
 
 
-[tool.uv.sources]
-acteval = { git = "https://github.com/fredshone/acteval" }
-
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
