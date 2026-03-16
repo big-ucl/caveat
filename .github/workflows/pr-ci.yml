@@ -43,6 +43,9 @@ jobs:
       - name: Install package
         run: pip install --no-deps -e .
 
+      - name: Install kernel
+        run: python -m ipykernel install --user --name caveat
+
       - name: Run tests
         run: pytest --no-cov
 
@@ -68,9 +71,11 @@ jobs:
       - name: Install PyPI dependencies
         run: pip install -r requirements/pip.txt
 
-
       - name: Install package
         run: pip install --no-deps -e .
+
+      - name: Install kernel
+        run: python -m ipykernel install --user --name caveat
 
       - name: Run tests with coverage
         run: pytest tests/
