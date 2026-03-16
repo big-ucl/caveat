@@ -28,6 +28,9 @@ jobs:
           cache-environment: true
           post-cleanup: none
 
+      - name: Install PyPI dependencies
+        run: pip install -r requirements/pip.txt
+
       - name: Install package
         run: pip install --no-deps -e .
 
