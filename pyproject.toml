@@ -19,10 +19,6 @@ keywords = ["caveat", "arup"]
 license = { text = "MIT" }
 dynamic = ["dependencies", "optional-dependencies", "version"]
 
-dependencies = [
-  "acteval",
-]
-
 [tool.pytest.ini_options]
 minversion = "6.0"
 # opts:
@@ -105,7 +101,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-dependencies = { file = ["requirements/base.txt"] }
+dependencies = { file = ["requirements/base.txt", "requirements/pip.txt"] }
 version = { attr = "caveat.__version__" }
 
 [project.scripts]
