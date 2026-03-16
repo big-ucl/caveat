@@ -22,7 +22,7 @@ jobs:
           environment-name: caveat
           create-args: >-
             python=3.11
-            -c conda-forge -c pytorch -c nvidia - c city-modelling-lab
+            -c conda-forge -c pytorch -c nvidia -c city-modelling-lab
             --file=requirements/base.txt
             --file=requirements/dev.txt
           cache-environment: true
