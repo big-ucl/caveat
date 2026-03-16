@@ -26,6 +26,7 @@ jobs:
             --file=requirements/base.txt
             --file=requirements/dev.txt
           cache-environment: true
+          post-cleanup: none
 
       - name: Install package
         run: pip install --no-deps -e .
@@ -58,6 +59,7 @@ jobs:
             --file=requirements/base.txt
             --file=requirements/dev.txt
           cache-environment: true
+          post-cleanup: none
 
       - name: Install package
         run: pip install --no-deps -e .

@@ -23,6 +23,7 @@ jobs:
             conda-verify
             -c conda-forge -c city-modelling-lab
           cache-environment: true
+          post-cleanup: none
 
       - name: Build conda package
         run: |
