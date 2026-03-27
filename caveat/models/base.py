@@ -123,10 +123,11 @@ class Base(Experiment):
 
     def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
         # from https://kvfrans.com/deriving-the-kl/
-        return torch.mean(
+        kld = torch.mean(
             -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
             dim=0,
         )
+        return kld
 
     def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.

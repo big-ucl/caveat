@@ -362,7 +362,8 @@ def describe_labels(
     features_distances["unit"] = descriptions["unit"].groupby(grouper).first()
 
     # themes
-    grouper = ["domain", "label"]
+    # grouper = ["domain", "label"]
+    grouper = "domain"
     domain_descriptions = features_descriptions.drop("unit", axis=1)
     domain_descriptions = domain_descriptions.drop(
         ("feasibility", "not home based"), axis=0

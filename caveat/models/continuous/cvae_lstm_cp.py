@@ -7,7 +7,7 @@ from caveat.models import Base
 from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class CVAEContLSTM(Base):
+class CVAEContLSTMCP(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoders with optional conditionalities at encoder, latent and decoder."""
         super().__init__(*args, **kwargs)
@@ -45,6 +45,12 @@ class CVAEContLSTM(Base):
 
         # step encoder hidden state
         self.encoder = self.build_encoder(config)
+
+        self.prior_net = PriorNet(
+            cond_dim=self.labels_hidden_size,
+            z_dim=self.latent_dim,
+            hidden_dim=128,
+        )
 
         # encoder to latent
         self.fc_mu = nn.Linear(self.flat_size_encode, self.latent_dim)
@@ -218,11 +224,23 @@ class CVAEContLSTM(Base):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x, labels)
+        mu, log_var, c_mu, c_log_var = self.encode(x, labels)
         z = self.reparameterize(mu, log_var)
 
         log_prob_y = self.decode(z, labels=labels, target=target)
-        return [log_prob_y, mu, log_var, z]
+        return [log_prob_y, [mu, c_mu], [log_var, c_log_var], z]
+
+    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
+        mu_q, mu_p = mu
+        log_var_q, log_var_p = log_var
+        kld = 0.5 * torch.sum(
+            log_var_p
+            - log_var_q
+            + (log_var_q.exp() + (mu_q - mu_p) ** 2) / log_var_p.exp()
+            - 1,
+            dim=1,
+        )
+        return kld.mean()
 
     def encode(self, input: Tensor, labels: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -239,7 +257,10 @@ class CVAEContLSTM(Base):
         mu = self.fc_mu(hidden)
         log_var = self.fc_var(hidden)
 
-        return [mu, log_var]
+        # conditional priors
+        c_mu, c_log_var = self.prior_net(encoded_labels)
+
+        return [mu, log_var, c_mu, c_log_var]
 
     def decode(
         self, z: Tensor, labels: Tensor, target=None, **kwargs
@@ -290,8 +311,23 @@ class CVAEContLSTM(Base):
         """
         z = z.to(device)
         labels = labels.to(device)
+
+        mu_p, log_var_p = self.prior_net(self.label_encoder(labels))
+        z = mu_p + z * (log_var_p * 0.5).exp()
         prob_samples = exp(self.decode(z=z, labels=labels, **kwargs))
         return prob_samples
+
+
+class PriorNet(nn.Module):
+    def __init__(self, cond_dim, z_dim, hidden_dim: int = 128):
+        super().__init__()
+        self.fc = nn.Linear(cond_dim, hidden_dim)
+        self.mu = nn.Linear(hidden_dim, z_dim)
+        self.logvar = nn.Linear(hidden_dim, z_dim)
+
+    def forward(self, labels):
+        hidden = torch.relu(self.fc(labels))
+        return self.mu(hidden), self.logvar(hidden)
 
 
 class LabelEncoder(nn.Module):

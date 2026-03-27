@@ -16,7 +16,7 @@ def load_and_validate_schedules(data_path: Path) -> pd.DataFrame:
     Raises:
         UserWarning: If no data is found in the specified file.
     """
-    data = pd.read_csv(data_path)
+    data = pd.read_csv(data_path, low_memory=False)
     if data.empty:
         raise UserWarning(f"No data found in {data_path}.")
     validate_schedules(data)
@@ -72,7 +72,7 @@ def load_and_validate_attributes(
     # load attributes data
     if config.get("attributes_path"):
         data_path = Path(config["attributes_path"])
-        attributes = pd.read_csv(data_path)
+        attributes = pd.read_csv(data_path, low_memory=False)
         if attributes.empty:
             raise UserWarning(f"No attributes found in {data_path}.")
         schedule_pids = set(schedules.pid)
@@ -109,7 +109,7 @@ def load_and_validate_attributes(
     if attributes is not None:
         if config.get("synthetic_attributes_path"):
             data_path = Path(config["synthetic_attributes_path"])
-            synthetic_attributes = pd.read_csv(data_path)
+            synthetic_attributes = pd.read_csv(data_path, low_memory=False)
             if synthetic_attributes.empty:
                 raise UserWarning(
                     f"No synthetic attributes found in {data_path}."

@@ -1,13 +1,14 @@
 from typing import List, Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor, exp, nn
 
-from caveat.models import Base
+from caveat.models import Base, utils
 from caveat.models.embed import CustomDurationEmbeddingConcat
 
 
-class CVAEContLSTM(Base):
+class CVAEContLSTMAux(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoders with optional conditionalities at encoder, latent and decoder."""
         super().__init__(*args, **kwargs)
@@ -55,6 +56,14 @@ class CVAEContLSTM(Base):
 
         # decoder conditionality
         self.decoder = self.build_decoder(config)
+
+        # auxilary head
+        self.aux_head = Aux(
+            seq_length=self.length,
+            seq_size=self.encodings + 1,
+            hidden_size=self.hidden_size,
+            attribute_embed_sizes=self.label_embed_sizes,
+        )
 
         # share embedding
         if config.get("share_embed", False):
@@ -222,7 +231,128 @@ class CVAEContLSTM(Base):
         z = self.reparameterize(mu, log_var)
 
         log_prob_y = self.decode(z, labels=labels, target=target)
-        return [log_prob_y, mu, log_var, z]
+        p_labels = self.aux_head(log_prob_y)
+        return [log_prob_y, (mu, p_labels), log_var, z]
+
+    def loss_function(
+        self,
+        log_probs,
+        mu,
+        log_var,
+        target,
+        weights: Tuple[Tensor, Tensor],
+        labels: Tensor,
+        label_weights: Optional[Tuple[Tensor, Tensor]] = (None, None),
+        **kwargs,
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        mu, p_labels = mu
+
+        # unpack act probs and durations
+        target_acts, target_durs = self.unpack_encoding(target)
+        pred_acts, pred_durs = self.unpack_encoding(log_probs)
+        pred_durs = torch.exp(pred_durs)
+
+        act_weights, seq_weights = weights
+        _, joint_weights = label_weights
+        dur_weights = utils.duration_mask(act_weights)
+        # dur_weights = seq_weights  # use seq_weights as dur_weights
+
+        # activity loss
+        act_weight = self.activity_loss_weight * self.scheduled_act_weight
+        act_recon = self.act_seq_loss(
+            preds=pred_acts,
+            targets=target_acts,
+            weights=act_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_act_recon = act_weight * act_recon
+
+        # duration loss
+        dur_weight = self.duration_loss_weight * self.scheduled_dur_weight
+        dur_recon = self.dur_mse_loss(
+            preds=pred_durs,
+            targets=target_durs,
+            weights=dur_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_dur_recon = dur_weight * dur_recon
+
+        # start time loss
+        start_weight = self.start_loss_weight * self.scheduled_start_weight
+        start_recon = self.start_seq_loss_detached(
+            preds=pred_durs,
+            targets=target_durs,
+            weights=dur_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_start_recon = start_weight * start_recon
+
+        # end time loss
+        end_weight = self.end_loss_weight * self.scheduled_end_weight
+        end_recon = self.end_seq_loss_detached(
+            preds=pred_durs,
+            targets=target_durs,
+            weights=dur_weights,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_end_recon = end_weight * end_recon
+
+        # total_duration loss
+        total_dur_weight = (
+            self.total_duration_loss_weight * self.scheduled_total_dur_weight
+        )
+        total_dur_recon = self.total_duration_loss(
+            preds=pred_durs,
+            targets=target_durs,
+            seq_weights=seq_weights,
+            joint_weights=joint_weights,
+        )
+        w_total_dur_recon = total_dur_weight * total_dur_recon
+
+        # reconstruction loss
+        w_recons_loss = (
+            w_act_recon
+            + w_dur_recon
+            + w_start_recon
+            + w_end_recon
+            + w_total_dur_recon
+        )
+
+        # kld loss
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
+
+        # labels loss
+        logs = {}
+        attribute_loss = 0
+        for i, p in enumerate(p_labels):
+            target = labels[:, i].long()
+            aux_loss = F.cross_entropy(p, target)
+            logs[f"label_loss_{i}"] = aux_loss
+            attribute_loss += aux_loss
+        # attribute_loss = attribute_loss / len(log_probs_ys)
+        scheduled_label_weight = (
+            self.scheduled_label_weight * self.label_loss_weight
+        )
+        w_label_loss = scheduled_label_weight * attribute_loss * 100
+
+        # final loss
+        loss = w_recons_loss + w_kld_loss + w_label_loss
+
+        return {
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "label_loss": w_label_loss.detach(),
+        }
 
     def encode(self, input: Tensor, labels: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -303,15 +433,11 @@ class LabelEncoder(nn.Module):
         self.embeds = nn.ModuleList(
             [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
         )
-        # self.fc = nn.Linear(hidden_size, hidden_size)
-        # self.activation = nn.ReLU()
 
     def forward(self, x):
         x = torch.stack(
             [embed(x[:, i]) for i, embed in enumerate(self.embeds)], dim=-1
         ).sum(dim=-1)
-        # x = self.fc(x)
-        # x = self.activation(x)
         return x
 
 
@@ -333,11 +459,7 @@ class HiddenLabel(nn.Module):
         self.hidden_size = hidden_size
         self.hidden_layers = hidden_layers
         flat_size = 2 * hidden_layers * hidden_size
-        self.ff = nn.Sequential(
-            nn.Linear(labels_size, flat_size),
-            # nn.LeakyReLU(),
-            # nn.Dropout(dropout),
-        )
+        self.ff = nn.Sequential(nn.Linear(labels_size, flat_size))
 
     def forward(self, labels):
         h1, h2 = (
@@ -928,3 +1050,26 @@ class InputsConcatConditionalDecoder(nn.Module):
         outputs = torch.cat((act, duration), dim=-1)
         # [N, 1, 2]
         return outputs
+
+
+class Aux(nn.Module):
+    def __init__(
+        self, seq_length, seq_size, hidden_size, attribute_embed_sizes
+    ):
+        super(Aux, self).__init__()
+        flat_size = seq_length * seq_size
+        self.fc = nn.Linear(flat_size, hidden_size)
+        self.activation = nn.ReLU()
+        self.attribute_nets = nn.ModuleList(
+            [
+                nn.Sequential(nn.Linear(hidden_size, s), nn.LogSoftmax(dim=-1))
+                for s in attribute_embed_sizes
+            ]
+        )
+
+    def forward(self, x):
+        x = x.flatten(start_dim=1)
+        x = self.fc(x)
+        x = self.activation(x)
+        log_probs = [net(x) for net in self.attribute_nets]
+        return log_probs

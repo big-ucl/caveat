@@ -51,7 +51,9 @@ def run_command(
     seed = config.pop("seed", seeder())
 
     # load data
-    input_schedules, input_attributes, synthetic_attributes = load_data(config)
+    (input_schedules, input_attributes, synthetic_attributes) = load_data(
+        config
+    )
 
     # encode data
     attribute_encoder, encoded_labels, label_weights = encode_input_labels(
@@ -664,6 +666,18 @@ def load_data(
         print(
             f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}"
         )
+    # target_schedules_path = config.get("target_schedules_path", None)
+    # if target_schedules_path is not None:
+    #     target_schedules_path = Path(target_schedules_path)
+    #     target_schedules = data.load_and_validate_schedules(
+    #         target_schedules_path
+    #     )
+    #     if verbose:
+    #         print(
+    #             f"Loaded {target_schedules.pid.nunique()} target schedules from {target_schedules_path}"
+    #         )
+    # else:
+    #     target_schedules = schedules
 
     # load attributes data (conditional case)
     attributes, synthetic_attributes = data.load_and_validate_attributes(
@@ -999,8 +1013,9 @@ def evaluate_synthetics(
     eval_schedules_path = eval_params.get("schedules_path", None)
     if eval_schedules_path:
         eval_schedules = data.load_and_validate_schedules(eval_schedules_path)
+        n = eval_schedules.pid.nunique()
         print(
-            f"<!> Loaded {len(eval_schedules)} schedules for evaluation from {eval_schedules_path}"
+            f"<!> Loaded {n} schedules for evaluation from {eval_schedules_path}"
         )
     else:
         eval_schedules = default_eval_schedules
@@ -1013,7 +1028,7 @@ def evaluate_synthetics(
         )
         eval_attributes_path = eval_params.get("attributes_path", None)
         if eval_attributes_path:
-            eval_attributes = data.load_and_validate_attributes(
+            eval_attributes, _ = data.load_and_validate_attributes(
                 eval_params, eval_schedules
             )
             print(
