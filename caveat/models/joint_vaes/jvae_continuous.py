@@ -185,7 +185,7 @@ class JVAEContLSTM(JointExperiment):
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
         # final loss
@@ -224,8 +224,7 @@ class JVAEContLSTM(JointExperiment):
     def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
         # from https://kvfrans.com/deriving-the-kl/
         return torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
     def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:

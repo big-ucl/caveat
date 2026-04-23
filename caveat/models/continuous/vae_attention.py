@@ -250,7 +250,7 @@ class VAEContXAtt(Base):
             log_var=log_var,
             target=y,
             weights=y_weights,
-            kld_weight=self.kld_loss_weight,
+            kld_weight=self.beta,
             duration_weight=self.duration_loss_weight,
             optimizer_idx=optimizer_idx,
             batch_idx=batch_idx,
