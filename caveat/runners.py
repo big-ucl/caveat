@@ -7,17 +7,17 @@ import pandas as pd
 import torch
 from pandas import DataFrame
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    LearningRateMonitor,
-    ModelCheckpoint,
-)
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch import Tensor
 from torch.random import seed as seeder
 
 from caveat import cuda_available, data, encoding, label_encoding, models
-from caveat.callbacks import LinearLossScheduler
+from caveat.callbacks import (
+    CollapseMonitor,
+    CyclicalBetaAnnealer,
+    LinearLossScheduler,
+)
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.evaluate import evaluate
@@ -584,9 +584,9 @@ def batch_eval_command(
         version = sorted([d for d in log_dir.iterdir() if d.is_dir()])[-1]
         outputs_dir = log_dir / version.name
         schedules_path = outputs_dir / schedules_name
-        synthetic_schedules_all[
-            log_dir.name
-        ] = data.load_and_validate_schedules(schedules_path)
+        synthetic_schedules_all[log_dir.name] = (
+            data.load_and_validate_schedules(schedules_path)
+        )
         print(
             f"> Loaded {synthetic_schedules_all[log_dir.name].pid.nunique()} synthetic schedules from {schedules_path}"
         )
@@ -894,19 +894,17 @@ def generate(
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
         )
-        (
-            synthetic_attributes,
-            synthetic_schedules,
-            zs,
-        ) = generate_from_attributes(
-            trainer,
-            attributes=population,
-            batch_size=batch_size,
-            latent_dims=latent_dims,
-            seed=seed,
-            ckpt_path=ckpt_path,
-            write_dir=write_dir,
-            cats=latent_categories,
+        (synthetic_attributes, synthetic_schedules, zs) = (
+            generate_from_attributes(
+                trainer,
+                attributes=population,
+                batch_size=batch_size,
+                latent_dims=latent_dims,
+                seed=seed,
+                ckpt_path=ckpt_path,
+                write_dir=write_dir,
+                cats=latent_categories,
+            )
         )
         synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
         synthetic_attributes.to_csv(write_dir / "synthetic_attributes.csv")
@@ -1122,27 +1120,39 @@ def load_model(ckpt_path: Path, config: dict) -> LightningModule:
 
 def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
     trainer_config = config.get("trainer_params", {})
-    patience = trainer_config.pop("patience", 5)
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=Path(logger.log_dir, "checkpoints"),
-        monitor="val_loss",
-        save_top_k=2,
-        save_weights_only=False,
-    )
-    loss_scheduling = trainer_config.pop("loss_scheduling", {})
-    custom_loss_scheduler = LinearLossScheduler(loss_scheduling)
-    return Trainer(
-        logger=logger,
-        callbacks=[
+    patience = trainer_config.pop("patience", None)
+    collapse_monitoring_config = trainer_config.pop("collapse_monitoring", {})
+    loss_scheduling_config = trainer_config.pop("loss_scheduling", {})
+    beta_scheduling_config = trainer_config.pop("beta_scheduling", {})
+
+    callbacks = [
+        ModelCheckpoint(
+            dirpath=Path(logger.log_dir, "checkpoints"),
+            monitor="val_loss",
+            save_top_k=2,
+            save_weights_only=False,
+        )
+    ]
+
+    if patience is not None:
+        callbacks.append(
             EarlyStopping(
-                monitor="val_loss", patience=patience, stopping_threshold=0.0
-            ),
-            LearningRateMonitor(),
-            checkpoint_callback,
-            custom_loss_scheduler,
-        ],
-        **trainer_config,
-    )
+                monitor="val_recon_loss",
+                patience=patience,
+                stopping_threshold=0.0,
+            )
+        )
+
+    if collapse_monitoring_config.get("enabled", True):
+        callbacks.append(CollapseMonitor(**collapse_monitoring_config))
+
+    if loss_scheduling_config.get("enabled", False):
+        callbacks.append(LinearLossScheduler(loss_scheduling_config))
+
+    if beta_scheduling_config.get("enabled", False):
+        callbacks.append(CyclicalBetaAnnealer(beta_scheduling_config))
+
+    return Trainer(logger=logger, callbacks=callbacks, **trainer_config)
 
 
 def initiate_logger(save_dir: Union[Path, str], name: str) -> TensorBoardLogger:

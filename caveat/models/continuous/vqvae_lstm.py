@@ -288,7 +288,7 @@ class VQVAEContLSTM(Base):
         prior_loss = mu
 
         # regularisation loss
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_vq_loss = scheduled_kld_weight * log_var
 
         # final loss
