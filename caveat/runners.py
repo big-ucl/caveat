@@ -20,7 +20,7 @@ from caveat.callbacks import (
 )
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
-from caveat.evaluate import evaluate
+from acteval import evaluate
 from caveat.label_encoding.base import BaseLabelEncoder
 
 
@@ -735,10 +735,15 @@ def train(
 
     Args:
         name (str): The name of the experiment.
-        schedules (pandas.DataFrame): The "observed" population data to train the model on.
-        conditionals (pandas.DataFrame): The "conditionals" data to train the model on.
+        data_loader (DataModule): The data module wrapping encoded training data.
+        encoded_schedules (BaseDataset): The encoded schedule dataset.
         config (dict): A dictionary containing the configuration parameters for the experiment.
+        test (bool): Whether to run test evaluation after training.
+        gen (bool): Whether to generate samples after training.
         logger (TensorBoardLogger): Logger.
+        seed (Optional[int]): Random seed.
+        ckpt_path (Optional[Path]): Path to checkpoint to resume from.
+        label_encoder (Optional[BaseLabelEncoder]): Optional label encoder.
 
     Returns:
         Tuple(pytorch.Trainer, BaseEncoder).
@@ -1020,10 +1025,10 @@ def evaluate_synthetics(
         else:
             eval_attributes = default_eval_attributes
 
-        sub_reports = evaluate.subsample_and_evaluate(
+        sub_reports = evaluate.compare_splits(
+            observed=eval_schedules,
             synthetic_schedules=synthetic_schedules,
             synthetic_attributes=synthetic_labels,
-            target_schedules=eval_schedules,
             target_attributes=eval_attributes,
             split_on=split_on,
             report_stats=stats,

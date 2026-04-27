@@ -1,4 +1,23 @@
+[project]
+classifiers = [
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3",
+    ]
 
+name = "caveat"
+authors = [
+    { name = "Fred Shone", email = "26383933+fredshone@users.noreply.github.com" },
+]
+maintainers = []
+description = "activity sequence generation using variation auto-encoders"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["caveat", "arup"]
+license = { text = "MIT" }
+dynamic = ["dependencies", "optional-dependencies", "version"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -81,29 +100,8 @@ caveat = []
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[project]
-classifiers = [
-        "Development Status :: 2 - Pre-Alpha",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Natural Language :: English",
-        "Programming Language :: Python :: 3",
-    ]
-
-name = "caveat"
-authors = [
-    { name = "Fred Shone", email = "26383933+fredshone@users.noreply.github.com" },
-]
-maintainers = []
-description = "activity sequence generation using variation auto-encoders"
-readme = "README.md"
-requires-python = ">=3.8"
-keywords = ["caveat", "arup"]
-license = { text = "MIT" }
-dynamic = ["dependencies", "optional-dependencies", "version"]
-
 [tool.setuptools.dynamic]
-dependencies = { file = ["requirements/base.txt"] }
+dependencies = { file = ["requirements/base.txt", "requirements/pip.txt"] }
 version = { attr = "caveat.__version__" }
 
 [project.scripts]

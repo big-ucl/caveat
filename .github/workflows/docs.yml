@@ -10,16 +10,73 @@ on:
 jobs:
   docs-test:
     if: github.ref != 'refs/heads/main'
-    uses: fredshone/actions/.github/workflows/docs-deploy.yml@main
-    with:
-      deploy_type: test
-      notebook_kernel: caveat
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: caveat
+          create-args: >-
+            python=3.11
+            -c conda-forge -c pytorch -c nvidia -c city-modelling-lab
+            --file=requirements/base.txt
+            --file=requirements/dev.txt
+          cache-environment: true
+          post-cleanup: none
+
+      - name: Install PyPI dependencies
+        run: pip install -r requirements/pip.txt
+
+      - name: Install package
+        run: pip install --no-deps -e .
+
+      - name: Install kernel
+        run: python -m ipykernel install --user --name caveat
+
+      - name: Test docs build
+        run: mkdocs build --strict
 
   docs-update-latest:
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
-    if: github.ref == 'refs/heads/main'
-    uses: fredshone/actions/.github/workflows/docs-deploy.yml@main
-    with:
-      deploy_type: update_latest
-      notebook_kernel: caveat
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: caveat
+          create-args: >-
+            python=3.11
+            -c conda-forge -c pytorch -c nvidia -c city-modelling-lab
+            --file=requirements/base.txt
+            --file=requirements/dev.txt
+          cache-environment: true
+          post-cleanup: none
+
+      - name: Install PyPI dependencies
+        run: pip install -r requirements/pip.txt
+
+      - name: Install package
+        run: pip install --no-deps -e .
+
+      - name: Install kernel
+        run: python -m ipykernel install --user --name caveat
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy latest docs
+        run: mike deploy --push --update-aliases develop latest

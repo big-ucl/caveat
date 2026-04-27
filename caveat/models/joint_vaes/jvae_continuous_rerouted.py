@@ -204,7 +204,7 @@ class JVAEContLSTMRerouted(JointExperiment):
 
         Args:
             z (tensor): [N, latent_dims].
-            current_device (int): Device to run the model.
+            device (int): Device to run the model.
 
         Returns:
             tensor: [N, steps, acts].

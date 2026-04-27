@@ -1,16 +1,8 @@
-name: Minimal CI
+name: Weekly Scheduled CI
 
 on:
-  push:
-    branches:
-      - "**"
-    paths-ignore:
-      - README.md
-      - CHANGELOG.md
-      - LICENSE
-      - CONTRIBUTING.md
-      - docs/**
-      - mkdocs.yml
+  schedule:
+    - cron: "0 8 * * 1"
 
 jobs:
   test:
@@ -29,7 +21,7 @@ jobs:
             -c conda-forge -c pytorch -c nvidia -c city-modelling-lab
             --file=requirements/base.txt
             --file=requirements/dev.txt
-          cache-environment: true
+          cache-environment: false
           post-cleanup: none
 
       - name: Install PyPI dependencies
@@ -42,4 +34,4 @@ jobs:
         run: python -m ipykernel install --user --name caveat
 
       - name: Run tests
-        run: pytest
+        run: pytest --no-cov
