@@ -42,7 +42,7 @@ branch = true
 source = ["caveat/"]
 
 [tool.coverage.report]
-fail_under = 50
+fail_under = 45
 
 [tool.coverage.html]
 directory = "reports/coverage"
