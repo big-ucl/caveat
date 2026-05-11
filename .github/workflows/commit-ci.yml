@@ -14,18 +14,32 @@ on:
 
 jobs:
   test:
-    uses: fredshone/actions/.github/workflows/python-install-lint-test.yml@main
-    with:
-      os: ubuntu-latest
-      py3version: "11"
-      notebook_kernel: caveat
-      lint: false
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
 
-  # aws-upload:
-  #   needs: test
-  #   if: needs.test.result == 'success'
-  #   uses: fredshone/actions/.github/workflows/aws-upload.yml@main
-  #   secrets:
-  #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #     AWS_S3_CODE_BUCKET: ${{ secrets.AWS_S3_CODE_BUCKET }}
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: caveat
+          create-args: >-
+            python=3.11
+            -c conda-forge -c pytorch -c nvidia -c city-modelling-lab
+            --file=requirements/base.txt
+            --file=requirements/dev.txt
+          cache-environment: true
+          post-cleanup: none
+
+      - name: Install PyPI dependencies
+        run: pip install -r requirements/pip.txt
+
+      - name: Install package
+        run: pip install --no-deps -e .
+
+      - name: Install kernel
+        run: python -m ipykernel install --user --name caveat
+
+      - name: Run tests
+        run: pytest

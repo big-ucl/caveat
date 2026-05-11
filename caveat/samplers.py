@@ -2,9 +2,7 @@ import pandas as pd
 
 
 class TargetLabelSampler:
-
     def __init__(self, target_labels: pd.DataFrame, target_columns: list):
-
         assert "pid" in target_labels.columns
         assert all(column in target_labels.columns for column in target_columns)
 
@@ -31,7 +29,6 @@ class TargetLabelSampler:
         return sum(self.found_sizes.values())
 
     def sample(self, labels, schedules):
-
         assert "pid" in labels.columns
         assert "pid" in schedules.columns
         assert all(column in labels.columns for column in self.target_columns)
@@ -42,7 +39,6 @@ class TargetLabelSampler:
         labels_dict = {k: v for k, v in labels.groupby(self.target_columns)}
 
         for target_label, target_data in self.target_labels_dict.items():
-
             if target_data is None or len(target_data) == 0:
                 continue
 
@@ -90,10 +86,9 @@ class TargetLabelSampler:
             for i, n in self.target_sizes.items():
                 found = self.found_sizes[i]
                 if found < n:
-                    print(f"<!>{i}: {found/n:.2%} of {n} found.")
+                    print(f"<!>{i}: {found / n:.2%} of {n} found.")
 
     def finish(self):
-
         if len(self.sampled_labels) == 0:
             return pd.DataFrame(), pd.DataFrame()
 

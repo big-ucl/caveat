@@ -227,7 +227,7 @@ def jbatch_command(
     verbose: bool = False,
     gen: bool = True,
     test: bool = False,
-    infer=True,
+    infer: bool = True,
     sample: bool = True,
     patience: int = 8,
 ) -> None:
@@ -235,7 +235,14 @@ def jbatch_command(
     Batch runs the training for joint-model variation.
 
     Args:
-        config (dict): A dictionary containing the configuration parameters.
+        batch_config (dict): A dictionary containing the batch configuration parameters.
+        stats (bool): Whether to print stats. Defaults to False.
+        verbose (bool): Whether to print verbose output. Defaults to False.
+        gen (bool): Whether to generate samples. Defaults to True.
+        test (bool): Whether to run test evaluation. Defaults to False.
+        infer: Whether to run inference. Defaults to True.
+        sample (bool): Whether to sample. Defaults to True.
+        patience (int): Training patience. Defaults to 8.
 
     Returns:
         None

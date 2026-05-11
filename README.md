@@ -134,6 +134,7 @@ git clone git@github.com:big-ucl/caveat.git
 cd caveat
 mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch --file requirements/base.txt --file requirements/dev.txt
 mamba activate caveat
+pip install -r requirements/pip.txt
 pip install --no-deps -e .
 ```
 

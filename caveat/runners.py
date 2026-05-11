@@ -5,22 +5,22 @@ from typing import Optional, Tuple, Union
 
 import pandas as pd
 import torch
+from acteval import evaluate
 from pandas import DataFrame
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    LearningRateMonitor,
-    ModelCheckpoint,
-)
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch import Tensor
 from torch.random import seed as seeder
 
 from caveat import cuda_available, data, encoding, label_encoding, models
-from caveat.callbacks import LinearLossScheduler
+from caveat.callbacks import (
+    CollapseMonitor,
+    CyclicalBetaAnnealer,
+    LinearLossScheduler,
+)
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
-from caveat.evaluate import evaluate
 from caveat.label_encoding.base import BaseLabelEncoder
 
 
@@ -749,10 +749,15 @@ def train(
 
     Args:
         name (str): The name of the experiment.
-        schedules (pandas.DataFrame): The "observed" population data to train the model on.
-        conditionals (pandas.DataFrame): The "conditionals" data to train the model on.
+        data_loader (DataModule): The data module wrapping encoded training data.
+        encoded_schedules (BaseDataset): The encoded schedule dataset.
         config (dict): A dictionary containing the configuration parameters for the experiment.
+        test (bool): Whether to run test evaluation after training.
+        gen (bool): Whether to generate samples after training.
         logger (TensorBoardLogger): Logger.
+        seed (Optional[int]): Random seed.
+        ckpt_path (Optional[Path]): Path to checkpoint to resume from.
+        label_encoder (Optional[BaseLabelEncoder]): Optional label encoder.
 
     Returns:
         Tuple(pytorch.Trainer, BaseEncoder).
@@ -1037,10 +1042,10 @@ def evaluate_synthetics(
         else:
             eval_attributes = default_eval_attributes
 
-        sub_reports = evaluate.subsample_and_evaluate(
+        sub_reports = evaluate.compare_splits(
+            observed=eval_schedules,
             synthetic_schedules=synthetic_schedules,
             synthetic_attributes=synthetic_labels,
-            target_schedules=eval_schedules,
             target_attributes=eval_attributes,
             split_on=split_on,
             report_stats=stats,
@@ -1137,27 +1142,39 @@ def load_model(ckpt_path: Path, config: dict) -> LightningModule:
 
 def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
     trainer_config = config.get("trainer_params", {})
-    patience = trainer_config.pop("patience", 5)
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=Path(logger.log_dir, "checkpoints"),
-        monitor="val_loss",
-        save_top_k=2,
-        save_weights_only=False,
-    )
-    loss_scheduling = trainer_config.pop("loss_scheduling", {})
-    custom_loss_scheduler = LinearLossScheduler(loss_scheduling)
-    return Trainer(
-        logger=logger,
-        callbacks=[
+    patience = trainer_config.pop("patience", None)
+    collapse_monitoring_config = trainer_config.pop("collapse_monitoring", {})
+    loss_scheduling_config = trainer_config.pop("loss_scheduling", {})
+    beta_scheduling_config = trainer_config.pop("beta_scheduling", {})
+
+    callbacks = [
+        ModelCheckpoint(
+            dirpath=Path(logger.log_dir, "checkpoints"),
+            monitor="val_loss",
+            save_top_k=2,
+            save_weights_only=False,
+        )
+    ]
+
+    if patience is not None:
+        callbacks.append(
             EarlyStopping(
-                monitor="val_loss", patience=patience, stopping_threshold=0.0
-            ),
-            LearningRateMonitor(),
-            checkpoint_callback,
-            custom_loss_scheduler,
-        ],
-        **trainer_config,
-    )
+                monitor="val_recon_loss",
+                patience=patience,
+                stopping_threshold=0.0,
+            )
+        )
+
+    if collapse_monitoring_config.get("enabled", True):
+        callbacks.append(CollapseMonitor(**collapse_monitoring_config))
+
+    if loss_scheduling_config.get("enabled", False):
+        callbacks.append(LinearLossScheduler(loss_scheduling_config))
+
+    if beta_scheduling_config.get("enabled", False):
+        callbacks.append(CyclicalBetaAnnealer(beta_scheduling_config))
+
+    return Trainer(logger=logger, callbacks=callbacks, **trainer_config)
 
 
 def initiate_logger(save_dir: Union[Path, str], name: str) -> TensorBoardLogger:

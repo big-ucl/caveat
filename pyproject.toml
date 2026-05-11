@@ -1,4 +1,23 @@
+[project]
+classifiers = [
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3",
+    ]
 
+name = "caveat"
+authors = [
+    { name = "Fred Shone", email = "26383933+fredshone@users.noreply.github.com" },
+]
+maintainers = []
+description = "activity sequence generation using variation auto-encoders"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["caveat", "arup"]
+license = { text = "MIT" }
+dynamic = ["dependencies", "optional-dependencies", "version"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -59,11 +78,11 @@ max-complexity = 10
 # Ignore `E402` (import violations) and `F401` (unused imports) in all `__init__.py` files
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
-"*.ipynb" = ["E402"]
+"*.ipynb" = ["E402", "F821", "F811", "E741"]
 
-# Ignore `E402` for all notebooks
+# Ignore `E402`, `F821` (cross-cell undefined names), and `F811` (cell redefinitions) for all notebooks
 [tool.nbqa.addopts]
-ruff = ["--extend-ignore=E402"]
+ruff = ["--extend-ignore=E402,F821,F811"]
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
@@ -81,29 +100,8 @@ caveat = []
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[project]
-classifiers = [
-        "Development Status :: 2 - Pre-Alpha",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Natural Language :: English",
-        "Programming Language :: Python :: 3",
-    ]
-
-name = "caveat"
-authors = [
-    { name = "Fred Shone", email = "26383933+fredshone@users.noreply.github.com" },
-]
-maintainers = []
-description = "activity sequence generation using variation auto-encoders"
-readme = "README.md"
-requires-python = ">=3.8"
-keywords = ["caveat", "arup"]
-license = { text = "MIT" }
-dynamic = ["dependencies", "optional-dependencies", "version"]
-
 [tool.setuptools.dynamic]
-dependencies = { file = ["requirements/base.txt"] }
+dependencies = { file = ["requirements/base.txt", "requirements/pip.txt"] }
 version = { attr = "caveat.__version__" }
 
 [project.scripts]

@@ -1,0 +1,37 @@
+name: Weekly Scheduled CI
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: caveat
+          create-args: >-
+            python=3.11
+            -c conda-forge -c pytorch -c nvidia -c city-modelling-lab
+            --file=requirements/base.txt
+            --file=requirements/dev.txt
+          cache-environment: false
+          post-cleanup: none
+
+      - name: Install PyPI dependencies
+        run: pip install -r requirements/pip.txt
+
+      - name: Install package
+        run: pip install --no-deps -e .
+
+      - name: Install kernel
+        run: python -m ipykernel install --user --name caveat
+
+      - name: Run tests
+        run: pytest --no-cov

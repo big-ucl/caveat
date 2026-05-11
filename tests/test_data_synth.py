@@ -70,7 +70,9 @@ def test_build_transitions_single_state():
     gen = SingleStateGen()
     assert gen.steps == 4
     gen.build()
-    np.testing.assert_array_equal(gen.transition_weights, np.array([[[1], [1], [1], [1]]]))
+    np.testing.assert_array_equal(
+        gen.transition_weights, np.array([[[1], [1], [1], [1]]])
+    )
 
 
 def test_build_transitions_single_state_with_adjusted_pivots():
@@ -90,7 +92,9 @@ def test_build_transitions_single_state_with_adjusted_pivots():
     gen = SingleStateGen()
     assert gen.steps == 4
     gen.build()
-    np.testing.assert_array_equal(gen.transition_weights, np.array([[[1], [1], [1], [1]]]))
+    np.testing.assert_array_equal(
+        gen.transition_weights, np.array([[[1], [1], [1], [1]]])
+    )
 
 
 @pytest.fixture
@@ -141,7 +145,8 @@ def test_build_transitions_simple_states(two_step_switch):
     assert two_step_switch.steps == 2
     two_step_switch.build()
     np.testing.assert_array_equal(
-        two_step_switch.transition_weights, np.array([[[0, 1], [0, 1]], [[1, 0], [1, 0]]])
+        two_step_switch.transition_weights,
+        np.array([[[0, 1], [0, 1]], [[1, 0], [1, 0]]]),
     )
 
 
@@ -171,7 +176,8 @@ def test_build_transitions_states(two_state_gen):
     assert two_state_gen.steps == 2
     two_state_gen.build()
     np.testing.assert_array_equal(
-        two_state_gen.transition_weights, np.array([[[1, 0], [0.5, 0.5]], [[0, 1], [0.5, 0.5]]])
+        two_state_gen.transition_weights,
+        np.array([[[1, 0], [0.5, 0.5]], [[0, 1], [0.5, 0.5]]]),
     )
 
 
@@ -184,4 +190,9 @@ def test_run_two_step_switch(two_step_switch):
 def test_run_four_step_switch(four_step_switch):
     four_step_switch.build()
     trace = four_step_switch.run()
-    assert trace == [(0, 0, 5, 5), (1, 5, 10, 5), (0, 10, 15, 5), (1, 15, 20, 5)]
+    assert trace == [
+        (0, 0, 5, 5),
+        (1, 5, 10, 5),
+        (0, 10, 15, 5),
+        (1, 15, 20, 5),
+    ]

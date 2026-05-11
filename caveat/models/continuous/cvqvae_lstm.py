@@ -284,7 +284,8 @@ class CVQVAEContLSTM(Base):
 
         Args:
             z (tensor): [N, latent_dims].
-            current_device (int): Device to run the model.
+            device (int): Device to run the model.
+            labels (Optional[Tensor]): Optional conditional labels.
 
         Returns:
             tensor: [N, steps, acts].
@@ -352,7 +353,7 @@ class CVQVAEContLSTM(Base):
         prior_loss = mu
 
         # regularisation loss
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_vq_loss = scheduled_kld_weight * log_var
 
         # final loss

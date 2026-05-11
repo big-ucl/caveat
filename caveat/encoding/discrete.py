@@ -129,19 +129,18 @@ class DiscreteEncoder(BaseEncoder):
         )
 
     def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
-        """Decode decretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
+        """Decode discretised sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
 
         pid is taken as sample enumeration.
 
         Args:
-            encoded (Tensor): _description_
-            mapping (dict): _description_
-            length (int): Length of plan in minutes.
+            schedules (Tensor): Encoded schedule tensor.
+            argmax (bool): Whether to apply argmax to get activity indices. Defaults to True.
 
         Returns:
-            pd.DataFrame: _description_
+            pd.DataFrame: Decoded schedule DataFrame.
         """
         if argmax:
             schedules = torch.argmax(schedules, dim=-1)
@@ -231,19 +230,17 @@ class DiscreteEncoderPadded(BaseEncoder):
         )
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:
-        """Decode disretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
+        """Decode discretised sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
 
         pid is taken as sample enumeration.
 
         Args:
-            encoded (Tensor): _description_
-            mapping (dict): _description_
-            length (int): Length of plan in minutes.
+            schedules (Tensor): Encoded schedule tensor.
 
         Returns:
-            pd.DataFrame: _description_
+            pd.DataFrame: Decoded schedule DataFrame.
         """
         schedules = torch.argmax(schedules, dim=-1)
         decoded = []

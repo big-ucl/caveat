@@ -79,7 +79,8 @@ class AutoContAtt(Base):
         """Decode latent sample to batch of output sequences.
 
         Args:
-            z (tensor): Latent space batch [N, latent_dims].
+            context (Tensor): Latent space batch [N, latent_dims].
+            mask (Optional[Tensor]): Attention mask.
 
         Returns:
             tensor: Output sequence batch [N, steps, acts].
@@ -93,7 +94,7 @@ class AutoContAtt(Base):
 
         Args:
             z (tensor): [N, latent_dims].
-            current_device (int): Device to run the model.
+            device (int): Device to run the model.
 
         Returns:
             tensor: [N, steps, acts].
@@ -107,7 +108,6 @@ class AutoContAtt(Base):
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
-            z (tensor): [N, latent_dims].
             current_device (int): Device to run the model.
 
         Returns:

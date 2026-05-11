@@ -246,7 +246,7 @@ class ActivityGen:
         """
         return (
             np.clip(
-                ((self.min_duration_tollerance - activity_durations)), 1, None
+                (self.min_duration_tollerance - activity_durations), 1, None
             )
             ** self.min_duration_sensitivity
         )

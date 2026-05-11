@@ -185,7 +185,7 @@ class JVAEContLSTM(JointExperiment):
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
         # final loss
@@ -233,7 +233,7 @@ class JVAEContLSTM(JointExperiment):
 
         Args:
             z (tensor): [N, latent_dims].
-            current_device (int): Device to run the model.
+            device (int): Device to run the model.
 
         Returns:
             tensor: [N, steps, acts].

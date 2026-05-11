@@ -2,7 +2,6 @@ from caveat.experiment import Experiment
 
 
 class LabelExperiment(Experiment):
-
     def __init__(self, *args, **kwargs):
         self.attribute_embed_sizes = kwargs.get("attribute_embed_sizes", None)
         if self.attribute_embed_sizes is None:

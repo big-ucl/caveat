@@ -66,8 +66,10 @@ class Experiment(pl.LightningModule):
         print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
 
         # loss function params
-        self.kld_loss_weight = kwargs.get("kld_weight", 0.001)
-        print(f"Found KLD weight: {self.kld_loss_weight}")
+        self.beta = kwargs.get("kld_weight", 0.001)
+        print(f"Found KLD weight: {self.beta}")
+        self.free_bits = kwargs.get("free_bits", 0.0)
+        print(f"Found free bits: {self.free_bits}")
         self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
         self.duration_loss_weight = kwargs.get("duration_loss_weight", 200.0)
         self.start_loss_weight = kwargs.get("start_loss_weight", 0.0)

@@ -8,7 +8,6 @@ from caveat.label_encoding.base import BaseLabelEncoder, tokenize
 
 
 class TokenAttributeEncoder(BaseLabelEncoder):
-
     def encode(self, data: pd.DataFrame) -> Tuple[Tensor, Tensor]:
         if not self.label_kwargs:
             # build config mappings and define label_kwargs

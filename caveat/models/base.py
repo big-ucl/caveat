@@ -121,13 +121,12 @@ class Base(Experiment):
         eps = torch.randn_like(std)
         return (eps * std) + mu
 
-    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
-        # from https://kvfrans.com/deriving-the-kl/
-        kld = torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
-        )
-        return kld
+    def kld(self, mu, log_var):
+        # Per-dimension KL, then apply free bits floor
+        kl_per_dim = -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
+        # Free bits: only penalise KL above the floor
+        kl_per_dim = torch.clamp(kl_per_dim, min=self.free_bits)
+        return kl_per_dim.sum(dim=-1).mean()  # mean over batch
 
     def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -183,7 +182,7 @@ class Base(Experiment):
 
         Args:
             z (tensor): [N, latent_dims].
-            current_device (int): Device to run the model.
+            device (int): Device to run the model.
 
         Returns:
             tensor: [N, steps, acts].
@@ -441,11 +440,14 @@ class Base(Experiment):
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
         # final loss
         loss = w_recons_loss + w_kld_loss
+
+        # Active units diagnostic
+        au = (mu.var(dim=0) > 0.01).float().mean()
 
         return {
             "loss": loss,
@@ -458,6 +460,7 @@ class Base(Experiment):
             "act_weight": torch.tensor([act_weight]).float(),
             "dur_weight": torch.tensor([dur_weight]).float(),
             "end_weight": torch.tensor([end_weight]).float(),
+            "active_units": au,
         }
 
     def discretized_loss(
@@ -488,7 +491,7 @@ class Base(Experiment):
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
         # final loss
@@ -629,7 +632,7 @@ class Base(Experiment):
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
         # final loss
@@ -689,7 +692,7 @@ class Base(Experiment):
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
         # final loss
