@@ -1628,6 +1628,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1831,6 +1837,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_aux/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_aux
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/caveat/models/continuous/cvae_lstm_countdown/" class="md-nav__link">
         
   
@@ -1852,11 +1879,53 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_cp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_cp
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/caveat/models/continuous/cvae_lstm_double_nudger/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     caveat.models.continuous.cvae_lstm_double_nudger
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_film/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_film
   </span>
   
 
@@ -3294,21 +3363,20 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pam.activity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Leg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pam.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Person</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pam.read.matsim</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_attributes_map_from_v12</span><span class="p">,</span> <span class="n">stream_matsim_persons</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pam.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime_to_matsim_time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pam.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Population</span><span class="p">,</span> <span class="n">Person</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pam.activity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Activity</span><span class="p">,</span> <span class="n">Plan</span><span class="p">,</span> <span class="n">Leg</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">from pathlib import Path
-import pandas as pd
 
+import pandas as pd
+from pam.activity import Leg
+from pam.core import Person
 from pam.read.matsim import load_attributes_map_from_v12, stream_matsim_persons
-from pam.utils import datetime_to_matsim_time
-from pam.core import Population, Person
-from pam.activity import Activity, Plan, Leg
-</div>
+from pam.utils import datetime_to_matsim_time</div>
 </div>
 </div>
 </div>
@@ -3440,8 +3508,7 @@ streamer150 = stream_matsim_persons(
     leg_attributes=True,
     leg_route=True,
 )
-streamers = [streamer50, streamer100, streamer150]
-</div>
+streamers = [streamer50, streamer100, streamer150]</div>
 </div>
 </div>
 </div>

@@ -1628,6 +1628,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1831,6 +1837,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_aux/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_aux
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/caveat/models/continuous/cvae_lstm_countdown/" class="md-nav__link">
         
   
@@ -1852,11 +1879,53 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_cp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_cp
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/caveat/models/continuous/cvae_lstm_double_nudger/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     caveat.models.continuous.cvae_lstm_double_nudger
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_film/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_film
   </span>
   
 
@@ -3294,26 +3363,26 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">caveat.data.synth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ActivityGen</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">caveat.data.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_population_conditional</span><span class="p">,</span> <span class="n">trace_to_pam</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">acteval.describe.times</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">joint_time_distributions_plot</span><span class="p">,</span>
     <span class="n">times_distributions_plot</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">acteval.describe.transitions</span><span class="w"> </span><span class="kn">import</span> <span class="n">sequence_prob_plot</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">caveat.data.synth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ActivityGen</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">caveat.data.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_population_conditional</span><span class="p">,</span> <span class="n">trace_to_pam</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">from pathlib import Path
 
 import pandas as pd
-
-from caveat.data.synth import ActivityGen
-from caveat.data.utils import generate_population_conditional, trace_to_pam
 from acteval.describe.times import (
     joint_time_distributions_plot,
     times_distributions_plot,
 )
-from acteval.describe.transitions import sequence_prob_plot</div>
+from acteval.describe.transitions import sequence_prob_plot
+
+from caveat.data.synth import ActivityGen
+from caveat.data.utils import generate_population_conditional, trace_to_pam</div>
 </div>
 </div>
 </div>

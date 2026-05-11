@@ -1676,6 +1676,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1879,6 +1885,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_aux/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_aux
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/caveat/models/continuous/cvae_lstm_countdown/" class="md-nav__link">
         
   
@@ -1900,11 +1927,53 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_cp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_cp
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/caveat/models/continuous/cvae_lstm_double_nudger/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     caveat.models.continuous.cvae_lstm_double_nudger
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/continuous/cvae_lstm_film/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.continuous.cvae_lstm_film
   </span>
   
 
@@ -3368,20 +3437,20 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pam.activity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Leg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pam.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Person</span><span class="p">,</span> <span class="n">Population</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pam.read.matsim</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_attributes_map_from_v12</span><span class="p">,</span> <span class="n">stream_matsim_persons</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pam.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime_to_matsim_time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pam.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Population</span><span class="p">,</span> <span class="n">Person</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pam.activity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Leg</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">from pathlib import Path
-import pandas as pd
 
+import pandas as pd
+from pam.activity import Leg
+from pam.core import Person, Population
 from pam.read.matsim import load_attributes_map_from_v12, stream_matsim_persons
-from pam.utils import datetime_to_matsim_time
-from pam.core import Population, Person
-from pam.activity import Leg</div>
+from pam.utils import datetime_to_matsim_time</div>
 </div>
 </div>
 </div>
@@ -3986,24 +4055,24 @@ combined.to_csv(combined_path)</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pam.activity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Activity</span><span class="p">,</span> <span class="n">Plan</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pam.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Person</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pam.activity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Activity</span><span class="p">,</span> <span class="n">Leg</span><span class="p">,</span> <span class="n">Plan</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pam.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_persons</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pam.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="n">CharyparNagelPlanScorer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pam.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">minutes_to_datetime</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pam.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_persons</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-10">from pathlib import Path
-import pandas as pd
-import numpy as np
 
+import numpy as np
+import pandas as pd
+from pam.activity import Activity, Plan
 from pam.core import Person
-from pam.activity import Activity, Leg, Plan
+from pam.plot import plot_persons
 from pam.scoring import CharyparNagelPlanScorer
-from pam.utils import minutes_to_datetime
-from pam.plot import plot_persons</div>
+from pam.utils import minutes_to_datetime</div>
 </div>
 </div>
 </div>
