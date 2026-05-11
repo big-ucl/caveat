@@ -62,9 +62,10 @@ class SmallestJitter(ScheduleAugment):
         durations = sequence[mask, 1].clone()
         durations[durations == 0] = 1.0
         idx = durations.argmin()
-        deltas = torch.ones_like(durations)
         jit = (rand(1) - 0.5) * self.jitter
-        deltas[idx, 1] *= jit
+        deltas = torch.zeros(sequence.shape[0])
+        abs_idx = mask.nonzero(as_tuple=True)[0][idx]
+        deltas[abs_idx] = jit * durations[idx]
 
         deltas -= mask * deltas[mask].mean()
         new = sequence.clone()
