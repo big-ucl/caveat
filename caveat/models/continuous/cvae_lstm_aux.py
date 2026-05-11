@@ -377,9 +377,9 @@ class CVAEContLSTMAux(Base):
         """Decode latent sample to batch of output sequences.
 
         Args:
-            hidden (tensor): Latent space batch [N, latent_dims].
-            labels_size (tensor): Conditional labels [N, labels_size_size].
-            target (tensor): Target sequence batch [N, steps, acts].
+            z (Tensor): Latent space batch [N, latent_dims].
+            labels (Tensor): Conditional labels [N, labels_size].
+            target (Tensor): Target sequence batch [N, steps, acts].
 
         Returns:
             tensor: Output sequence batch [N, steps, acts].
@@ -413,7 +413,9 @@ class CVAEContLSTMAux(Base):
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
-            current_device (int): Device to run the model.
+            z (Tensor): Latent space batch [N, latent_dims].
+            labels (Tensor): Conditional labels [N, labels_size].
+            device (int): Device to run the model.
 
         Returns:
             tensor: [N, steps, acts].
