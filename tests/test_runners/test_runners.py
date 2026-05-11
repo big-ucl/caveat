@@ -2,7 +2,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 SCHEDULES_PATH = FIXTURES / "test_schedules.csv"
@@ -77,7 +76,9 @@ def test_evaluate_synthetics_with_split_on(mock_data, mock_evaluate, tmp_path):
 
 @patch("caveat.runners.evaluate")
 @patch("caveat.runners.data")
-def test_evaluate_synthetics_custom_schedules_path(mock_data, mock_evaluate, tmp_path):
+def test_evaluate_synthetics_custom_schedules_path(
+    mock_data, mock_evaluate, tmp_path
+):
     """eval_params has schedules_path: custom schedules are loaded instead of default."""
     from caveat.runners import evaluate_synthetics
 
@@ -100,7 +101,9 @@ def test_evaluate_synthetics_custom_schedules_path(mock_data, mock_evaluate, tmp
         eval_params=eval_params,
     )
 
-    mock_data.load_and_validate_schedules.assert_called_once_with(str(SCHEDULES_PATH))
+    mock_data.load_and_validate_schedules.assert_called_once_with(
+        str(SCHEDULES_PATH)
+    )
 
     call_kwargs = mock_evaluate.evaluate.call_args.kwargs
     assert call_kwargs["target_schedules"] is custom_schedules
@@ -136,7 +139,10 @@ def test_load_data_with_attributes(mock_data):
     schedules = pd.read_csv(SCHEDULES_PATH)
     attributes = pd.read_csv(ATTRIBUTES_PATH)
     mock_data.load_and_validate_schedules.return_value = schedules
-    mock_data.load_and_validate_attributes.return_value = (attributes, attributes)
+    mock_data.load_and_validate_attributes.return_value = (
+        attributes,
+        attributes,
+    )
 
     config = {
         "schedules_path": str(SCHEDULES_PATH),

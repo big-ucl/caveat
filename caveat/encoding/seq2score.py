@@ -72,7 +72,6 @@ class Seq2ScoreEncoder(BaseEncoder):
     def _encode_sequences(
         self, data: pd.DataFrame, max_length: int
     ) -> Tuple[Tensor, Tensor, Tensor]:
-
         # calc weightings
         act_weights = self._calc_act_weights(data)
         # act_weights = self._unit_act_weights(self.encodings)
@@ -202,7 +201,6 @@ def encode_sequences(
     sos: int,
     eos: int,
 ) -> Tuple[np.ndarray, np.ndarray]:
-
     encoding = np.zeros((max_length, encoding_width), dtype=np.float32)
     weights = np.zeros((max_length), dtype=np.float32)
     # SOS

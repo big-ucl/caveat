@@ -10,7 +10,6 @@ from caveat.label_encoding.base import (
 
 
 class OneHotAttributeEncoder(BaseLabelEncoder):
-
     def encode(self, data: pd.DataFrame) -> Tensor:
         i = 0
         encoded = []

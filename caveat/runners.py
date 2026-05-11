@@ -5,6 +5,7 @@ from typing import Optional, Tuple, Union
 
 import pandas as pd
 import torch
+from acteval import evaluate
 from pandas import DataFrame
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -20,7 +21,6 @@ from caveat.callbacks import (
 )
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
-from acteval import evaluate
 from caveat.label_encoding.base import BaseLabelEncoder
 
 
@@ -51,7 +51,9 @@ def run_command(
     seed = config.pop("seed", seeder())
 
     # load data
-    input_schedules, input_attributes, synthetic_attributes = load_data(config)
+    (input_schedules, input_attributes, synthetic_attributes) = load_data(
+        config
+    )
 
     # encode data
     attribute_encoder, encoded_labels, label_weights = encode_input_labels(
@@ -584,9 +586,9 @@ def batch_eval_command(
         version = sorted([d for d in log_dir.iterdir() if d.is_dir()])[-1]
         outputs_dir = log_dir / version.name
         schedules_path = outputs_dir / schedules_name
-        synthetic_schedules_all[log_dir.name] = (
-            data.load_and_validate_schedules(schedules_path)
-        )
+        synthetic_schedules_all[
+            log_dir.name
+        ] = data.load_and_validate_schedules(schedules_path)
         print(
             f"> Loaded {synthetic_schedules_all[log_dir.name].pid.nunique()} synthetic schedules from {schedules_path}"
         )
@@ -664,6 +666,18 @@ def load_data(
         print(
             f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}"
         )
+    # target_schedules_path = config.get("target_schedules_path", None)
+    # if target_schedules_path is not None:
+    #     target_schedules_path = Path(target_schedules_path)
+    #     target_schedules = data.load_and_validate_schedules(
+    #         target_schedules_path
+    #     )
+    #     if verbose:
+    #         print(
+    #             f"Loaded {target_schedules.pid.nunique()} target schedules from {target_schedules_path}"
+    #         )
+    # else:
+    #     target_schedules = schedules
 
     # load attributes data (conditional case)
     attributes, synthetic_attributes = data.load_and_validate_attributes(
@@ -899,17 +913,19 @@ def generate(
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
         )
-        (synthetic_attributes, synthetic_schedules, zs) = (
-            generate_from_attributes(
-                trainer,
-                attributes=population,
-                batch_size=batch_size,
-                latent_dims=latent_dims,
-                seed=seed,
-                ckpt_path=ckpt_path,
-                write_dir=write_dir,
-                cats=latent_categories,
-            )
+        (
+            synthetic_attributes,
+            synthetic_schedules,
+            zs,
+        ) = generate_from_attributes(
+            trainer,
+            attributes=population,
+            batch_size=batch_size,
+            latent_dims=latent_dims,
+            seed=seed,
+            ckpt_path=ckpt_path,
+            write_dir=write_dir,
+            cats=latent_categories,
         )
         synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
         synthetic_attributes.to_csv(write_dir / "synthetic_attributes.csv")
@@ -1002,8 +1018,9 @@ def evaluate_synthetics(
     eval_schedules_path = eval_params.get("schedules_path", None)
     if eval_schedules_path:
         eval_schedules = data.load_and_validate_schedules(eval_schedules_path)
+        n = eval_schedules.pid.nunique()
         print(
-            f"<!> Loaded {len(eval_schedules)} schedules for evaluation from {eval_schedules_path}"
+            f"<!> Loaded {n} schedules for evaluation from {eval_schedules_path}"
         )
     else:
         eval_schedules = default_eval_schedules
@@ -1016,7 +1033,7 @@ def evaluate_synthetics(
         )
         eval_attributes_path = eval_params.get("attributes_path", None)
         if eval_attributes_path:
-            eval_attributes = data.load_and_validate_attributes(
+            eval_attributes, _ = data.load_and_validate_attributes(
                 eval_params, eval_schedules
             )
             print(

@@ -152,6 +152,16 @@ class CVAEContLSTM(Base):
                 hidden_size=self.hidden_size,
                 dropout=self.dropout,
             )
+        if latent_conditionality == "film":
+            print("Label conditionality is FILM")
+            return FilmLatent(
+                labels_size=self.labels_hidden_size,
+                latent_dim=self.latent_dim,
+                flat_size_encode=self.flat_size_encode,
+                hidden_n=self.hidden_n,
+                hidden_size=self.hidden_size,
+                dropout=self.dropout,
+            )
         raise ValueError(
             "label_conditionality must be either 'concat' or 'add'"
         )
@@ -593,6 +603,39 @@ class AddLatent(nn.Module):
         labels_hidden = self.labels_ff(labels)
         # add conditionlity to z
         h = z_hidden + labels_hidden
+        # initialize hidden state
+        hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
+            1, 0, 2
+        )  # ([2xhidden, N, layers])
+        hidden = hidden.split(
+            self.hidden_n
+        )  # ([hidden, N, layers, [hidden, N, layers]])
+        return hidden
+
+
+class FilmLatent(nn.Module):
+    def __init__(
+        self,
+        labels_size: int,
+        latent_dim: int,
+        flat_size_encode: int,
+        hidden_n: int,
+        hidden_size: int,
+        dropout: float = 0.1,
+    ):
+        super(FilmLatent, self).__init__()
+        self.hidden_n = hidden_n
+        self.hidden_size = hidden_size
+        self.gamma_ff = nn.Linear(labels_size, flat_size_encode)
+        self.beta_ff = nn.Linear(labels_size, flat_size_encode)
+        self.latent_ff = nn.Linear(latent_dim, flat_size_encode)
+
+    def forward(self, z: Tensor, labels: Tensor) -> Tuple[Tensor, Tensor]:
+        z_hidden = self.latent_ff(z)
+        labels_beta = self.beta_ff(labels)
+        labels_gamma = self.gamma_ff(labels)
+        # add conditionlity to z
+        h = labels_gamma * z_hidden + labels_beta
         # initialize hidden state
         hidden = h.unflatten(1, (2 * self.hidden_n, self.hidden_size)).permute(
             1, 0, 2

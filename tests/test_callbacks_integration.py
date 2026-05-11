@@ -108,7 +108,9 @@ def test_batch_end_accumulates_decoder_sensitivity_buffers(model):
     """With varied conditions the decoder swap buffers should be populated."""
     cb = CollapseMonitor({"check_every_n_epochs": 1})
     trainer = make_trainer()
-    cb.on_validation_batch_end(trainer, model, None, make_batch(varied_conditions=True), 0)
+    cb.on_validation_batch_end(
+        trainer, model, None, make_batch(varied_conditions=True), 0
+    )
 
     assert len(cb._decoder_swap_mse) == 1
     assert len(cb._decoder_out_var) == 1
@@ -138,7 +140,8 @@ def test_batch_end_raises_on_mu_shape_mismatch(model):
     x, c = make_batch(n=4, varied_conditions=True)
     # Manually corrupt: override encode to return mu with wrong batch size
     import unittest.mock as mock
-    bad_mu = torch.randn(3, LATENT_DIM)   # 3 rows, but c has 4
+
+    bad_mu = torch.randn(3, LATENT_DIM)  # 3 rows, but c has 4
     bad_log_var = torch.zeros(3, LATENT_DIM)
     with mock.patch.object(model, "encode", return_value=(bad_mu, bad_log_var)):
         with pytest.raises(ValueError, match="Batch size mismatch"):
@@ -165,7 +168,11 @@ def _run_epoch(model, cb, current_epoch=0, n_batches=2, varied_conditions=True):
     trainer = make_trainer(current_epoch=current_epoch)
     for i in range(n_batches):
         cb.on_validation_batch_end(
-            trainer, model, None, make_batch(varied_conditions=varied_conditions), i
+            trainer,
+            model,
+            None,
+            make_batch(varied_conditions=varied_conditions),
+            i,
         )
     with patch.object(model, "log_dict") as mock_log:
         cb.on_validation_epoch_end(trainer, model)

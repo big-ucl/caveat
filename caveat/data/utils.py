@@ -99,7 +99,7 @@ def gen_person_conditional(gens, pid) -> pd.DataFrame:
                 employment = "PTW"
             elif random.random() < 0.1:
                 employment = "FTE"
-        elif gender == "M":
+        elif gender == "M":  # pragma: no branch
             if random.random() < p:
                 employment = "FTW"
 

@@ -10,7 +10,6 @@ from caveat.data import ScheduleAugment
 
 
 class BaseEncoder(ABC):
-
     def __init__(self, schedules: DataFrame, **kwargs) -> None:
         raise NotImplementedError
 
@@ -95,7 +94,6 @@ class BaseDataset(Dataset):
 
 
 class PaddedDatatset(BaseDataset):
-
     def shape(self):
         _, L = self.schedules.shape
         return (L + 1,)
@@ -140,7 +138,6 @@ class PaddedDatatset(BaseDataset):
 
 
 class StaggeredDataset(BaseDataset):
-
     def shape(self):
         return len(self.schedules[0]) - 1, 2
 

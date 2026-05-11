@@ -224,7 +224,8 @@ class JVAEContLSTM(JointExperiment):
     def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
         # from https://kvfrans.com/deriving-the-kl/
         return torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
         )
 
     def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:

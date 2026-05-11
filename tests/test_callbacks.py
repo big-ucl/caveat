@@ -1,10 +1,247 @@
 import math
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 import torch
 
-from caveat.callbacks import CollapseMonitor, CyclicalBetaAnnealer
+from caveat.callbacks import (
+    CollapseMonitor,
+    CyclicalBetaAnnealer,
+    LinearLossScheduler,
+)
+
+
+def _scheduler(config):
+    return LinearLossScheduler(config)
+
+
+def _epoch(n):
+    trainer = SimpleNamespace(current_epoch=n)
+    module = SimpleNamespace()
+    return trainer, module
+
+
+# --- validate_weights_schedule ---
+
+
+def test_no_schedules():
+    s = _scheduler({})
+    assert s.kld_schedule is None
+    assert s.act_schedule is None
+
+
+def test_valid_schedule():
+    _scheduler({"kld_loss_schedule": (0, 10)})  # no error
+
+
+def test_reversed_schedule_raises():
+    with pytest.raises(ValueError):
+        _scheduler({"kld_loss_schedule": (10, 0)})
+
+
+def test_negative_start_raises():
+    with pytest.raises(ValueError):
+        _scheduler({"kld_loss_schedule": (-1, 5)})
+
+
+def test_negative_end_raises():
+    with pytest.raises(ValueError):
+        _scheduler({"kld_loss_schedule": (0, -1)})
+
+
+def test_schedule_ends_before_min_epochs_warns(capsys):
+    _scheduler({"kld_loss_schedule": (0, 5), "min_epochs": 10})
+    assert "WARNING" in capsys.readouterr().out
+
+
+# --- on_train_epoch_start: kld ---
+
+
+def test_kld_before_start():
+    s = _scheduler({"kld_loss_schedule": (10, 20)})
+    trainer, module = _epoch(5)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_kld_weight == 0.0
+
+
+def test_kld_at_end():
+    s = _scheduler({"kld_loss_schedule": (0, 10)})
+    trainer, module = _epoch(10)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_kld_weight == 1.0
+
+
+def test_kld_in_range():
+    s = _scheduler({"kld_loss_schedule": (0, 10)})
+    trainer, module = _epoch(5)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_kld_weight == pytest.approx(0.5)
+
+
+def test_no_kld_schedule_sets_no_weight():
+    s = _scheduler({})
+    trainer, module = _epoch(5)
+    s.on_train_epoch_start(trainer, module)
+    assert not hasattr(module, "scheduled_kld_weight")
+
+
+# --- on_train_epoch_start: act ---
+
+
+def test_act_before_start():
+    s = _scheduler({"activity_loss_schedule": (5, 15)})
+    trainer, module = _epoch(0)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_act_weight == 0.0
+
+
+def test_act_at_end():
+    s = _scheduler({"activity_loss_schedule": (0, 10)})
+    trainer, module = _epoch(10)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_act_weight == 1.0
+
+
+def test_act_in_range():
+    s = _scheduler({"activity_loss_schedule": (0, 4)})
+    trainer, module = _epoch(2)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_act_weight == pytest.approx(0.5)
+
+
+# --- on_train_epoch_start: dur ---
+
+
+def test_dur_before_start():
+    s = _scheduler({"duration_loss_schedule": (10, 20)})
+    trainer, module = _epoch(0)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_dur_weight == 0.0
+
+
+def test_dur_at_end():
+    s = _scheduler({"duration_loss_schedule": (0, 10)})
+    trainer, module = _epoch(15)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_dur_weight == 1.0
+
+
+def test_dur_in_range():
+    s = _scheduler({"duration_loss_schedule": (0, 8)})
+    trainer, module = _epoch(4)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_dur_weight == pytest.approx(0.5)
+
+
+# --- on_train_epoch_start: end ---
+
+
+def test_end_before_start():
+    s = _scheduler({"end_loss_schedule": (10, 20)})
+    trainer, module = _epoch(0)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_end_weight == 0.0
+
+
+def test_end_at_end():
+    s = _scheduler({"end_loss_schedule": (0, 10)})
+    trainer, module = _epoch(10)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_end_weight == 1.0
+
+
+def test_end_in_range():
+    s = _scheduler({"end_loss_schedule": (0, 10)})
+    trainer, module = _epoch(5)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_end_weight == pytest.approx(0.5)
+
+
+# --- on_train_epoch_start: label ---
+
+
+def test_label_before_start():
+    s = _scheduler({"label_loss_schedule": (10, 20)})
+    trainer, module = _epoch(0)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_label_weight == 0.0
+
+
+def test_label_at_end():
+    s = _scheduler({"label_loss_schedule": (0, 10)})
+    trainer, module = _epoch(10)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_label_weight == 1.0
+
+
+def test_label_in_range():
+    s = _scheduler({"label_loss_schedule": (0, 10)})
+    trainer, module = _epoch(2)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_label_weight == pytest.approx(0.2)
+
+
+# --- multiple schedules active simultaneously ---
+
+
+def test_multiple_schedules():
+    s = _scheduler(
+        {"kld_loss_schedule": (0, 10), "activity_loss_schedule": (0, 20)}
+    )
+    trainer, module = _epoch(5)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_kld_weight == pytest.approx(0.5)
+    assert module.scheduled_act_weight == pytest.approx(0.25)
+
+
+# --- on_train_epoch_start: start ---
+
+
+def test_start_before_start():
+    s = _scheduler({"start_loss_schedule": (10, 20)})
+    trainer, module = _epoch(0)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_start_weight == 0.0
+
+
+def test_start_at_end():
+    s = _scheduler({"start_loss_schedule": (0, 10)})
+    trainer, module = _epoch(10)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_start_weight == 1.0
+
+
+def test_start_in_range():
+    s = _scheduler({"start_loss_schedule": (0, 10)})
+    trainer, module = _epoch(5)
+    s.on_train_epoch_start(trainer, module)
+    # note: code sets scheduled_end_weight here (bug), not scheduled_start_weight
+    assert module.scheduled_start_weight == pytest.approx(0.5)
+
+
+# --- on_train_epoch_start: total_duration ---
+
+
+def test_total_dur_before_start():
+    s = _scheduler({"total_duration_loss_schedule": (10, 20)})
+    trainer, module = _epoch(0)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_total_dur_weight == 0.0
+
+
+def test_total_dur_at_end():
+    s = _scheduler({"total_duration_loss_schedule": (0, 10)})
+    trainer, module = _epoch(10)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_total_dur_weight == 1.0
+
+
+def test_total_dur_in_range():
+    s = _scheduler({"total_duration_loss_schedule": (0, 10)})
+    trainer, module = _epoch(5)
+    s.on_train_epoch_start(trainer, module)
+    assert module.scheduled_total_dur_weight == pytest.approx(0.5)
 
 
 def make_mocks(max_epochs, current_epoch):
@@ -111,7 +348,9 @@ def make_collapse_mocks(current_epoch, mu, log_var):
     return trainer, pl_module
 
 
-def _populate_buffers(cb, n_batches=2, batch_size=4, latent_dim=3, n_conditions=2):
+def _populate_buffers(
+    cb, n_batches=2, batch_size=4, latent_dim=3, n_conditions=2
+):
     """Push synthetic data into cb's internal buffers."""
     mu = torch.randn(batch_size, latent_dim)
     log_var = torch.zeros(batch_size, latent_dim)
@@ -199,7 +438,9 @@ def test_decoder_sensitivity_insensitive_decoder():
     _populate_buffers(cb, n_batches=0)
     cb.on_validation_epoch_end(trainer, pl_module)
     logged = pl_module.log_dict.call_args[0][0]
-    assert logged["collapse/decoder_sensitivity"] == pytest.approx(0.0, abs=1e-6)
+    assert logged["collapse/decoder_sensitivity"] == pytest.approx(
+        0.0, abs=1e-6
+    )
 
 
 def test_decoder_sensitivity_responsive_decoder():
@@ -231,11 +472,17 @@ def test_batch_end_accumulates():
     cb = CollapseMonitor({})
     mu = torch.randn(4, 3)
     log_var = torch.zeros(4, 3)
-    trainer, pl_module = make_collapse_mocks(current_epoch=0, mu=mu, log_var=log_var)
+    trainer, pl_module = make_collapse_mocks(
+        current_epoch=0, mu=mu, log_var=log_var
+    )
     batch = (torch.randn(4, 10, 2), torch.zeros(4, 1))
 
-    cb.on_validation_batch_end(trainer, pl_module, outputs=None, batch=batch, batch_idx=0)
-    cb.on_validation_batch_end(trainer, pl_module, outputs=None, batch=batch, batch_idx=1)
+    cb.on_validation_batch_end(
+        trainer, pl_module, outputs=None, batch=batch, batch_idx=0
+    )
+    cb.on_validation_batch_end(
+        trainer, pl_module, outputs=None, batch=batch, batch_idx=1
+    )
 
     assert len(cb._mus) == 2
     assert len(cb._log_vars) == 2
@@ -341,34 +588,44 @@ def test_stopping_patience_collapse_patience_takes_priority():
 
 
 def test_no_stop_when_separation_healthy():
-    cb = CollapseMonitor({"collapse_patience": 2, "conditional_threshold": 0.05})
+    cb = CollapseMonitor(
+        {"collapse_patience": 2, "conditional_threshold": 0.05}
+    )
     trainer = _run_check_epoch(cb, dec_sens_value=0.5)
     assert trainer.should_stop is not True
     assert cb._bad_epochs == 0
 
 
 def test_bad_epoch_counter_increments():
-    cb = CollapseMonitor({"collapse_patience": 3, "conditional_threshold": 0.05})
+    cb = CollapseMonitor(
+        {"collapse_patience": 3, "conditional_threshold": 0.05}
+    )
     _run_check_epoch(cb, dec_sens_value=0.01)
     assert cb._bad_epochs == 1
 
 
 def test_stops_after_patience_exceeded():
-    cb = CollapseMonitor({"collapse_patience": 2, "conditional_threshold": 0.05})
+    cb = CollapseMonitor(
+        {"collapse_patience": 2, "conditional_threshold": 0.05}
+    )
     _run_check_epoch(cb, dec_sens_value=0.01)
     trainer = _run_check_epoch(cb, dec_sens_value=0.01)
     assert trainer.should_stop is True
 
 
 def test_bad_epochs_reset_on_recovery():
-    cb = CollapseMonitor({"collapse_patience": 3, "conditional_threshold": 0.05})
+    cb = CollapseMonitor(
+        {"collapse_patience": 3, "conditional_threshold": 0.05}
+    )
     _run_check_epoch(cb, dec_sens_value=0.01)  # bad
-    _run_check_epoch(cb, dec_sens_value=0.5)   # recovered
+    _run_check_epoch(cb, dec_sens_value=0.5)  # recovered
     assert cb._bad_epochs == 0
 
 
 def test_nan_sep_does_not_increment_counter():
-    cb = CollapseMonitor({"collapse_patience": 1, "conditional_threshold": 0.05})
+    cb = CollapseMonitor(
+        {"collapse_patience": 1, "conditional_threshold": 0.05}
+    )
     _run_check_epoch(cb, dec_sens_value=float("nan"))
     assert cb._bad_epochs == 0
     # trainer.should_stop must not have been set to True

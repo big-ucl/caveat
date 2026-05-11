@@ -6,7 +6,9 @@ from .continuous.cat_vae_lstm import CatVAEContLSTM
 from .continuous.cond_lstm import CondContLSTM
 from .continuous.cswae_lstm import CSWAEContLSTM
 from .continuous.cvae_lstm import CVAEContLSTM
+from .continuous.cvae_lstm_aux import CVAEContLSTMAux
 from .continuous.cvae_lstm_countdown import CVAEContLSTMCountdown
+from .continuous.cvae_lstm_cp import CVAEContLSTMCP
 from .continuous.cvqvae_lstm import CVQVAEContLSTM
 from .continuous.swae_lstm import SWAEContLSTM
 from .continuous.vae_attention import VAEContXAtt
@@ -60,4 +62,6 @@ library = {
     "CVAEContLSTMCountdown": CVAEContLSTMCountdown,
     "VQVAEContLSTM": VQVAEContLSTM,
     "CVQVAEContLSTM": CVQVAEContLSTM,
+    "CVAEContLSTMCP": CVAEContLSTMCP,
+    "CVAEContLSTMAux": CVAEContLSTMAux,
 }

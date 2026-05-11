@@ -79,7 +79,7 @@ class CollapseMonitor(Callback):
 
         mu_all = torch.cat(self._mus, dim=0)  # [N, latent_dim]
         log_var_all = torch.cat(self._log_vars, dim=0)
-        c_all = torch.cat(self._conditions, dim=0)
+        torch.cat(self._conditions, dim=0)
         kl_mean = torch.stack(self._kl_per_dim).mean(dim=0)  # [latent_dim]
 
         metrics = {}
