@@ -447,7 +447,7 @@ class Base(Experiment):
         loss = w_recons_loss + w_kld_loss
 
         # Active units diagnostic
-        au = (mu.var(dim=0) > 0.01).float().mean()
+        au = self.au_diagnostic(mu)
 
         return {
             "loss": loss,
@@ -462,6 +462,11 @@ class Base(Experiment):
             "end_weight": torch.tensor([end_weight]).float(),
             "active_units": au,
         }
+
+    def au_diagnostic(self, mu: Tensor) -> Tensor:
+        """Diagnostic for active units in the latent space."""
+        au = (mu.var(dim=0) > 0.01).float().mean()
+        return au
 
     def discretized_loss(
         self,

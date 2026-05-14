@@ -22,7 +22,6 @@ class CollapseMonitor(Callback):
         # Storage across batches within an epoch
         self._mus = []
         self._log_vars = []
-        self._conditions = []
         self._kl_per_dim = []
         # Decoder sensitivity accumulators (scalar per batch)
         self._decoder_swap_mse = []
@@ -32,15 +31,24 @@ class CollapseMonitor(Callback):
         self, trainer, pl_module, outputs, batch, batch_idx
     ):
         """Collect latent stats for collapse diagnostics."""
-        x, c = batch
+        (x, _), _, (c, l_weights) = batch
         with torch.no_grad():
-            mu, log_var = pl_module.encode(x, c)
+            batch = pl_module.encode(x, c)
+            if len(batch) == 2:
+                mu, log_var = batch
+                kl = pl_module.kld(mu, log_var)
+            elif len(batch) == 4:
+                mu, c_mu, log_var, c_log_var = batch
+                kl = pl_module.kld([mu, c_mu], [log_var, c_log_var])
+                mu = mu - c_mu  # AU diagnostic needs residual from prior mean
+            else:
+                raise ValueError(
+                    f"Expected encode() to return 2 or 4 items, got {len(batch)}"
+                )
 
         self._mus.append(mu.cpu())
         self._log_vars.append(log_var.cpu())
-        self._conditions.append(c.cpu())
 
-        kl = -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
         self._kl_per_dim.append(kl.mean(dim=0).cpu())  # mean over batch
 
         # Decoder sensitivity: decode same z with real vs. shuffled conditions.
@@ -79,7 +87,6 @@ class CollapseMonitor(Callback):
 
         mu_all = torch.cat(self._mus, dim=0)  # [N, latent_dim]
         log_var_all = torch.cat(self._log_vars, dim=0)
-        torch.cat(self._conditions, dim=0)
         kl_mean = torch.stack(self._kl_per_dim).mean(dim=0)  # [latent_dim]
 
         metrics = {}
@@ -88,7 +95,7 @@ class CollapseMonitor(Callback):
         au_mask = mu_all.var(dim=0) > self.au_threshold
         au_pct = au_mask.float().mean().item()
         metrics["collapse/active_units_pct"] = au_pct
-        metrics["collapse/n_active_dims"] = au_mask.sum().item()
+        # metrics["collapse/n_active_dims"] = au_mask.sum().item()
 
         # 2. Posterior collapse: per-dim KL
         collapsed_dims = (kl_mean < self.kl_collapse_threshold).sum().item()
@@ -178,7 +185,6 @@ class CollapseMonitor(Callback):
     def _reset(self):
         self._mus.clear()
         self._log_vars.clear()
-        self._conditions.clear()
         self._kl_per_dim.clear()
         self._decoder_swap_mse.clear()
         self._decoder_out_var.clear()
@@ -191,20 +197,23 @@ class CyclicalBetaAnnealer(Callback):
         max_beta: the maximum value of beta to reach at the end of each ramp
         ratio: fraction of each cycle spent ramping (rest stays at max_beta)
         """
-        self.n_cycles = config.get("n_cycles", 4)
-        self.max_beta = config.get("max_beta", 1.0)
+        self.cycle_len = config.get("cycle_len", 50)
+        self.max_beta_multiplier = config.get("max_beta", 10)
+        self.target_beta = config.get("target_beta", 0.01)
         self.ratio = config.get("ratio", 0.5)
 
     def on_train_epoch_start(self, trainer, pl_module):
-        total_epochs = trainer.max_epochs
-        cycle_len = total_epochs / self.n_cycles
+        cycle_len = self.cycle_len
         cycle_pos = trainer.current_epoch % cycle_len
         ramp_end = cycle_len * self.ratio
 
         if cycle_pos < ramp_end:
-            beta = self.max_beta * (cycle_pos / ramp_end)
+            beta_multiplier = self.max_beta_multiplier * (
+                1 - (cycle_pos / ramp_end)
+            )
         else:
-            beta = self.max_beta
+            beta_multiplier = 1
+        beta = self.target_beta * beta_multiplier
 
         pl_module.beta = beta
         pl_module.log("beta", beta)

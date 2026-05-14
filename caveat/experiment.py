@@ -174,10 +174,10 @@ class Experiment(pl.LightningModule):
         )
         self.log("hp_metric", val_loss["loss"])
 
-    def on_validation_end(self) -> None:
-        if self.gen:
-            self.regenerate_val_batch()
-            self.sample_sequences()
+    # def on_validation_end(self) -> None:
+    #     if self.gen:
+    #         self.regenerate_val_batch()
+    #         self.sample_sequences()
 
     def test_step(self, batch, batch_idx):
         if self.test:
@@ -242,9 +242,7 @@ class Experiment(pl.LightningModule):
         )
 
     def sample_sequences(self, name: str = "samples") -> None:
-        _, _, (labels, _) = next(
-            iter(self.trainer.datamodule.test_dataloader())
-        )
+        _, _, (labels, _) = next(iter(self.trainer.datamodule.val_dataloader()))
         labels = labels.to(self.curr_device)
         z = torch.randn(len(labels), self.latent_dim)
         y_probs = self.predict(z, labels=labels, device=self.curr_device)

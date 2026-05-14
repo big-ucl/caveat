@@ -325,7 +325,7 @@ class CVAEContLSTMAux(Base):
 
         # kld loss
         kld_loss = self.kld(mu, log_var)
-        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
         # labels loss

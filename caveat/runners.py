@@ -5,7 +5,8 @@ from typing import Optional, Tuple, Union
 
 import pandas as pd
 import torch
-from acteval import evaluate
+from acteval import compare, compare_splits
+from acteval._report import print_markdown
 from pandas import DataFrame
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -51,9 +52,7 @@ def run_command(
     seed = config.pop("seed", seeder())
 
     # load data
-    (input_schedules, input_attributes, synthetic_attributes) = load_data(
-        config
-    )
+    input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
     attribute_encoder, encoded_labels, label_weights = encode_input_labels(
@@ -648,12 +647,22 @@ def report_command(
             path
         )
 
-    reports = evaluate.evaluate(
+    print("Unconditional Evaluation...")
+    result = compare(
         target_schedules=observed,
         synthetic_schedules=synthetic_schedules,
         report_stats=stats,
     )
-    evaluate.report(reports, log_dir=log_dir, head=head, verbose=verbose)
+    print("\nDomain distances (lower is better):")
+    print_markdown(result.domains.combined.distances)
+    ranked = result.rank_models()
+    print(f"\nMean distance: {dict(ranked)}")
+    print(f"Best model: {result.best_model}")
+
+    write_path = log_dir / "evaluation"
+    write_path.mkdir(exist_ok=True, parents=True)
+    result.save(write_path)
+    print(f"\nResults saved to {write_path}")
 
 
 def load_data(
@@ -1013,7 +1022,6 @@ def evaluate_synthetics(
     verbose: bool = False,
 ) -> None:
     print("\n======= Evaluating synthetic schedules =======")
-    head = eval_params.get("head", 10)
 
     eval_schedules_path = eval_params.get("schedules_path", None)
     if eval_schedules_path:
@@ -1027,10 +1035,9 @@ def evaluate_synthetics(
         print("Evaluating synthetic schedules against target schedules")
 
     split_on = eval_params.get("split_on", [])
+
     if split_on:
-        print(
-            f"Conditional Evaluation using: {split_on}, writing to {write_path}"
-        )
+        print(f"Conditional Evaluation using: {split_on}...")
         eval_attributes_path = eval_params.get("attributes_path", None)
         if eval_attributes_path:
             eval_attributes, _ = data.load_and_validate_attributes(
@@ -1042,36 +1049,37 @@ def evaluate_synthetics(
         else:
             eval_attributes = default_eval_attributes
 
-        sub_reports = evaluate.compare_splits(
+        result = compare_splits(
             observed=eval_schedules,
             synthetic_schedules=synthetic_schedules,
             synthetic_attributes=synthetic_labels,
             target_attributes=eval_attributes,
             split_on=split_on,
-            report_stats=stats,
             verbose=verbose,
         )
-        evaluate.report_splits(
-            sub_reports,
-            log_dir=write_path,
-            head=head,
+        print("\nDomain distances by attribute:")
+        print_markdown(result.domains.by_attribute.distances)
+        print("\nDomain distances (lower is better):")
+        print_markdown(result.domains.combined.distances)
+        ranked = result.rank_models()
+        print(f"\nMean distance: {dict(ranked)}")
+        print(f"Best model: {result.best_model}")
+
+    else:
+        print("Unconditional Evaluation...")
+        result = compare(
+            observed=eval_schedules,
+            synthetic=synthetic_schedules,
             verbose=verbose,
-            suffix="_subs",
-            ranking=len(synthetic_schedules) > 1,
         )
-    print(f"Evaluating schedules, writing results to {write_path}.")
-    reports = evaluate.evaluate(
-        target_schedules=eval_schedules,
-        synthetic_schedules=synthetic_schedules,
-        report_stats=stats,
-    )
-    evaluate.report(
-        reports,
-        log_dir=write_path,
-        head=head,
-        verbose=verbose,
-        ranking=len(synthetic_schedules) > 1,
-    )
+        print("\nDomain distances (lower is better):")
+        print_markdown(result.domains.combined.distances)
+        ranked = result.rank_models()
+        print(f"\nMean distance: {dict(ranked)}")
+        print(f"Best model: {result.best_model}")
+
+    result.save(write_path)
+    print(f"\nResults saved to {write_path}")
 
 
 def conditional_sample(
@@ -1166,7 +1174,7 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
         )
 
     if collapse_monitoring_config.get("enabled", True):
-        callbacks.append(CollapseMonitor(**collapse_monitoring_config))
+        callbacks.append(CollapseMonitor(collapse_monitoring_config))
 
     if loss_scheduling_config.get("enabled", False):
         callbacks.append(LinearLossScheduler(loss_scheduling_config))

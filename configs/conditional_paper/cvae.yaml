@@ -1,5 +1,5 @@
 logging_params:
-  log_dir: "logs/TRB"
+  log_dir: "logs/actvae"
   name: "cvae"
 
 schedules_path: "tmp/nts_schedules_2023.csv"

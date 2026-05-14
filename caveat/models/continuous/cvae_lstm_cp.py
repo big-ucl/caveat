@@ -230,17 +230,33 @@ class CVAEContLSTMCP(Base):
         log_prob_y = self.decode(z, labels=labels, target=target)
         return [log_prob_y, [mu, c_mu], [log_var, c_log_var], z]
 
-    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
-        mu_q, mu_p = mu
-        log_var_q, log_var_p = log_var
-        kld = 0.5 * torch.sum(
-            log_var_p
-            - log_var_q
-            + (log_var_q.exp() + (mu_q - mu_p) ** 2) / log_var_p.exp()
-            - 1,
-            dim=1,
+    def kld(self, mu: List[Tensor], log_var: List[Tensor]) -> Tensor:
+        """
+        KL( q(z|x,c) || p(z|c) )
+        Both are Gaussians so closed form applies.
+        mu, log_var      : encoder posterior  q(z|x,c)
+        c_mu, c_log_var  : prior network      p(z|c)
+        """
+        # unpack
+        mu, c_mu = mu
+        log_var, c_log_var = log_var
+        var = log_var.exp()
+        c_var = c_log_var.exp()
+        kl_per_dim = 0.5 * (
+            c_log_var - log_var + (var / c_var) + (mu - c_mu).pow(2) / c_var - 1
         )
-        return kld.mean()
+
+        # Free bits: only penalise KL above the floor
+        kl_per_dim = torch.clamp(kl_per_dim, min=self.free_bits)
+        return kl_per_dim.sum(dim=-1).mean()  # mean over batch
+
+    def au_diagnostic(self, mu: List[Tensor]) -> Tensor:
+        """Conditional AU: is the encoder adding anything beyond the prior?
+        Checks variance of the residual (mu - c_mu).
+        Low = posterior is just copying the prior = conditional collapse."""
+        mu, c_mu = mu
+        residual = mu - c_mu
+        return (residual.var(dim=0) > 0.01).float().mean()
 
     def encode(self, input: Tensor, labels: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.

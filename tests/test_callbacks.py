@@ -258,14 +258,14 @@ def make_mocks(max_epochs, current_epoch):
 def test_default_config():
     cb = CyclicalBetaAnnealer({})
     assert cb.n_cycles == 4
-    assert cb.max_beta == 1.0
+    assert cb.max_beta_multiplier == 1.0
     assert cb.ratio == 0.5
 
 
 def test_custom_config():
     cb = CyclicalBetaAnnealer({"n_cycles": 2, "max_beta": 0.5, "ratio": 0.75})
     assert cb.n_cycles == 2
-    assert cb.max_beta == 0.5
+    assert cb.max_beta_multiplier == 0.5
     assert cb.ratio == 0.75
 
 
