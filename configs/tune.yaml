@@ -1,7 +1,7 @@
 seed: 12345
 
 logging_params:
-  log_dir: logs/TRB
+  log_dir: logs/actvae-tune
   name: tune
 
 tune:
@@ -9,8 +9,8 @@ tune:
   prune: True
   timeout:  72000 # seconds
 
-schedules_path: "tmp/nts_schedules_2023.csv"
-attributes_path: "tmp/nts_attributes_2023.csv"
+schedules_path: "~/Data/foundata/out/nts/2023/activities.csv"
+attributes_path: "~/Data/foundata/out/nts/2023/attributes_binned.csv"
 
 loader_params:
   train_batch_size: 1024
@@ -18,16 +18,18 @@ loader_params:
   num_workers: 8
 
 trainer_params:
-  min_epochs: 20
-  max_epochs: 120
-  patience: 20
+  min_epochs: 50
+  patience: 50
+  max_epochs: 200
+  beta_scheduling:
+    enabled: False
 
 encoder_params:
   name: "continuous"
   max_length: 16
   norm_duration: 1440
   jitter: 0
-  fix_durations: "stretch"
+  fix_durations: stretch
   trim_eos: True
   weighting: unit
   joint_weighting: unit
@@ -37,31 +39,34 @@ labels_encoder:
   weighting: unit
   joint_weighting: inverse
   labels:
-    gender: nominal
-    age_group: nominal
-    car_access: nominal
-    work_status: nominal
-    income: nominal
+    age: nominal
+    sex: nominal
+    employment: nominal
+    hh_income: nominal
+    hh_zone: nominal
+    day: nominal
+    vehicles: nominal
+    access_egress_distance: nominal
 
 evaluation_params:
-  split_on: [gender, age_group, car_access, work_status, income]
-
+  split_on: [age, sex, employment, hh_income, hh_zone, day, vehicles, access_egress_distance]
+  
 experiment_params:
-  LR: 0.001
-  weight_decay: 0.02
-  scheduler_gamma: 0.975
+  LR: trial.suggest_float("LR", 1e-5, 1e-2, log=True)
+  weight_decay: trial.suggest_float("weight_decay", 1e-5, 1e-1, log=True)
+  scheduler_gamma: trial.suggest_float("scheduler_gamma", 0.9, 0.999)
   kld_weight: 0.01
   duration_loss_weight: 200
 
 model_params:
-  name: "CVAEContLSTM"
-  latent_dim: 6
-  hidden_n: trial.suggest_int("hidden_n", 2, 4)
+  name: "CVAEContLSTMCP"
+  hidden_n: trial.suggest_int("hidden_n", 2, 5)
   hidden_size: trial.suggest_categorical("hidden_size", [128, 256, 512])
-  labels_hidden_size: trial.suggest_categorical("labels_hidden_size", [16, 32, 64, 128, 256])
-  dropout: 0
-  teacher_forcing_ratio: 0.5
-  hidden_conditionality: add
-  encoder_conditionality: concat
-  latent_conditionality: add
-  decoder_conditionality: concat
+  labels_hidden_size: trial.suggest_categorical("labels_hidden_size", [16, 32, 64, 128])
+  latent_dim: trial.suggest_int("latent_dim", 1, 12)
+  dropout: trial.suggest_float("dropout", 0.0, 0.5)
+  teacher_forcing_ratio: trial.suggest_float("teacher_forcing_ratio", 0.0, 1.0)
+  hidden_conditionality: trial.suggest_categorical("hidden_conditionality", ["add", "concat", "none"])
+  encoder_conditionality: none
+  latent_conditionality: trial.suggest_categorical("latent_conditionality", ["add", "concat", "none"])
+  decoder_conditionality: none

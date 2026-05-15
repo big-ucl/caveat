@@ -95,27 +95,27 @@ global:
 #     latent_conditionality: add
 #     decoder_conditionality: none
 
-beta_sched_inv:
-  model_params:
-    name: "CVAEContLSTM"
-    hidden_n: 4
-    hidden_size: 256
-    labels_hidden_size: 64
-    latent_dim: 6
-    dropout: 0.0
-    teacher_forcing_ratio: 0.5
-    hidden_conditionality: add
-    encoder_conditionality: none
-    latent_conditionality: add
-    decoder_conditionality: none
+# beta_sched_inv:
+#   model_params:
+#     name: "CVAEContLSTM"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
 
-  trainer_params:
-    min_epochs: 100
-    patience: 50
-    max_epochs: 300
-    beta_scheduling:
-      enabled: True
-      target_beta: 0.01
+#   trainer_params:
+#     min_epochs: 100
+#     patience: 50
+#     max_epochs: 300
+#     beta_scheduling:
+#       enabled: True
+#       target_beta: 0.01
 
 # film:
 #   model_params:
@@ -145,72 +145,192 @@ beta_sched_inv:
 #     latent_conditionality: add
 #     decoder_conditionality: none
 
-auxilary_llw1:
-  model_params:
-    name: "CVAEContLSTMAux"
-    hidden_n: 4
-    hidden_size: 256
-    labels_hidden_size: 64
-    latent_dim: 6
-    dropout: 0.0
-    teacher_forcing_ratio: 0.5
-    hidden_conditionality: add
-    encoder_conditionality: none
-    latent_conditionality: add
-    decoder_conditionality: none
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 200
-    label_loss_weight: 1.0
+# auxilary_llw1:
+#   model_params:
+#     name: "CVAEContLSTMAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 1.0
 
-auxilary_llw0_1:
-  model_params:
-    name: "CVAEContLSTMAux"
-    hidden_n: 4
-    hidden_size: 256
-    labels_hidden_size: 64
-    latent_dim: 6
-    dropout: 0.0
-    teacher_forcing_ratio: 0.5
-    hidden_conditionality: add
-    encoder_conditionality: none
-    latent_conditionality: add
-    decoder_conditionality: none
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 200
-    label_loss_weight: 0.1
+# auxilary_llw0_1:
+#   model_params:
+#     name: "CVAEContLSTMAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 0.1
 
-auxilary_llw0_01:
-  model_params:
-    name: "CVAEContLSTMAux"
-    hidden_n: 4
-    hidden_size: 256
-    labels_hidden_size: 64
-    latent_dim: 6
-    dropout: 0.0
-    teacher_forcing_ratio: 0.5
-    hidden_conditionality: add
-    encoder_conditionality: none
-    latent_conditionality: add
-    decoder_conditionality: none
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 200
-    label_loss_weight: 0.01
+# auxilary_llw0_01:
+#   model_params:
+#     name: "CVAEContLSTMAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 0.01
 
-auxilary_llw0_001:
+# auxilary_llw0_001:
+#   model_params:
+#     name: "CVAEContLSTMAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 0.001
+
+# auxilary_llw0_0001:
+#   model_params:
+#     name: "CVAEContLSTMAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 0.0001
+
+
+# cp_aux:
+#   model_params:
+#     name: "CVAEContLSTMCPAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 0.1
+
+# cp:
+#   model_params:
+#     name: "CVAEContLSTMCP"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+
+# cp_aux1:
+#   model_params:
+#     name: "CVAEContLSTMCPAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 1
+
+# cp_aux0_01:
+#   model_params:
+#     name: "CVAEContLSTMCPAux"
+#     hidden_n: 4
+#     hidden_size: 256
+#     labels_hidden_size: 64
+#     latent_dim: 6
+#     dropout: 0.0
+#     teacher_forcing_ratio: 0.5
+#     hidden_conditionality: add
+#     encoder_conditionality: none
+#     latent_conditionality: add
+#     decoder_conditionality: none
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.02
+#     scheduler_gamma: 0.975
+#     kld_weight: 0.01
+#     duration_loss_weight: 200
+#     label_loss_weight: 0.01
+
+cp_aux0_001:
   model_params:
-    name: "CVAEContLSTMAux"
+    name: "CVAEContLSTMCPAux"
     hidden_n: 4
     hidden_size: 256
     labels_hidden_size: 64
@@ -228,39 +348,3 @@ auxilary_llw0_001:
     kld_weight: 0.01
     duration_loss_weight: 200
     label_loss_weight: 0.001
-
-auxilary_llw0_0001:
-  model_params:
-    name: "CVAEContLSTMAux"
-    hidden_n: 4
-    hidden_size: 256
-    labels_hidden_size: 64
-    latent_dim: 6
-    dropout: 0.0
-    teacher_forcing_ratio: 0.5
-    hidden_conditionality: add
-    encoder_conditionality: none
-    latent_conditionality: add
-    decoder_conditionality: none
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
-    kld_weight: 0.01
-    duration_loss_weight: 200
-    label_loss_weight: 0.0001
-
-conditional_prior:
-  model_params:
-    name: "CVAEContLSTMCP"
-    hidden_n: 4
-    hidden_size: 256
-    labels_hidden_size: 64
-    latent_dim: 6
-    dropout: 0.0
-    teacher_forcing_ratio: 0.5
-    hidden_conditionality: add
-    encoder_conditionality: none
-    latent_conditionality: add
-    decoder_conditionality: none
-
