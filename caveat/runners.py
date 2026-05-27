@@ -1173,7 +1173,7 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
             )
         )
 
-    if collapse_monitoring_config.get("enabled", True):
+    if collapse_monitoring_config.get("enabled", False):
         callbacks.append(CollapseMonitor(collapse_monitoring_config))
 
     if loss_scheduling_config.get("enabled", False):
