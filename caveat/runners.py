@@ -1023,6 +1023,9 @@ def evaluate_synthetics(
 ) -> None:
     print("\n======= Evaluating synthetic schedules =======")
 
+    write_path = Path(write_path) / "eval"
+    write_path.mkdir(exist_ok=True, parents=True)
+
     eval_schedules_path = eval_params.get("schedules_path", None)
     if eval_schedules_path:
         eval_schedules = data.load_and_validate_schedules(eval_schedules_path)

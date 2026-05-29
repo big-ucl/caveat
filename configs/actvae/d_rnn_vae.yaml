@@ -1,0 +1,62 @@
+
+logging_params:
+  log_dir: "logs"
+  name: "paper_c_rnn_vae"
+
+schedules_path: "tmp/nts_home_schedules.csv"
+# attributes_path: "tmp/nts_home_attributes_groups.csv"
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+
+
+trainer_params:
+  min_epochs: 40
+  max_epochs: 200
+  patience: 20
+
+experiment_params:
+  LR: 0.01
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.00001
+
+# conditionals:
+#   gender: nominal
+#   age_group: nominal
+#   # ethnicity: nominal
+#   # education: nominal
+#   # license: nominal
+#   car_access: nominal
+#   work_status: nominal
+#   # area: nominal
+#   income: ordinal
+#   # hh_size: ordinal
+#   # hh_composition: nominal
+#   # hh_children: ordinal
+#   # hh_cars: ordinal
+#   # hh_bikes: ordinal
+#   # hh_motorcycles: ordinal
+
+# # evaluation_params:
+# #   split_on: [work_status]
+
+
+seed: 1234
+
+encoder_params:
+  name: "sequence"
+  max_length: 16
+  norm_duration: 1440
+  jitter: 0.2
+
+model_params:
+  name: "VAEContLSTM"
+  latent_dim: 6
+  hidden_n: 4
+  hidden_size: 128
+  dropout: 0.2
+

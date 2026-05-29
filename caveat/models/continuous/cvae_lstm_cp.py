@@ -49,7 +49,7 @@ class CVAEContLSTMCP(Base):
         self.prior_net = PriorNet(
             cond_dim=self.labels_hidden_size,
             z_dim=self.latent_dim,
-            hidden_dim=128,
+            hidden_dim=self.labels_hidden_size,
         )
 
         # encoder to latent
@@ -169,7 +169,7 @@ class CVAEContLSTMCP(Base):
                 dropout=self.dropout,
             )
         raise ValueError(
-            "label_conditionality must be either 'concat' or 'add'"
+            "label_conditionality must be either 'concat' or 'add' or 'film' or 'none'"
         )
 
     def build_decoder(self, config):
@@ -210,7 +210,7 @@ class CVAEContLSTMCP(Base):
                 sos=self.sos,
             )
         raise ValueError(
-            "Decoder conditionality must be 'none', 'add/inputs_add' or 'concat/inputs_concat'"
+            "Decoder conditionality must be 'none', 'add/inputs_add', 'concat/inputs_concat' or 'film/inputs_film'"
         )
 
     def forward(

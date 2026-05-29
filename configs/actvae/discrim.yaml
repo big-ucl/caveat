@@ -1,0 +1,50 @@
+seed: 12345
+
+logging_params:
+  log_dir: "logs/TRB"
+  name: "discrim"
+
+schedules_path: "tmp/nts_home_schedules.csv"
+attributes_path: "tmp/nts_home_attributes_groups.csv"
+
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+
+trainer_params:
+  min_epochs: 40
+  max_epochs: 100
+  patience: 20
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
+
+labels_encoder:
+  labels:
+    gender: nominal
+    age_group: nominal
+    car_access: nominal
+    work_status: nominal
+    income: ordinal
+
+evaluation_params:
+  split_on: [gender, age_group, car_access, work_status, income]
+
+encoder_params:
+  name: "discrete"
+  step_size: 10
+  duration: 1440
+  jitter: 0.0
+  
+model_params:
+  name: "CondDiscLSTM"
+  latent_dim: 0
+  hidden_n: 5
+  hidden_size: 256
+  dropout: 0
+  bidirectional: True

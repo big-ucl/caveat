@@ -1,0 +1,39 @@
+
+logging_params:
+  log_dir: "logs"
+  name: "paper_d_cnn_vae_3"
+
+schedules_path: "tmp/nts_home_schedules.csv"
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+
+
+trainer_params:
+  min_epochs: 20
+  max_epochs: 200
+  patience: 10
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.0
+  scheduler_gamma: 0.9
+  kld_weight: 0.002
+
+seed: 1234
+
+encoder_params:
+  name: "discrete"
+  step_size: 10
+  duration: 1440
+  jitter: 0.1
+
+model_params:
+  name: "VAEDiscConv"
+  latent_dim: 6
+  hidden_layers: [256,256,256,256,256,256]
+  dropout: 0.1
+

@@ -1,0 +1,62 @@
+logging_params:
+  log_dir: "logs/TRB/ablation"
+  name: "deep"
+
+schedules_path: "tmp/nts_schedules_2023.csv"
+attributes_path: "tmp/nts_attributes_2023.csv"
+
+evaluation_params:
+  split_on: [gender, age_group, car_access, work_status, income]
+
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: inverse
+  labels:
+    gender: nominal
+    age_group: nominal
+    car_access: nominal
+    work_status: nominal
+    income: nominal
+
+encoder_params:
+  name: "continuous"
+  max_length: 16
+  norm_duration: 1440
+  jitter: 0
+  fix_durations: stretch
+  trim_eos: True
+  weighting: unit
+  joint_weighting: unit
+
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+
+trainer_params:
+  min_epochs: 100
+  patience: 50
+  max_epochs: 300
+
+model_params:
+  name: "CVAEContLSTM"
+  hidden_n: 5
+  hidden_size: 256
+  labels_hidden_size: 64
+  latent_dim: 6
+  dropout: 0.0
+  teacher_forcing_ratio: 0.5
+  hidden_conditionality: add
+  encoder_conditionality: none
+  latent_conditionality: add
+  decoder_conditionality: none
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
+  kld_weight: 0.01
+  duration_loss_weight: 200
