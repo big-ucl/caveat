@@ -5401,7 +5401,7 @@ Low = posterior is just copying the prior = conditional collapse.</p>
 </span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">prior_net</span> <span class="o">=</span> <span class="n">PriorNet</span><span class="p">(</span>
 </span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="n">cond_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels_hidden_size</span><span class="p">,</span>
 </span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="n">z_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_dim</span><span class="p">,</span>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="n">hidden_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels_hidden_size</span><span class="p">,</span>
 </span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="p">)</span>
 </span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>
 </span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="c1"># encoder to latent</span>
@@ -5515,7 +5515,7 @@ Low = posterior is just copying the prior = conditional collapse.</p>
 </span><span id="__span-0-210"><a id="__codelineno-0-210" name="__codelineno-0-210"></a>            <span class="n">sos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
 </span><span id="__span-0-211"><a id="__codelineno-0-211" name="__codelineno-0-211"></a>        <span class="p">)</span>
 </span><span id="__span-0-212"><a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-213"><a id="__codelineno-0-213" name="__codelineno-0-213"></a>        <span class="s2">&quot;Decoder conditionality must be &#39;none&#39;, &#39;add/inputs_add&#39; or &#39;concat/inputs_concat&#39;&quot;</span>
+</span><span id="__span-0-213"><a id="__codelineno-0-213" name="__codelineno-0-213"></a>        <span class="s2">&quot;Decoder conditionality must be &#39;none&#39;, &#39;add/inputs_add&#39;, &#39;concat/inputs_concat&#39; or &#39;film/inputs_film&#39;&quot;</span>
 </span><span id="__span-0-214"><a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -5793,7 +5793,7 @@ Low = posterior is just copying the prior = conditional collapse.</p>
 </span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a>            <span class="n">dropout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span>
 </span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a>        <span class="p">)</span>
 </span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a>    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a>        <span class="s2">&quot;label_conditionality must be either &#39;concat&#39; or &#39;add&#39;&quot;</span>
+</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a>        <span class="s2">&quot;label_conditionality must be either &#39;concat&#39; or &#39;add&#39; or &#39;film&#39; or &#39;none&#39;&quot;</span>
 </span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
