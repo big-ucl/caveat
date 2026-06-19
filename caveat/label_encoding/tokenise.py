@@ -15,6 +15,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
         return self._encode(data)
 
     def build_config(self, data: pd.DataFrame) -> Tensor:
+        print("Building label encoding configuration...")
         self.label_kwargs["label_embed_sizes"] = []
 
         for i, (k, v) in enumerate(self.config.copy().items()):
@@ -30,9 +31,9 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                         raise UserWarning(
                             "Nominal encoding must be a dict of categories to index"
                         )
-                    self.config[k].update(
-                        {"location": i, "type": data[k].dtype}
-                    )
+                    self.config[k].update({"location": i})
+                    if "dtype" not in self.config[k]:
+                        self.config[k]["type"] = "string"
                     self.label_kwargs["label_embed_sizes"].append(
                         data[k].nunique()
                     )
@@ -42,11 +43,11 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     )
 
             elif v == "nominal":  # Undefined nominal encoding
-                _, nominal_encodings = tokenize(data[k], None)
+                _, nominal_encodings = tokenize(data[k].astype("string"), None)
                 self.config[k] = {
                     "nominal": nominal_encodings,
                     "location": i,
-                    "type": data[k].dtype,
+                    "type": "string",
                 }
                 self.label_kwargs["label_embed_sizes"].append(
                     len(nominal_encodings)
@@ -66,8 +67,9 @@ class TokenAttributeEncoder(BaseLabelEncoder):
         encoded = []
         for k, v in self.config.items():
             if k not in data.columns:
-                raise UserWarning(f"Conditional '{k}' not found in attributes")
-            nominal_encoded, _ = tokenize(data[k], v["nominal"])
+                raise UserWarning(f"Conditional '{k}' not found in data")
+            print(f"Encoding attribute '{k}' with config: {v}")
+            nominal_encoded, _ = tokenize(data[k], v["nominal"], v["type"])
             encoded.append(nominal_encoded)
 
         if not encoded:

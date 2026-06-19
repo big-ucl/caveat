@@ -70,14 +70,27 @@ def ordinal_encode(data: pd.Series, min, max) -> Tensor:
     return encoded.float()
 
 
-def tokenize(data: pd.Series, encodings: Optional[dict] = None) -> Tensor:
+def tokenize(
+    data: pd.Series,
+    encodings: Optional[dict] = None,
+    dtype: Optional[str] = None,
+) -> Tensor:
+    if dtype is not None and data.dtype != dtype:
+        print(
+            f"Warning: Data type {data.dtype} does not match expected type {dtype}, attempting to convert."
+        )
+        data = data.astype(dtype)
+        print(f"Data type after conversion: {data.dtype}")
     if encodings:
-        missing = set(data.unique()) - set(encodings.keys())
+        data_unique = set(data.unique())
+        print(f"Data unique values: {data_unique}")
+        existing = set(encodings.keys())
+        print(f"Existing encodings: {encodings}")
+        missing = data_unique - existing
         if missing:
             raise UserWarning(
                 f"""
-                Categories in data do not match existing categories: {missing}.
-                Please specify the new categories in the encoding.
+                Missing categories (not found in existing encodings): {missing}.
                 Your existing encodings are: {encodings}
 """
             )
