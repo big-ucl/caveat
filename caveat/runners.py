@@ -703,7 +703,7 @@ def encode_schedules(
     config: dict,
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule]:
     # encode schedules
-    schedule_encoder = build_encoder(config)
+    schedule_encoder = build_schedule_encoder(config)
     encoded_schedules = schedule_encoder.encode(
         schedules=schedules, labels=attributes, label_weights=label_weights
     )
@@ -717,9 +717,8 @@ def encode_schedules(
 def encode_input_labels(
     log_dir: Path, input_labels: Optional[DataFrame], config: dict
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule, Tensor]:
-    attribute_encoder = None
-    # optionally encode attributes
-    encoded_attributes = None
+    label_encoder = None
+    encoded_labels = None
     weights = None
     if input_labels is not None:
         encoder_config = config.get("labels_encoder", {})
@@ -729,16 +728,14 @@ def encode_input_labels(
             raise UserWarning(
                 "You have specified input labels, config must contain label encoder configuration with labels defined."
             )
-        attribute_encoder = label_encoding.library[encoder_name](
+        label_encoder = label_encoding.library[encoder_name](
             config=labels_config, **encoder_config
         )
-        encoded_attributes, weights = attribute_encoder.encode(input_labels)
+        encoded_labels, weights = label_encoder.fit_and_encode(input_labels)
 
-    pickle.dump(
-        attribute_encoder, open(f"{log_dir}/attribute_encoder.pkl", "wb")
-    )
+    pickle.dump(label_encoder, open(f"{log_dir}/attribute_encoder.pkl", "wb"))
 
-    return (attribute_encoder, encoded_attributes, weights)
+    return (label_encoder, encoded_labels, weights)
 
 
 def train(
@@ -1107,7 +1104,7 @@ def conditional_sample(
     return synthetic
 
 
-def build_encoder(config: dict) -> encoding.BaseEncoder:
+def build_schedule_encoder(config: dict) -> encoding.BaseEncoder:
     encoder_name = config["encoder_params"]["name"]
     data_encoder = encoding.library[encoder_name](**config["encoder_params"])
     return data_encoder

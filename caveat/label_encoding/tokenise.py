@@ -8,9 +8,16 @@ from caveat.label_encoding.base import BaseLabelEncoder, tokenize
 
 
 class TokenAttributeEncoder(BaseLabelEncoder):
+    def fit_and_encode(self, data: pd.DataFrame) -> Tuple[Tensor, Tensor]:
+        self.build_config(data)
+        return self._encode(data)
+
     def encode(self, data: pd.DataFrame) -> Tuple[Tensor, Tensor]:
         if not self.label_kwargs:
             # build config mappings and define label_kwargs
+            print(
+                "WARNING: No label encoding configuration found. Building configuration from data..."
+            )
             self.build_config(data)
         return self._encode(data)
 

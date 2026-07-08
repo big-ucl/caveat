@@ -348,7 +348,7 @@ class PriorNet(nn.Module):
         return self.mu(hidden), self.logvar(hidden)
 
 
-class LabelEncoder(nn.Module):
+class CatLabelEncoder(nn.Module):
     def __init__(self, label_embed_sizes, hidden_size):
         """Label Encoder using token embedding.
         Embedding outputs are the same size but use different weights so that they can be different sizes.
@@ -367,6 +367,64 @@ class LabelEncoder(nn.Module):
         # x = self.fc(x)
         # x = self.activation(x)
         return x
+
+
+class LabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size, label_context=None):
+        """Label Encoder using mixed embeddings, with FiLM-based interaction.
+
+        A label embedding size of one signifies a continuous variable.
+        Non-context label embeddings are summed to give h_rest.
+        Context label embeddings are summed to give c, which generates
+        FiLM parameters (gamma, beta) that modulate h_rest.
+        """
+        super().__init__()
+        if label_context is None:
+            label_context = [False] * len(label_embed_sizes)
+        self.label_context = label_context
+        self.has_context = any(label_context)
+
+        embeds = []
+        for s in label_embed_sizes:
+            if s == 1:
+                embeds.append(nn.Linear(1, hidden_size))
+            else:
+                embeds.append(nn.Embedding(s, hidden_size))
+        self.embeds = nn.ModuleList(embeds)
+
+        self.context_idx = [i for i, c in enumerate(label_context) if c]
+        self.rest_idx = [i for i, c in enumerate(label_context) if not c]
+
+        if self.has_context:
+            self.film = nn.Sequential(
+                nn.Linear(hidden_size, hidden_size),
+                nn.ReLU(),
+                nn.Linear(hidden_size, hidden_size * 2),
+            )
+            # zero-init final layer -> gamma=1, beta=0 at init,
+            # so FiLM starts out as a no-op (equivalent to plain sum)
+            nn.init.zeros_(self.film[-1].weight)
+            with torch.no_grad():
+                self.film[-1].bias[:hidden_size].fill_(1.0)  # gamma
+                self.film[-1].bias[hidden_size:].fill_(0.0)  # beta
+
+    def forward(self, x):
+        embedded = [embed(x[:, i]) for i, embed in enumerate(self.embeds)]
+
+        if not self.has_context:
+            return torch.stack(embedded, dim=-1).sum(dim=-1)
+
+        h_rest = torch.stack([embedded[i] for i in self.rest_idx], dim=-1).sum(
+            dim=-1
+        )
+        c = torch.stack([embedded[i] for i in self.context_idx], dim=-1).sum(
+            dim=-1
+        )
+
+        gamma, beta = self.film(c).chunk(2, dim=-1)
+        h_mod = gamma * h_rest + beta
+
+        return h_mod
 
 
 class HiddenNone(nn.Module):
