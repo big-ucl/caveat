@@ -42,8 +42,8 @@ def model():
     )
 
 
-def make_batch(n=4, varied_conditions=True):
-    """Build a (x, c) batch compatible with CVAEContLSTM.
+def _make_xc(n=4, varied_conditions=True):
+    """Build a (x, c) pair compatible with CVAEContLSTM.
 
     x: [N, LENGTH, 2]  — activity index (int as float) + duration
     c: [N, N_LABEL_COLS] long — label indices within embed sizes
@@ -69,10 +69,20 @@ def make_batch(n=4, varied_conditions=True):
     return x, c
 
 
+def make_batch(n=4, varied_conditions=True):
+    """Build the ((x, _), _, (c, l_weights)) batch shape CollapseMonitor expects."""
+    return wrap_batch(*_make_xc(n=n, varied_conditions=varied_conditions))
+
+
 def make_trainer(current_epoch=0):
     trainer = MagicMock()
     trainer.current_epoch = current_epoch
     return trainer
+
+
+def wrap_batch(x, c, l_weights=None):
+    """Match the ((x, _), _, (c, l_weights)) batch shape CollapseMonitor expects."""
+    return ((x, None), None, (c, l_weights))
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +147,7 @@ def test_batch_end_raises_on_mu_shape_mismatch(model):
     """Batch size mismatch between mu and c raises ValueError."""
     cb = CollapseMonitor({"check_every_n_epochs": 1})
     trainer = make_trainer()
-    x, c = make_batch(n=4, varied_conditions=True)
+    x, c = _make_xc(n=4, varied_conditions=True)
     # Manually corrupt: override encode to return mu with wrong batch size
     import unittest.mock as mock
 
@@ -145,7 +155,9 @@ def test_batch_end_raises_on_mu_shape_mismatch(model):
     bad_log_var = torch.zeros(3, LATENT_DIM)
     with mock.patch.object(model, "encode", return_value=(bad_mu, bad_log_var)):
         with pytest.raises(ValueError, match="Batch size mismatch"):
-            cb.on_validation_batch_end(trainer, model, None, (x, c), 0)
+            cb.on_validation_batch_end(
+                trainer, model, None, wrap_batch(x, c), 0
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +166,6 @@ def test_batch_end_raises_on_mu_shape_mismatch(model):
 
 EXPECTED_METRIC_KEYS = {
     "collapse/active_units_pct",
-    "collapse/n_active_dims",
     "collapse/kl_collapsed_dims",
     "collapse/kl_mean",
     "collapse/kl_min",
@@ -220,7 +231,6 @@ def test_epoch_end_resets_buffers(model):
 
     assert cb._mus == []
     assert cb._log_vars == []
-    assert cb._conditions == []
     assert cb._kl_per_dim == []
     assert cb._decoder_swap_mse == []
     assert cb._decoder_out_var == []

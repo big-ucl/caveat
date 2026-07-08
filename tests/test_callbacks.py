@@ -257,67 +257,74 @@ def make_mocks(max_epochs, current_epoch):
 
 def test_default_config():
     cb = CyclicalBetaAnnealer({})
-    assert cb.n_cycles == 4
-    assert cb.max_beta_multiplier == 1.0
+    assert cb.cycle_len == 50
+    assert cb.max_beta_multiplier == 10
+    assert cb.target_beta == 0.01
     assert cb.ratio == 0.5
 
 
 def test_custom_config():
-    cb = CyclicalBetaAnnealer({"n_cycles": 2, "max_beta": 0.5, "ratio": 0.75})
-    assert cb.n_cycles == 2
-    assert cb.max_beta_multiplier == 0.5
+    cb = CyclicalBetaAnnealer(
+        {"cycle_len": 20, "max_beta": 5, "target_beta": 0.02, "ratio": 0.75}
+    )
+    assert cb.cycle_len == 20
+    assert cb.max_beta_multiplier == 5
+    assert cb.target_beta == 0.02
     assert cb.ratio == 0.75
 
 
 # --- Beta value cases ---
-# Config: max_epochs=100, n_cycles=4, ratio=0.5
-# => cycle_len=25, ramp_end=12.5
+# Config: cycle_len=25, max_beta=4, target_beta=0.1, ratio=0.5
+# => ramp_end=12.5. Beta decays from target_beta*max_beta at cycle start
+# down to target_beta at ramp_end, then plateaus at target_beta.
 
 
 @pytest.fixture
 def callback():
-    return CyclicalBetaAnnealer({"n_cycles": 4, "max_beta": 1.0, "ratio": 0.5})
+    return CyclicalBetaAnnealer(
+        {"cycle_len": 25, "max_beta": 4, "target_beta": 0.1, "ratio": 0.5}
+    )
 
 
-def test_beta_zero_at_cycle_start(callback):
+def test_beta_high_at_cycle_start(callback):
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=0)
     callback.on_train_epoch_start(trainer, pl_module)
-    assert pl_module.beta == 0.0
+    assert pl_module.beta == pytest.approx(0.4)
 
 
 def test_beta_mid_ramp(callback):
-    # epoch=6, cycle_pos=6, ramp_end=12.5 => beta = 1.0 * (6 / 12.5) = 0.48
+    # cycle_pos=6, ramp_end=12.5 => multiplier = 4 * (1 - 6/12.5) = 2.08
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=6)
     callback.on_train_epoch_start(trainer, pl_module)
-    assert pl_module.beta == pytest.approx(0.48)
+    assert pl_module.beta == pytest.approx(0.208)
 
 
 def test_beta_near_ramp_end(callback):
-    # epoch=12, cycle_pos=12, ramp_end=12.5 => beta = 1.0 * (12 / 12.5) = 0.96
+    # cycle_pos=12, ramp_end=12.5 => multiplier = 4 * (1 - 12/12.5) = 0.16
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=12)
     callback.on_train_epoch_start(trainer, pl_module)
-    assert pl_module.beta == pytest.approx(0.96)
+    assert pl_module.beta == pytest.approx(0.016)
 
 
 def test_beta_at_plateau(callback):
-    # epoch=13, cycle_pos=13 >= ramp_end=12.5 => beta = max_beta = 1.0
+    # cycle_pos=13 >= ramp_end=12.5 => multiplier = 1 => beta = target_beta
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=13)
     callback.on_train_epoch_start(trainer, pl_module)
-    assert pl_module.beta == 1.0
+    assert pl_module.beta == pytest.approx(0.1)
 
 
 def test_beta_second_cycle_start(callback):
-    # epoch=25 => cycle_pos = 25 % 25 = 0 => beta = 0.0
+    # epoch=25 => cycle_pos = 25 % 25 = 0 => beta = target_beta * max_beta
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=25)
     callback.on_train_epoch_start(trainer, pl_module)
-    assert pl_module.beta == 0.0
+    assert pl_module.beta == pytest.approx(0.4)
 
 
 def test_beta_last_epoch(callback):
-    # epoch=99 => cycle_pos = 99 % 25 = 24 >= ramp_end=12.5 => beta = 1.0
+    # epoch=99 => cycle_pos = 99 % 25 = 24 >= ramp_end=12.5 => plateau
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=99)
     callback.on_train_epoch_start(trainer, pl_module)
-    assert pl_module.beta == 1.0
+    assert pl_module.beta == pytest.approx(0.1)
 
 
 # --- Side effects ---
@@ -326,13 +333,13 @@ def test_beta_last_epoch(callback):
 def test_log_called(callback):
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=6)
     callback.on_train_epoch_start(trainer, pl_module)
-    pl_module.log.assert_called_once_with("beta", pytest.approx(0.48))
+    pl_module.log.assert_called_once_with("beta", pytest.approx(0.208))
 
 
 def test_pl_module_beta_set(callback):
     trainer, pl_module = make_mocks(max_epochs=100, current_epoch=13)
     callback.on_train_epoch_start(trainer, pl_module)
-    assert pl_module.beta == 1.0
+    assert pl_module.beta == pytest.approx(0.1)
 
 
 # ===========================================================================
@@ -340,11 +347,21 @@ def test_pl_module_beta_set(callback):
 # ===========================================================================
 
 
+def _kld(mu, log_var):
+    return -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
+
+
+def _make_batch(x, c, l_weights=None):
+    """Match the ((x, _), _, (c, l_weights)) batch shape CollapseMonitor expects."""
+    return ((x, None), None, (c, l_weights))
+
+
 def make_collapse_mocks(current_epoch, mu, log_var):
     trainer = MagicMock()
     trainer.current_epoch = current_epoch
     pl_module = MagicMock()
     pl_module.encode.return_value = (mu, log_var)
+    pl_module.kld.side_effect = _kld
     return trainer, pl_module
 
 
@@ -354,12 +371,10 @@ def _populate_buffers(
     """Push synthetic data into cb's internal buffers."""
     mu = torch.randn(batch_size, latent_dim)
     log_var = torch.zeros(batch_size, latent_dim)
-    kl = -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
-    cond = torch.zeros(batch_size, 1)
+    kl = _kld(mu, log_var)
     for _ in range(n_batches):
         cb._mus.append(mu)
         cb._log_vars.append(log_var)
-        cb._conditions.append(cond)
         cb._kl_per_dim.append(kl.mean(dim=0))
 
 
@@ -385,6 +400,7 @@ def _make_batch_end_pl_module(decode_fn=None):
     mu = torch.randn(4, 3)
     log_var = torch.zeros(4, 3)
     pl_module.encode.return_value = (mu, log_var)
+    pl_module.kld.side_effect = _kld
     if decode_fn is not None:
         pl_module.decode.side_effect = decode_fn
     else:
@@ -396,11 +412,12 @@ def test_decoder_sensitivity_no_label_encoder():
     """Batches with no label_encoder skip accumulation → nan at epoch end."""
     cb = CollapseMonitor({"check_every_n_epochs": 1})
     # batch_end mock: no label_encoder so no decoder probing
-    pl_batch = MagicMock(spec=["encode"])
+    pl_batch = MagicMock(spec=["encode", "kld"])
     pl_batch.encode.return_value = (torch.randn(4, 3), torch.zeros(4, 3))
+    pl_batch.kld.side_effect = _kld
     trainer = MagicMock()
     trainer.current_epoch = 0
-    batch = (torch.randn(4, 10, 2), torch.zeros(4, 1))
+    batch = _make_batch(torch.randn(4, 10, 2), torch.zeros(4, 1))
     cb.on_validation_batch_end(trainer, pl_batch, None, batch, 0)
     # epoch_end mock: regular MagicMock so log_dict works
     pl_epoch = MagicMock()
@@ -415,7 +432,9 @@ def test_decoder_sensitivity_single_condition(capsys):
     pl_module = _make_batch_end_pl_module()
     trainer = MagicMock()
     trainer.current_epoch = 0
-    batch = (torch.randn(4, 10, 2), torch.zeros(4, 1))  # all condition 0
+    batch = _make_batch(
+        torch.randn(4, 10, 2), torch.zeros(4, 1)
+    )  # all condition 0
     cb.on_validation_batch_end(trainer, pl_module, None, batch, 0)
     out = capsys.readouterr().out
     assert "CollapseMonitor" in out
@@ -433,7 +452,7 @@ def test_decoder_sensitivity_insensitive_decoder():
     trainer = MagicMock()
     trainer.current_epoch = 0
     c = torch.cat([torch.zeros(2, 1), torch.ones(2, 1)])
-    batch = (torch.randn(4, 10, 2), c)
+    batch = _make_batch(torch.randn(4, 10, 2), c)
     cb.on_validation_batch_end(trainer, pl_module, None, batch, 0)
     _populate_buffers(cb, n_batches=0)
     cb.on_validation_epoch_end(trainer, pl_module)
@@ -457,7 +476,7 @@ def test_decoder_sensitivity_responsive_decoder():
     trainer = MagicMock()
     trainer.current_epoch = 0
     c = torch.cat([torch.zeros(2, 1), torch.ones(2, 1)])
-    batch = (torch.randn(4, 10, 2), c)
+    batch = _make_batch(torch.randn(4, 10, 2), c)
     cb.on_validation_batch_end(trainer, pl_module, None, batch, 0)
     _populate_buffers(cb, n_batches=0)
     cb.on_validation_epoch_end(trainer, pl_module)
@@ -475,7 +494,7 @@ def test_batch_end_accumulates():
     trainer, pl_module = make_collapse_mocks(
         current_epoch=0, mu=mu, log_var=log_var
     )
-    batch = (torch.randn(4, 10, 2), torch.zeros(4, 1))
+    batch = _make_batch(torch.randn(4, 10, 2), torch.zeros(4, 1))
 
     cb.on_validation_batch_end(
         trainer, pl_module, outputs=None, batch=batch, batch_idx=0
@@ -486,7 +505,6 @@ def test_batch_end_accumulates():
 
     assert len(cb._mus) == 2
     assert len(cb._log_vars) == 2
-    assert len(cb._conditions) == 2
     assert len(cb._kl_per_dim) == 2
 
 
@@ -522,7 +540,6 @@ def test_epoch_end_logs_on_check_epoch():
     logged = pl_module.log_dict.call_args[0][0]
     expected_keys = {
         "collapse/active_units_pct",
-        "collapse/n_active_dims",
         "collapse/kl_collapsed_dims",
         "collapse/kl_mean",
         "collapse/kl_min",
@@ -543,7 +560,6 @@ def test_epoch_end_resets_buffers():
 
     assert cb._mus == []
     assert cb._log_vars == []
-    assert cb._conditions == []
     assert cb._kl_per_dim == []
 
 

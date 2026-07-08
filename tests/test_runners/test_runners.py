@@ -13,10 +13,13 @@ ATTRIBUTES_PATH = FIXTURES / "test_attributes.csv"
 # ---------------------------------------------------------------------------
 
 
-@patch("caveat.runners.evaluate")
+@patch("caveat.runners.compare_splits")
+@patch("caveat.runners.compare")
 @patch("caveat.runners.data")
-def test_evaluate_synthetics_basic(mock_data, mock_evaluate, tmp_path):
-    """No split_on: calls evaluate.evaluate() and evaluate.report()."""
+def test_evaluate_synthetics_basic(
+    mock_data, mock_compare, mock_compare_splits, tmp_path
+):
+    """No split_on: calls compare() and not compare_splits()."""
     from caveat.runners import evaluate_synthetics
 
     schedules = pd.read_csv(SCHEDULES_PATH)
@@ -24,7 +27,7 @@ def test_evaluate_synthetics_basic(mock_data, mock_evaluate, tmp_path):
     synthetic_labels = {"model_a": None}
     eval_params = {}
 
-    mock_evaluate.evaluate.return_value = {"model_a": MagicMock()}
+    mock_compare.return_value = MagicMock()
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
@@ -35,16 +38,18 @@ def test_evaluate_synthetics_basic(mock_data, mock_evaluate, tmp_path):
         eval_params=eval_params,
     )
 
-    mock_evaluate.evaluate.assert_called_once()
-    mock_evaluate.report.assert_called_once()
-    mock_evaluate.compare_splits.assert_not_called()
-    mock_evaluate.report_splits.assert_not_called()
+    mock_compare.assert_called_once()
+    mock_compare_splits.assert_not_called()
+    mock_compare.return_value.save.assert_called_once()
 
 
-@patch("caveat.runners.evaluate")
+@patch("caveat.runners.compare_splits")
+@patch("caveat.runners.compare")
 @patch("caveat.runners.data")
-def test_evaluate_synthetics_with_split_on(mock_data, mock_evaluate, tmp_path):
-    """split_on set: calls compare_splits() and report_splits()."""
+def test_evaluate_synthetics_with_split_on(
+    mock_data, mock_compare, mock_compare_splits, tmp_path
+):
+    """split_on set: calls compare_splits() and not compare()."""
     from caveat.runners import evaluate_synthetics
 
     schedules = pd.read_csv(SCHEDULES_PATH)
@@ -52,8 +57,7 @@ def test_evaluate_synthetics_with_split_on(mock_data, mock_evaluate, tmp_path):
     synthetic_labels = {"model_a": None}
     eval_params = {"split_on": ["gender"]}
 
-    mock_evaluate.compare_splits.return_value = {"gender": MagicMock()}
-    mock_evaluate.evaluate.return_value = {"model_a": MagicMock()}
+    mock_compare_splits.return_value = MagicMock()
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
@@ -64,20 +68,20 @@ def test_evaluate_synthetics_with_split_on(mock_data, mock_evaluate, tmp_path):
         eval_params=eval_params,
     )
 
-    mock_evaluate.compare_splits.assert_called_once()
-    call_kwargs = mock_evaluate.compare_splits.call_args.kwargs
+    mock_compare_splits.assert_called_once()
+    call_kwargs = mock_compare_splits.call_args.kwargs
     assert call_kwargs["observed"] is schedules
     assert call_kwargs["split_on"] == ["gender"]
 
-    mock_evaluate.report_splits.assert_called_once()
-    mock_evaluate.evaluate.assert_called_once()
-    mock_evaluate.report.assert_called_once()
+    mock_compare.assert_not_called()
+    mock_compare_splits.return_value.save.assert_called_once()
 
 
-@patch("caveat.runners.evaluate")
+@patch("caveat.runners.compare_splits")
+@patch("caveat.runners.compare")
 @patch("caveat.runners.data")
 def test_evaluate_synthetics_custom_schedules_path(
-    mock_data, mock_evaluate, tmp_path
+    mock_data, mock_compare, mock_compare_splits, tmp_path
 ):
     """eval_params has schedules_path: custom schedules are loaded instead of default."""
     from caveat.runners import evaluate_synthetics
@@ -90,7 +94,7 @@ def test_evaluate_synthetics_custom_schedules_path(
     synthetic_labels = {"model_a": None}
     eval_params = {"schedules_path": str(SCHEDULES_PATH)}
 
-    mock_evaluate.evaluate.return_value = {"model_a": MagicMock()}
+    mock_compare.return_value = MagicMock()
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
@@ -105,8 +109,8 @@ def test_evaluate_synthetics_custom_schedules_path(
         str(SCHEDULES_PATH)
     )
 
-    call_kwargs = mock_evaluate.evaluate.call_args.kwargs
-    assert call_kwargs["target_schedules"] is custom_schedules
+    call_kwargs = mock_compare.call_args.kwargs
+    assert call_kwargs["observed"] is custom_schedules
 
 
 # ---------------------------------------------------------------------------

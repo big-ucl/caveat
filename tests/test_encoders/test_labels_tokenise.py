@@ -29,7 +29,7 @@ def test_encoder_nominal():
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
-        "type": "object",
+        "type": "string",
     }
 
 
@@ -48,7 +48,7 @@ def test_re_encoder_nominal():
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
-        "type": "object",
+        "type": "string",
     }
 
 
@@ -103,12 +103,12 @@ def test_encoder_multi():
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
-        "type": "object",
+        "type": "string",
     }
     assert encoder.config["age"] == {
         "nominal": {"old": 0, "young": 1},
         "location": 1,
-        "type": "object",
+        "type": "string",
     }
     assert encoder.label_kwargs == {"label_embed_sizes": [2, 2]}
 
@@ -137,12 +137,12 @@ def test_re_encoder_mixed():
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
-        "type": "object",
+        "type": "string",
     }
     assert encoder.config["age"] == {
         "nominal": {"old": 0, "young": 1},
         "location": 1,
-        "type": "object",
+        "type": "string",
     }
     assert encoder.label_kwargs == {"label_embed_sizes": [2, 2]}
 
@@ -161,14 +161,20 @@ def test_decode_attributes():
     expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
 
+    expected_df = data.astype({"age": "string", "gender": "string"})
+
     preds = Tensor([[1, 0], [0, 0], [0, 1]])
     decoded_data = encoder.decode(preds)
     decoded_data = decoded_data[data.columns]
-    assert_frame_equal(data, decoded_data, check_dtype=True, check_exact=True)
+    assert_frame_equal(
+        expected_df, decoded_data, check_dtype=True, check_exact=True
+    )
 
     preds = [
         Tensor([[0.1, 0.5], [0.9, 0.5], [0.5, 0.2]]),
         Tensor([[0.9, 0.3], [0.9, 0.3], [0.2, 0.5]]),
     ]
     decoded_data = encoder.argmax_decode(preds)[data.columns]
-    assert_frame_equal(data, decoded_data, check_dtype=True, check_exact=True)
+    assert_frame_equal(
+        expected_df, decoded_data, check_dtype=True, check_exact=True
+    )
