@@ -1,37 +1,26 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import pandas as pd
 import pandas.api.types as ptypes
-import polars as pl
 from torch import Tensor, cat
 
 from caveat.label_encoding.base import BaseLabelEncoder
 from caveat.label_encoding.column_encoders.categorical import (
     CategoricalTokeniser,
 )
-from caveat.label_encoding.column_encoders.decompose import (
-    GMMEncoder,
-    MetaDecomposer,
-)
 from caveat.label_encoding.column_encoders.numeric import (
     MinMaxEncoder,
-    StandardScalerEncoder,
+    # StandardScalerEncoder,
 )
 
 
 class TableEncoder(BaseLabelEncoder):
-    continuous_encoders = {
-        "minmax": MinMaxEncoder,
-        "standard": StandardScalerEncoder,
-        "decomposed": GMMEncoder,
-        "meta": MetaDecomposer,
-    }
-    continuous_encoding: str = ("minmax",)
+    continuous_encoder = MinMaxEncoder
     max_components: Optional[int] = (None,)
     learn_rounding_scheme: bool = (False,)
     enforce_min_max_values: bool = (False,)
 
-    def fit_and_encode(self, data: Union[pl.DataFrame, pd.DataFrame]) -> None:
+    def fit_and_encode(self, data: pd.DataFrame) -> None:
         self.encoders = {}
         self.label_kwargs = {}
         self.label_kwargs["names"] = []
@@ -64,10 +53,10 @@ class TableEncoder(BaseLabelEncoder):
         joint_weights = self.joint_weighter(encoded)
         return encoded, (weights, joint_weights)
 
-    def encode(self, data: Union[pl.DataFrame, pd.DataFrame]) -> Tensor:
+    def encode(self, data: pd.DataFrame) -> Tensor:
         """Encode the dataframe into a Tensor.
         Args:
-            data (Union[pl.DataFrame, pd.DataFrame]): input dataframe to encode.
+            data (pd.DataFrame): input dataframe to encode.
         Returns:
             Tensor: encoded dataframe.
         """
@@ -88,14 +77,14 @@ class TableEncoder(BaseLabelEncoder):
         joint_weights = self.joint_weighter(encoded)
         return encoded, (weights, joint_weights)
 
-    def decode(self, data: List[Tensor]) -> pd.DataFrame | pl.DataFrame:
+    def decode(self, data: List[Tensor]) -> pd.DataFrame:
         """Decode Tensor of tokens back into dataframe.
 
         Args:
             data (List[Tensor]): input Tensor of tokens to decode.
 
         Returns:
-            Union[pd.DataFrame, pl.DataFrame]: decoded dataframe.
+            pd.DataFrame: decoded dataframe.
         """
         assert data.ndim == 2, "Data must be a 2D Tensor"
         assert data.shape[1] == sum(
@@ -108,11 +97,8 @@ class TableEncoder(BaseLabelEncoder):
         ):
             tokens = data[:, i:j]
             decoded[name] = encoder.decode(tokens)
-        decoded = (
-            pd.DataFrame(decoded)
-            if self.mode == pd.DataFrame
-            else pl.DataFrame(decoded)
-        )
+        decoded = pd.DataFrame(decoded)
+        decoded.index.name = "pid"
         return decoded
 
     def __repr__(self):
@@ -123,60 +109,18 @@ class TableEncoder(BaseLabelEncoder):
             [f"\t--> {e}" for e in self.encoders.values()]
         )
 
-    def initialise_encoders(
-        self, data: Union[pl.DataFrame, pd.DataFrame]
-    ) -> None:
+    def initialise_encoders(self, data: pd.DataFrame) -> None:
         if isinstance(data, pd.DataFrame):
             self.configure_pandas(data)
-        elif isinstance(data, pl.DataFrame):
-            self.configure_polars(data)
         else:
             raise ValueError("Data must be a pandas or polars dataframe")
-
-    def configure_polars(self, data: pl.DataFrame) -> None:
-        """Configure the tokeniser by encoding the dataframe columns.
-        Args:
-            data (pl.DataFrame): input dataframe to configure.
-            verbose (bool, optional): print the configuration. Defaults to False.
-        """
-
-        for column in self.columns:
-            if column not in data.columns:
-                raise ValueError(f"Column '{column}' not found in attributes")
-            values = data[column]
-            dtype = values.dtype
-            if (
-                dtype == pl.Utf8
-                or dtype == pl.Object
-                or dtype == pl.Categorical
-                or dtype == pl.Boolean
-                or dtype == pl.Enum
-            ):
-                self.encoders[column] = CategoricalTokeniser(
-                    name=column, verbose=self.verbose
-                )
-
-            elif dtype.is_numeric():
-                self.encoders[column] = self.continuous_encoder(
-                    name=column,
-                    verbose=self.verbose,
-                    max_components=self.max_components,
-                    learn_rounding=self.learn_rounding,
-                    enforce_min_max=self.enforce_min_max,
-                )
-
-            else:
-                raise ValueError(
-                    f"Column '{column}' not supported for encoding: {values.dtype}"
-                )
 
     def configure_pandas(self, data: pd.DataFrame) -> None:
         """Configure the tokeniser by encoding the dataframe columns.
         Args:
             data (pd.DataFrame): input dataframe to configure.
-            verbose (bool, optional): print the configuration. Defaults to False.
         """
-        for column in self.columns:
+        for column in self.config.keys():
             if column not in data.columns:
                 raise ValueError(f"Column '{column}' not found in attributes")
             values = data[column]
@@ -184,17 +128,13 @@ class TableEncoder(BaseLabelEncoder):
                 ptypes.is_string_dtype(values)
                 or ptypes.is_object_dtype(values)
                 or isinstance(values.dtype, pd.CategoricalDtype)
+                or ptypes.is_bool_dtype(values)
+                or len(set(values)) == 1
             ):
-                self.encoders[column] = CategoricalTokeniser(
-                    name=column, verbose=self.verbose
-                )
+                self.encoders[column] = CategoricalTokeniser(name=column)
             elif ptypes.is_numeric_dtype(values):
                 self.encoders[column] = self.continuous_encoder(
-                    name=column,
-                    verbose=self.verbose,
-                    max_components=self.max_components,
-                    learn_rounding=self.learn_rounding,
-                    enforce_min_max=self.enforce_min_max,
+                    name=column, max_components=self.max_components
                 )
             else:
                 raise ValueError(

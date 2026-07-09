@@ -110,6 +110,7 @@ def load_and_validate_attributes(
         if config.get("synthetic_attributes_path"):
             data_path = Path(config["synthetic_attributes_path"])
             synthetic_attributes = pd.read_csv(data_path, low_memory=False)
+            print(f"LOADING SYNTHETIC ATTRIBUTES FROM {data_path}")
             if synthetic_attributes.empty:
                 raise UserWarning(
                     f"No synthetic attributes found in {data_path}."

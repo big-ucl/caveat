@@ -38,7 +38,7 @@ class CVAEContLSTMCP(Base):
         self.flat_size_encode = self.hidden_n * self.hidden_size * 2
 
         # label encoder
-        self.label_encoder = self.build_label_encoder()
+        self.label_encoder = self.build_label_encoder(config)
 
         # initial encoder hidden state
         self.encoder_hidden = self.build_encoder_hidden(config)
@@ -67,11 +67,23 @@ class CVAEContLSTMCP(Base):
             print("Decoder and Encoder Embedding is shared")
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    def build_label_encoder(self):
-        return LabelEncoder(
-            label_embed_sizes=self.label_embed_sizes,
-            hidden_size=self.labels_hidden_size,
-        )
+    def build_label_encoder(self, config):
+        label_encoder_type = config.get("label_encoder", "concat")
+        print(f"Using label encoder type: {label_encoder_type}")
+        if label_encoder_type == "concat":
+            return ConcatLabelEncoder(
+                label_embed_sizes=self.label_embed_sizes,
+                hidden_size=self.labels_hidden_size,
+            )
+        elif label_encoder_type == "add":
+            return AddLabelEncoder(
+                label_embed_sizes=self.label_embed_sizes,
+                hidden_size=self.labels_hidden_size,
+            )
+        else:
+            raise ValueError(
+                f"Unknown label encoder type: {label_encoder_type}, should be 'concat' or 'add'"
+            )
 
     def build_encoder_hidden(self, config):
         encoder_hidden = config.get("hidden_conditionality", "none")
@@ -348,83 +360,68 @@ class PriorNet(nn.Module):
         return self.mu(hidden), self.logvar(hidden)
 
 
-class CatLabelEncoder(nn.Module):
+class AddLabelEncoder(nn.Module):
     def __init__(self, label_embed_sizes, hidden_size):
         """Label Encoder using token embedding.
         Embedding outputs are the same size but use different weights so that they can be different sizes.
         Each embedding is then stacked and summed to give single encoding."""
-        super(LabelEncoder, self).__init__()
-        self.embeds = nn.ModuleList(
-            [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
-        )
-        # self.fc = nn.Linear(hidden_size, hidden_size)
-        # self.activation = nn.ReLU()
+        super().__init__()
+        embeds = []
+        for s in label_embed_sizes:
+            if s == 1:
+                embeds.append(
+                    nn.Sequential(UnSqueeze(), nn.Linear(1, hidden_size))
+                )
+            else:
+                embeds.append(
+                    nn.Sequential(CastToLong(), nn.Embedding(s, hidden_size))
+                )
+        self.embeds = nn.ModuleList(embeds)
 
     def forward(self, x):
         x = torch.stack(
             [embed(x[:, i]) for i, embed in enumerate(self.embeds)], dim=-1
         ).sum(dim=-1)
-        # x = self.fc(x)
-        # x = self.activation(x)
         return x
 
 
-class LabelEncoder(nn.Module):
-    def __init__(self, label_embed_sizes, hidden_size, label_context=None):
+class ConcatLabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size, label_hidden_size=16):
         """Label Encoder using mixed embeddings, with FiLM-based interaction.
 
         A label embedding size of one signifies a continuous variable.
-        Non-context label embeddings are summed to give h_rest.
-        Context label embeddings are summed to give c, which generates
-        FiLM parameters (gamma, beta) that modulate h_rest.
         """
         super().__init__()
-        if label_context is None:
-            label_context = [False] * len(label_embed_sizes)
-        self.label_context = label_context
-        self.has_context = any(label_context)
-
         embeds = []
         for s in label_embed_sizes:
             if s == 1:
-                embeds.append(nn.Linear(1, hidden_size))
+                embeds.append(
+                    nn.Sequential(UnSqueeze(), nn.Linear(1, label_hidden_size))
+                )
             else:
-                embeds.append(nn.Embedding(s, hidden_size))
+                embeds.append(
+                    nn.Sequential(
+                        CastToLong(), nn.Embedding(s, label_hidden_size)
+                    )
+                )
         self.embeds = nn.ModuleList(embeds)
-
-        self.context_idx = [i for i, c in enumerate(label_context) if c]
-        self.rest_idx = [i for i, c in enumerate(label_context) if not c]
-
-        if self.has_context:
-            self.film = nn.Sequential(
-                nn.Linear(hidden_size, hidden_size),
-                nn.ReLU(),
-                nn.Linear(hidden_size, hidden_size * 2),
-            )
-            # zero-init final layer -> gamma=1, beta=0 at init,
-            # so FiLM starts out as a no-op (equivalent to plain sum)
-            nn.init.zeros_(self.film[-1].weight)
-            with torch.no_grad():
-                self.film[-1].bias[:hidden_size].fill_(1.0)  # gamma
-                self.film[-1].bias[hidden_size:].fill_(0.0)  # beta
+        self.interact = nn.Linear(
+            label_hidden_size * len(label_embed_sizes), hidden_size
+        )
 
     def forward(self, x):
         embedded = [embed(x[:, i]) for i, embed in enumerate(self.embeds)]
+        return self.interact(torch.concat(embedded, dim=-1))
 
-        if not self.has_context:
-            return torch.stack(embedded, dim=-1).sum(dim=-1)
 
-        h_rest = torch.stack([embedded[i] for i in self.rest_idx], dim=-1).sum(
-            dim=-1
-        )
-        c = torch.stack([embedded[i] for i in self.context_idx], dim=-1).sum(
-            dim=-1
-        )
+class CastToLong(nn.Module):
+    def forward(self, x):
+        return x.long()
 
-        gamma, beta = self.film(c).chunk(2, dim=-1)
-        h_mod = gamma * h_rest + beta
 
-        return h_mod
+class UnSqueeze(nn.Module):
+    def forward(self, x):
+        return x.unsqueeze(-1)
 
 
 class HiddenNone(nn.Module):

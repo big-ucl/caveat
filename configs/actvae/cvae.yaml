@@ -45,7 +45,7 @@ trainer_params:
   max_epochs: 300
 
 model_params:
-  name: "CVAEContLSTM"
+  name: "CVAEContLSTMCP"
   hidden_n: 4
   hidden_size: 256
   labels_hidden_size: 64

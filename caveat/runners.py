@@ -112,7 +112,7 @@ def run_command(
         # generate synthetic schedules
         synthetic_schedules, _, _ = generate(
             trainer=trainer,
-            population=synthetic_population,
+            input_labels=synthetic_population,
             schedule_encoder=schedule_encoder,
             attribute_encoder=attribute_encoder,
             config=config,
@@ -227,6 +227,7 @@ def batch_command(
                 synthetic_population, _ = attribute_encoder.encode(
                     synthetic_attributes
                 )
+                print(f"USING SYNTHETIC ATTRIBUTES FOR {name}")
             else:
                 synthetic_population = input_schedules.pid.nunique()
 
@@ -236,7 +237,7 @@ def batch_command(
             # generate synthetic schedules
             synthetic_schedules[name] = generate(
                 trainer=trainer,
-                population=synthetic_population,
+                input_labels=synthetic_population,
                 schedule_encoder=schedule_encoder,
                 attribute_encoder=attribute_encoder,
                 config=combined_config,
@@ -345,7 +346,7 @@ def nrun_command(
 
             synthetic_schedules[run_name] = generate(
                 trainer=trainer,
-                population=synthetic_population,
+                input_labels=synthetic_population,
                 schedule_encoder=schedule_encoder,
                 attribute_encoder=attribute_encoder,
                 config=config,
@@ -442,7 +443,7 @@ def ngen_command(
 
         synthetic_schedules[f"nsample{i}"] = generate(
             trainer=trainer,
-            population=synthetic_population,
+            input_labels=synthetic_population,
             schedule_encoder=schedule_encoder,
             attribute_encoder=attribute_encoder,
             config=config,
@@ -884,7 +885,7 @@ def test_inference(
 
 def generate(
     trainer: Trainer,
-    population: Union[int, Tensor],
+    input_labels: Union[int, Tensor],
     schedule_encoder: encoding.BaseEncoder,
     attribute_encoder: label_encoding.BaseLabelEncoder,
     config: dict,
@@ -902,11 +903,11 @@ def generate(
     latent_categories = config.get("model_params", {}).get("latent_categories")
     batch_size = config.get("generator_params", {}).get("batch_size", 256)
 
-    if isinstance(population, int):
-        print(f"\n======= Sampling {population} new schedules =======")
+    if isinstance(input_labels, int):
+        print(f"\n======= Sampling {input_labels} new schedules =======")
         synthetic_schedules, zs = generate_n(
             trainer,
-            n=population,
+            n=input_labels,
             batch_size=batch_size,
             latent_dims=latent_dims,
             seed=seed,
@@ -915,9 +916,9 @@ def generate(
             latent_categories=latent_categories,
         )
         synthetic_attributes = None
-    elif isinstance(population, Tensor):
+    elif isinstance(input_labels, Tensor):
         print(
-            f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
+            f"\n======= Sampling {len(input_labels)} new schedules from synthetic attributes ======="
         )
         (
             synthetic_attributes,
@@ -925,7 +926,7 @@ def generate(
             zs,
         ) = generate_from_attributes(
             trainer,
-            attributes=population,
+            attributes=input_labels,
             batch_size=batch_size,
             latent_dims=latent_dims,
             seed=seed,

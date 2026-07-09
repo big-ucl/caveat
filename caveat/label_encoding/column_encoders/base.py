@@ -2,7 +2,7 @@ import abc
 import sys
 from typing import Iterable, Optional
 
-import polars as pl
+import pandas as pd
 from torch import Tensor
 
 MAX_DECIMALS = sys.float_info.dig
@@ -20,17 +20,6 @@ class BaseEncoder(abc.ABC):
 
     def __str__(self):
         return f"{self.__class__.__name__}"
-
-    def read_polars(
-        self, data: Iterable, name: Optional[str] = None
-    ) -> pl.Series:
-        if not isinstance(data, pl.Series):
-            print(
-                f"Attempting to convert data ({type(data)}) to polars Series."
-            )
-            data = pl.Series(data)
-
-        return data
 
     @abc.abstractmethod
     def fit_and_encode(self, data: Iterable) -> Tensor:
@@ -55,21 +44,21 @@ class BaseEncoder(abc.ABC):
         """
 
     @abc.abstractmethod
-    def decode(self, data: Iterable) -> pl.Series:
+    def decode(self, data: Iterable) -> pd.Series:
         """Decode the data.
 
         Args:
             data (Iterable): input data to be decoded.
 
         Returns:
-            pl.Series: decoded data.
+            pd.Series: decoded data.
         """
 
-    def get_rounding(self, data: pl.Series) -> Optional[int]:
+    def get_rounding(self, data: pd.Series) -> Optional[int]:
         """Learn the number of digits to round data to.
 
         Args:
-            data (pl.Series):
+            data (pd.Series):
                 Data to learn the number of digits to round to.
 
         Returns:

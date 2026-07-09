@@ -1,8 +1,10 @@
 from typing import Iterable, Optional
 
-import polars as pl
-from robin.encoders.column_encoders.base import BaseEncoder
+import pandas as pd
+import pandas.api.types as ptypes
 from torch import Tensor, ones_like
+
+from caveat.label_encoding.column_encoders.base import BaseEncoder
 
 
 class MinMaxEncoder(BaseEncoder):
@@ -31,7 +33,7 @@ class MinMaxEncoder(BaseEncoder):
         self.size = 1
 
     def fit_and_encode(self, data: Iterable) -> Tensor:
-        if not data.dtype.is_numeric():
+        if not ptypes.is_numeric_dtype(data):
             raise ValueError(
                 "ContinuousEncoder only supports numeric data types."
             )
@@ -59,10 +61,10 @@ class MinMaxEncoder(BaseEncoder):
         weights = ones_like(encoded)
         return encoded, weights
 
-    def decode(self, data: Iterable) -> pl.Series:
-        data = pl.Series(data.squeeze(-1))
+    def decode(self, data: Iterable) -> pd.Series:
+        data = pd.Series(data.squeeze(-1))
         data = ((data + 1.0) * self.range / 2.0) + self.mini
-        data = data.cast(self.dtype)
+        data = data.astype(self.dtype)
         if self._learn_rounding and self._rounding_digits is not None:
             data = data.round(self._rounding_digits)
         return data
@@ -109,8 +111,8 @@ class StandardScalerEncoder(BaseEncoder):
         weights = ones_like(encoded)
         return encoded, weights
 
-    def decode(self, data: Iterable) -> pl.Series:
-        data = pl.Series(data.squeeze(-1))
+    def decode(self, data: Iterable) -> pd.Series:
+        data = pd.Series(data.squeeze(-1))
         data = (data * self.std) * 4 + self.mean
         data = data.cast(self.dtype)
         if self._learn_rounding and self._rounding_digits is not None:

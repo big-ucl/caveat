@@ -206,7 +206,7 @@ def mmrun_command(
 
             generated_schedules, generated_attributes, zs = generate(
                 trainer=trainer,
-                population=synthetic_population,
+                input_labels=synthetic_population,
                 schedule_encoder=schedule_encoder,
                 attribute_encoder=attribute_encoder,
                 config=config,

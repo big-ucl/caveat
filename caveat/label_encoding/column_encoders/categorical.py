@@ -1,9 +1,10 @@
 from typing import Iterable, Optional
 
-import polars as pl
-from robin.encoders.column_encoders.base import BaseEncoder
-from robin.encoders.utils import inverse_token_frequency, tokenize
+import pandas as pd
 from torch import Tensor
+
+from caveat.label_encoding.column_encoders.base import BaseEncoder
+from caveat.label_encoding.tokenise import tokenize
 
 
 class CategoricalTokeniser(BaseEncoder):
@@ -31,7 +32,6 @@ class CategoricalTokeniser(BaseEncoder):
     def _fit(self, data: Iterable) -> Tensor:
         self.dtype = data.dtype
         encoded, self.mapping = tokenize(data)
-        self._token_weights = inverse_token_frequency(encoded)
         self.size = len(self.mapping)
 
         if self.verbose:
@@ -50,11 +50,10 @@ class CategoricalTokeniser(BaseEncoder):
 
     def encode(self, data: Iterable) -> tuple[Tensor, Tensor]:
         encoded = tokenize(data, self.mapping)[0]
-        weights = self._token_weights[encoded.long()]
-        return encoded.unsqueeze(-1), weights.unsqueeze(-1)
+        return encoded.unsqueeze(-1), None
 
-    def decode(self, data: Iterable, safe: bool = True) -> pl.Series:
-        data = pl.Series(data.squeeze(-1)).cast(pl.Int8)
+    def decode(self, data: Iterable, safe: bool = True) -> pd.Series:
+        data = pd.Series(data.squeeze(-1)).astype(self.dtype)
         reverse_mapping = {v: k for k, v in self.mapping.items()}
         if safe:
             missing = set(data.unique()) - set(reverse_mapping.keys())
@@ -62,5 +61,5 @@ class CategoricalTokeniser(BaseEncoder):
                 raise ValueError(
                     f"Missing categories in data: {missing}. Please check your encoding."
                 )
-        data = data.replace_strict(reverse_mapping, return_dtype=self.dtype)
+        data = data.map(reverse_mapping).astype(self.dtype)
         return data
