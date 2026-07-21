@@ -74,15 +74,22 @@ class CVAEContLSTMCP(Base):
             return ConcatLabelEncoder(
                 label_embed_sizes=self.label_embed_sizes,
                 hidden_size=self.labels_hidden_size,
+                label_hidden_size=config.get("label_hidden_size", 8),
             )
         elif label_encoder_type == "add":
             return AddLabelEncoder(
                 label_embed_sizes=self.label_embed_sizes,
                 hidden_size=self.labels_hidden_size,
             )
+        elif label_encoder_type == "film":
+            return FiLMSourceEncoder(
+                label_embed_sizes=self.label_embed_sizes,
+                hidden_size=self.labels_hidden_size,
+                label_hidden_size=config.get("label_hidden_size", 8),
+            )
         else:
             raise ValueError(
-                f"Unknown label encoder type: {label_encoder_type}, should be 'concat' or 'add'"
+                f"Unknown label encoder type: {label_encoder_type}, should be 'concat', 'add', or 'film'"
             )
 
     def build_encoder_hidden(self, config):
@@ -236,13 +243,27 @@ class CVAEContLSTMCP(Base):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var, c_mu, c_log_var = self.encode(x, labels)
-        z = self.reparameterize(mu, log_var)
+        mu_q, log_var_q, mu_p, log_var_p = self.encode(x, labels)
+        z = self.reparameterize_anchored(mu_q, log_var_q, mu_p)
 
         log_prob_y = self.decode(z, labels=labels, target=target)
-        return [log_prob_y, [mu, c_mu], [log_var, c_log_var], z]
+        return [log_prob_y, [mu_q, mu_p], [log_var_q, log_var_p], z]
 
-    def kld(self, mu: List[Tensor], log_var: List[Tensor]) -> Tensor:
+    def reparameterize_anchored(self, mu_q, log_var_q, mu_p):
+        std_q = torch.exp(0.5 * log_var_q)
+        eps = torch.randn_like(std_q)
+        z_post = mu_q + std_q * eps
+
+        alpha_t = self.anchor_alpha
+        z_t = alpha_t * z_post + (1 - alpha_t) * mu_p.detach()
+        return z_t
+
+    def kld(
+        self,
+        mu: List[Tensor],
+        log_var: List[Tensor],
+        joint_weights: Optional[Tensor] = None,
+    ) -> Tensor:
         """
         KL( q(z|x,c) || p(z|c) )
         Both are Gaussians so closed form applies.
@@ -260,7 +281,10 @@ class CVAEContLSTMCP(Base):
 
         # Free bits: only penalise KL above the floor
         kl_per_dim = torch.clamp(kl_per_dim, min=self.free_bits)
-        return kl_per_dim.sum(dim=-1).mean()  # mean over batch
+        losses = kl_per_dim.sum(dim=-1)
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses  # mean over batch
 
     def au_diagnostic(self, mu: List[Tensor]) -> Tensor:
         """Conditional AU: is the encoder adding anything beyond the prior?
@@ -377,16 +401,21 @@ class AddLabelEncoder(nn.Module):
                     nn.Sequential(CastToLong(), nn.Embedding(s, hidden_size))
                 )
         self.embeds = nn.ModuleList(embeds)
+        self.ff = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, hidden_size),
+        )
 
     def forward(self, x):
         x = torch.stack(
             [embed(x[:, i]) for i, embed in enumerate(self.embeds)], dim=-1
         ).sum(dim=-1)
-        return x
+        return self.ff(x)
 
 
 class ConcatLabelEncoder(nn.Module):
-    def __init__(self, label_embed_sizes, hidden_size, label_hidden_size=16):
+    def __init__(self, label_embed_sizes, hidden_size, label_hidden_size=8):
         """Label Encoder using mixed embeddings, with FiLM-based interaction.
 
         A label embedding size of one signifies a continuous variable.
@@ -405,13 +434,87 @@ class ConcatLabelEncoder(nn.Module):
                     )
                 )
         self.embeds = nn.ModuleList(embeds)
-        self.interact = nn.Linear(
-            label_hidden_size * len(label_embed_sizes), hidden_size
+        self.ff = nn.Sequential(
+            nn.Linear(label_hidden_size * len(label_embed_sizes), hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, hidden_size),
         )
 
     def forward(self, x):
         embedded = [embed(x[:, i]) for i, embed in enumerate(self.embeds)]
-        return self.interact(torch.concat(embedded, dim=-1))
+        return self.ff(torch.concat(embedded, dim=-1))
+
+
+class FiLMSourceEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size, label_hidden_size=8):
+        """Label Encoder using mixed embeddings, with FiLM-based interaction.
+
+        The first label (assumed to be `source`) is embedded separately and
+        used to produce FiLM parameters (gamma, beta) that modulate the fused
+        representation of the remaining labels, rather than being concatenated
+        in directly.
+
+        A label embedding size of one signifies a continuous variable.
+        """
+        super().__init__()
+
+        # --- source embedding (index 0) ---
+        source_size = label_embed_sizes[0]
+        if source_size == 1:
+            self.source_embed = nn.Sequential(
+                UnSqueeze(), nn.Linear(1, label_hidden_size)
+            )
+        else:
+            self.source_embed = nn.Sequential(
+                CastToLong(), nn.Embedding(source_size, label_hidden_size)
+            )
+
+        # FiLM generator: source embedding -> (gamma, beta), each of size hidden_size
+        self.film_generator = nn.Sequential(
+            nn.Linear(label_hidden_size, hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, hidden_size * 2),
+        )
+
+        # --- remaining label embeddings ---
+        other_sizes = label_embed_sizes[1:]
+        embeds = []
+        for s in other_sizes:
+            if s == 1:
+                embeds.append(
+                    nn.Sequential(UnSqueeze(), nn.Linear(1, label_hidden_size))
+                )
+            else:
+                embeds.append(
+                    nn.Sequential(
+                        CastToLong(), nn.Embedding(s, label_hidden_size)
+                    )
+                )
+        self.embeds = nn.ModuleList(embeds)
+
+        # fuse remaining labels up to hidden_size, then FiLM is applied on top
+        self.fuse_in = nn.Linear(
+            label_hidden_size * len(other_sizes), hidden_size
+        )
+        self.act = nn.LeakyReLU()
+        self.fuse_out = nn.Linear(hidden_size, hidden_size)
+
+    def forward(self, x):
+        # source is column 0
+        source_embed = self.source_embed(x[:, 0])
+        gamma, beta = self.film_generator(source_embed).chunk(2, dim=-1)
+
+        # remaining labels
+        other_embedded = [
+            embed(x[:, i + 1]) for i, embed in enumerate(self.embeds)
+        ]
+        h = self.fuse_in(torch.concat(other_embedded, dim=-1))
+
+        # FiLM modulation: scale/shift conditioned on source
+        h = (1 + gamma) * h + beta
+
+        h = self.act(h)
+        return self.fuse_out(h)
 
 
 class CastToLong(nn.Module):

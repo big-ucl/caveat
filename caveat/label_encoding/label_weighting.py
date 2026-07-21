@@ -33,6 +33,15 @@ def inverse_weight(labels: Tensor) -> Tensor:
     return weights.unsqueeze(-1)
 
 
+def inverse_first_weight(labels: Tensor) -> Tensor:
+    _, locs, ws = torch.unique(
+        labels[:, 0], dim=0, return_counts=True, return_inverse=True
+    )
+    weights = 1 / ws[locs].float()
+    weights = weights / weights.mean()
+    return weights.unsqueeze(-1)
+
+
 def log_inverse_weight(labels: Tensor) -> Tensor:
     _, locs, ws = torch.unique(
         labels, dim=0, return_counts=True, return_inverse=True

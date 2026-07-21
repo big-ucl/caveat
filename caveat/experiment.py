@@ -70,6 +70,7 @@ class Experiment(pl.LightningModule):
         print(f"Found KLD weight: {self.beta}")
         self.free_bits = kwargs.get("free_bits", 0.0)
         print(f"Found free bits: {self.free_bits}")
+        self.anchor_alpha = 1.0
         self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
         self.duration_loss_weight = kwargs.get("duration_loss_weight", 200.0)
         self.start_loss_weight = kwargs.get("start_loss_weight", 0.0)

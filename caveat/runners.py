@@ -5,8 +5,8 @@ from typing import Optional, Tuple, Union
 
 import pandas as pd
 import torch
-from acteval import compare, compare_splits
 from acteval._report import print_markdown
+from acteval.evaluate import Evaluator
 from pandas import DataFrame
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -18,7 +18,9 @@ from caveat import cuda_available, data, encoding, label_encoding, models
 from caveat.callbacks import (
     CollapseMonitor,
     CyclicalBetaAnnealer,
+    EpsilonAnchorScheduler,
     LinearLossScheduler,
+    PriorSeparationMonitor,
 )
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
@@ -622,50 +624,6 @@ def batch_eval_command(
     )
 
 
-def report_command(
-    observed_path: Path,
-    log_dir: Path,
-    name: str = "synthetic_schedules.csv",
-    verbose: bool = False,
-    head: int = 10,
-    batch: bool = False,
-    stats: bool = True,
-):
-    observed_path = Path(observed_path)
-    log_dir = Path(log_dir)
-    observed = data.load_and_validate_schedules(observed_path)
-    synthetic_schedules = {}
-    if batch:
-        paths = [p for p in log_dir.iterdir() if p.is_dir()]
-    else:
-        paths = [log_dir]
-
-    for experiment in paths:
-        # get most recent version
-        version = sorted([d for d in experiment.iterdir() if d.is_dir()])[-1]
-        path = experiment / version.name / name
-        synthetic_schedules[experiment.name] = data.load_and_validate_schedules(
-            path
-        )
-
-    print("Unconditional Evaluation...")
-    result = compare(
-        target_schedules=observed,
-        synthetic_schedules=synthetic_schedules,
-        report_stats=stats,
-    )
-    print("\nDomain distances (lower is better):")
-    print_markdown(result.domains.combined.distances)
-    ranked = result.rank_models()
-    print(f"\nMean distance: {dict(ranked)}")
-    print(f"Best model: {result.best_model}")
-
-    write_path = log_dir / "evaluation"
-    write_path.mkdir(exist_ok=True, parents=True)
-    result.save(write_path)
-    print(f"\nResults saved to {write_path}")
-
-
 def load_data(
     config: dict, verbose: bool = False
 ) -> Tuple[DataFrame, DataFrame, DataFrame]:
@@ -705,6 +663,13 @@ def encode_schedules(
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule]:
     # encode schedules
     schedule_encoder = build_schedule_encoder(config)
+    n_schedules = schedules.pid.nunique()
+    n_labels = attributes.shape[0] if attributes is not None else 0
+    print(
+        f"=== Encoding schedules with {schedule_encoder.__class__.__name__}..."
+    )
+    print(f"   - Number of schedules: {n_schedules}")
+    print(f"   - Number of persons: {n_labels}")
     encoded_schedules = schedule_encoder.encode(
         schedules=schedules, labels=attributes, label_weights=label_weights
     )
@@ -1050,28 +1015,32 @@ def evaluate_synthetics(
         else:
             eval_attributes = default_eval_attributes
 
-        result = compare_splits(
-            observed=eval_schedules,
-            synthetic_schedules=synthetic_schedules,
-            synthetic_attributes=synthetic_labels,
+        evaluator = Evaluator(
+            target=eval_schedules,
             target_attributes=eval_attributes,
             split_on=split_on,
+            progress=verbose,
+        )
+        result = evaluator.compare(
+            synthetic=synthetic_schedules,
+            attributes=synthetic_labels,
             verbose=verbose,
         )
-        print("\nDomain distances by attribute:")
         print_markdown(result.domains.by_attribute.distances)
         print("\nDomain distances (lower is better):")
         print_markdown(result.domains.combined.distances)
         ranked = result.rank_models()
-        print(f"\nMean distance: {dict(ranked)}")
+        print("\nMean distances:")
+        for k, v in ranked.items():
+            print(f"\t{k}: {v}")
         print(f"Best model: {result.best_model}")
 
     else:
         print("Unconditional Evaluation...")
-        result = compare(
-            observed=eval_schedules,
-            synthetic=synthetic_schedules,
-            verbose=verbose,
+
+        evaluator = Evaluator(target=eval_schedules, progress=verbose)
+        result = evaluator.compare(
+            synthetic=synthetic_schedules, verbose=verbose
         )
         print("\nDomain distances (lower is better):")
         print_markdown(result.domains.combined.distances)
@@ -1155,6 +1124,10 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
     collapse_monitoring_config = trainer_config.pop("collapse_monitoring", {})
     loss_scheduling_config = trainer_config.pop("loss_scheduling", {})
     beta_scheduling_config = trainer_config.pop("beta_scheduling", {})
+    anchor_scheduling_config = trainer_config.pop("anchor_scheduling", {})
+    prior_separation_config = trainer_config.pop(
+        "prior_separation_monitoring", {}
+    )
 
     callbacks = [
         ModelCheckpoint(
@@ -1183,6 +1156,12 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
     if beta_scheduling_config.get("enabled", False):
         callbacks.append(CyclicalBetaAnnealer(beta_scheduling_config))
 
+    if anchor_scheduling_config.pop("enabled", False):
+        callbacks.append(EpsilonAnchorScheduler(anchor_scheduling_config))
+
+    if prior_separation_config.get("enabled", False):
+        callbacks.append(PriorSeparationMonitor(prior_separation_config))
+
     return Trainer(logger=logger, callbacks=callbacks, **trainer_config)
 
 
@@ -1197,6 +1176,7 @@ def initiate_logger(save_dir: Union[Path, str], name: str) -> TensorBoardLogger:
     Returns:
         TensorBoardLogger: The initialized TensorBoardLogger object.
     """
+    print(f"\n=== Initializing logging for {name} to {save_dir}/{name} ===")
     tb_logger = TensorBoardLogger(save_dir=save_dir, name=name)
     Path(f"{tb_logger.log_dir}/samples").mkdir(exist_ok=True, parents=True)
     Path(f"{tb_logger.log_dir}/reconstructions").mkdir(

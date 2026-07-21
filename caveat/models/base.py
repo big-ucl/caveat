@@ -121,12 +121,15 @@ class Base(Experiment):
         eps = torch.randn_like(std)
         return (eps * std) + mu
 
-    def kld(self, mu, log_var):
+    def kld(self, mu, log_var, joint_weights=None) -> Tensor:
         # Per-dimension KL, then apply free bits floor
         kl_per_dim = -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
         # Free bits: only penalise KL above the floor
         kl_per_dim = torch.clamp(kl_per_dim, min=self.free_bits)
-        return kl_per_dim.sum(dim=-1).mean()  # mean over batch
+        losses = kl_per_dim.sum(dim=-1)
+        if joint_weights is not None:
+            losses = losses * joint_weights
+        return losses  # mean over batch
 
     def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -439,7 +442,7 @@ class Base(Experiment):
         )
 
         # kld loss
-        kld_loss = self.kld(mu, log_var)
+        kld_loss = self.kld(mu, log_var, joint_weights=joint_weights)
         scheduled_kld_weight = self.beta * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 

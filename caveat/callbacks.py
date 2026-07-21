@@ -1,7 +1,164 @@
+from collections import defaultdict
+
 import numpy as np
 import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
+
+
+class EpsilonAnchorScheduler(Callback):
+    """
+    Linearly ramps `pl_module.anchor_alpha` from `start_alpha` to `end_alpha`
+    over `warmup_epochs`. The module reads `self.anchor_alpha` inside its
+    reparameterization step to interpolate between the conditional prior
+    mean (alpha=0) and the true posterior sample (alpha=1).
+    """
+
+    def __init__(self, config: dict):
+        super().__init__()
+        warmup_epochs: int = config.get("warmup_epochs", 20)
+        start_alpha: float = config.get("start_alpha", 0.0)
+        end_alpha: float = config.get("end_alpha", 1.0)
+        print(
+            f"[EpsilonAnchorScheduler] warmup_epochs={warmup_epochs}, "
+            f"start_alpha={start_alpha}, end_alpha={end_alpha}"
+        )
+        self.warmup_epochs = warmup_epochs
+        self.start_alpha = start_alpha
+        self.end_alpha = end_alpha
+
+    def _compute_alpha(self, current_epoch: int) -> float:
+        if self.warmup_epochs <= 0:
+            return self.end_alpha
+        progress = min(max(current_epoch / self.warmup_epochs, 0.0), 1.0)
+        return self.start_alpha + (self.end_alpha - self.start_alpha) * progress
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        alpha = self._compute_alpha(trainer.current_epoch)
+        pl_module.anchor_alpha = alpha
+        pl_module.log("train/anchor_alpha", alpha, on_step=False, on_epoch=True)
+
+
+class PriorSeparationMonitor(Callback):
+    def __init__(self, config: dict):
+        self.source_index = config.get(
+            "source_index", 0
+        )  # column in `c` holding source
+        self.check_every_n_epochs = config.get("check_every_n_epochs", 5)
+        self.warn_separation_below = config.get("warn_separation_below", 1.0)
+        self.min_samples_per_source = config.get("min_samples_per_source", 8)
+
+        # Storage across batches within an epoch, keyed by source value
+        self._mu_p_by_source = defaultdict(list)
+
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx
+    ):
+        """Collect conditional-prior means per source for separation diagnostics."""
+        if trainer.current_epoch % self.check_every_n_epochs != 0:
+            return
+
+        (x, _), _, (c, l_weights) = batch
+        with torch.no_grad():
+            mu_p, log_var_p = pl_module.prior_net(pl_module.label_encoder(c))
+
+        source_vals = c[:, self.source_index] if c.dim() > 1 else c
+        for source_id in source_vals.unique().tolist():
+            mask = source_vals == source_id
+            self._mu_p_by_source[source_id].append(mu_p[mask].cpu())
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Compute prior separation diagnostics and log."""
+        if trainer.current_epoch % self.check_every_n_epochs != 0:
+            self._reset()
+            return
+
+        sources = {
+            source_id: torch.cat(chunks, dim=0)
+            for source_id, chunks in self._mu_p_by_source.items()
+            if sum(c.shape[0] for c in chunks) >= self.min_samples_per_source
+        }
+
+        if len(sources) < 2:
+            print(
+                f"\n  [PriorSeparationMonitor] epoch {trainer.current_epoch}: "
+                f"fewer than 2 sources with sufficient samples — skipping."
+            )
+            self._reset()
+            return
+
+        metrics = {}
+
+        # 1. Pairwise centroid distances between sources
+        centroids = {sid: mu.mean(dim=0) for sid, mu in sources.items()}
+        ids = list(centroids.keys())
+        pairwise_dists = []
+        for i in range(len(ids)):
+            for j in range(i + 1, len(ids)):
+                dist = torch.norm(
+                    centroids[ids[i]] - centroids[ids[j]], p=2
+                ).item()
+                pairwise_dists.append(dist)
+                metrics[f"separation/prior_dist_{ids[i]}_{ids[j]}"] = dist
+
+        # 2. Separation ratio: between-source spread vs within-source spread
+        # (analogous to an F-ratio; >1 means sources are more separated than
+        # each source's own internal scatter, i.e. genuinely distinguishable)
+        all_mu = torch.cat(list(sources.values()), dim=0)
+        grand_mean = all_mu.mean(dim=0)
+
+        between_var = (
+            sum(
+                mu.shape[0] * (centroids[sid] - grand_mean).pow(2).sum().item()
+                for sid, mu in sources.items()
+            )
+            / all_mu.shape[0]
+        )
+
+        within_var = (
+            sum(
+                (mu - centroids[sid]).pow(2).sum().item()
+                for sid, mu in sources.items()
+            )
+            / all_mu.shape[0]
+        )
+
+        separation_ratio = between_var / (within_var + 1e-8)
+        metrics["separation/prior_separation_ratio"] = separation_ratio
+        metrics["separation/mean_pairwise_dist"] = float(
+            np.mean(pairwise_dists)
+        )
+
+        pl_module.log_dict(metrics, on_epoch=True)
+
+        # 3. Human-readable warnings
+        self._emit_warnings(trainer, separation_ratio, pairwise_dists)
+
+        self._reset()
+
+    def _emit_warnings(self, trainer, separation_ratio, pairwise_dists):
+        epoch = trainer.current_epoch
+        issues = []
+
+        if separation_ratio < self.warn_separation_below:
+            issues.append(
+                f"  [PRIOR NOT SEPARATED] separation_ratio = {separation_ratio:.4f} "
+                f"(< {self.warn_separation_below}). Conditional prior means are not "
+                f"well-separated across sources relative to within-source scatter."
+            )
+
+        if issues:
+            print(f"\n  Epoch {epoch} prior separation warnings:")
+            for msg in issues:
+                print(msg)
+        # else:
+        #     print(
+        #         f"\n Epoch {epoch}: prior separation healthy "
+        #         f"(ratio={separation_ratio:.3f}, mean_dist={np.mean(pairwise_dists):.3f})"
+        #     )
+
+    def _reset(self):
+        self._mu_p_by_source.clear()
 
 
 class CollapseMonitor(Callback):

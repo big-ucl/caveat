@@ -5,12 +5,12 @@ global:
     log_dir: "logs/foundations2"
     name: "B"
   
-  synthetic_attributes_path: "tmp/foundation/experiment_b/nts_attributes_2024.csv"
+  synthetic_attributes_path: "../foundata/output/nts_2023/binned_attributes.csv"
   
   evaluation_params:
     split_on: [age, sex, employment, hh_income, hh_zone, day, vehicles, access_egress_distance]
-    schedules_path: "tmp/foundation/experiment_b/nts_activities_2024.csv"
-    attributes_path: "tmp/foundation/experiment_b/nts_attributes_2024.csv"
+    schedules_path: "../foundata/output/nts_2023/activities.csv"
+    attributes_path: "../foundata/output/nts_2023/binned_attributes.csv"
 
   encoder_params:
     name: "continuous"
@@ -30,12 +30,19 @@ global:
     test_split: 0.1
 
   trainer_params:
-    min_epochs: 50
-    patience: 20
-    max_epochs: 200
+    min_epochs: 20
+    patience: 10
+    max_epochs: 100
     beta_scheduling:
       enabled: False
     collapse_monitoring:
+      enabled: True
+    anchor_scheduling:
+      enabled: True
+      warmup_epochs: 10
+      start_alpha: 0.0
+      end_alpha: 1.0
+    prior_separation_monitoring:
       enabled: True
 
   experiment_params:
@@ -45,57 +52,31 @@ global:
     kld_weight: 0.01
     duration_loss_weight: 200
 
-baseline_add:
-  schedules_path: "tmp/foundation/experiment_b/nts_activities_2024.csv"
-  attributes_path: "tmp/foundation/experiment_b/nts_attributes_2024.csv"
-  labels_encoder:
-    name: "table"
-    weighting: unit
-    joint_weighting: inverse
-    labels:
-      age: nominal
-      sex: nominal
-      employment: nominal
-      hh_income: nominal
-      hh_zone: nominal
-      day: nominal
-      vehicles: nominal
-      access_egress_distance: nominal
-  model_params:
-    name: "CVAEContLSTMCP"
-    hidden_n: 4
-    hidden_size: 256
-    labels_hidden_size: 64
-    latent_dim: 6
-    dropout: 0
-    teacher_forcing_ratio: 0.5
-    hidden_conditionality: add
-    encoder_conditionality: none
-    latent_conditionality: add
-    decoder_conditionality: none
-    label_encoder: add
 
-world_add:
-  schedules_path: "tmp/foundation/experiment_b/world_activities.csv"
-  attributes_path: "tmp/foundation/experiment_b/world_attributes.csv"
+world_2023_concat:
+  schedules_path: "../foundata/output/world_2023/activities.csv"
+  attributes_path: "../foundata/output/world_2023/binned_attributes.csv"
   labels_encoder:
     name: "table"
     weighting: unit
-    joint_weighting: inverse
+    joint_weighting: inverse_first
     labels:
+      source: nominal
+      year: nominal
       age: nominal
-      sex: nominal
+      # sex: nominal
       employment: nominal
       hh_income: nominal
       hh_zone: nominal
       day: nominal
-      vehicles: nominal
-      access_egress_distance: nominal
+      # vehicles: nominal
+      # access_egress_distance: nominal
   model_params:
     name: "CVAEContLSTMCP"
     hidden_n: 4
     hidden_size: 256
     labels_hidden_size: 64
+    label_hidden_size: 8
     latent_dim: 6
     dropout: 0
     teacher_forcing_ratio: 0.5
@@ -103,29 +84,32 @@ world_add:
     encoder_conditionality: none
     latent_conditionality: add
     decoder_conditionality: none
-    label_encoder: add
+    label_encoder: film
 
 baseline_concat:
-  schedules_path: "tmp/foundation/experiment_b/nts_activities_2024.csv"
-  attributes_path: "tmp/foundation/experiment_b/nts_attributes_2024.csv"
+  schedules_path: "../foundata/output/nts_2023/activities.csv"
+  attributes_path: "../foundata/output/nts_2023/binned_attributes.csv"
   labels_encoder:
     name: "table"
     weighting: unit
-    joint_weighting: inverse
+    joint_weighting: inverse_first
     labels:
+      source: nominal
+      year: nominal
       age: nominal
-      sex: nominal
+      # sex: nominal
       employment: nominal
       hh_income: nominal
       hh_zone: nominal
       day: nominal
-      vehicles: nominal
-      access_egress_distance: nominal
+      # vehicles: nominal
+      # access_egress_distance: nominal
   model_params:
     name: "CVAEContLSTMCP"
     hidden_n: 4
     hidden_size: 256
     labels_hidden_size: 64
+    label_hidden_size: 8
     latent_dim: 6
     dropout: 0
     teacher_forcing_ratio: 0.5
@@ -133,29 +117,65 @@ baseline_concat:
     encoder_conditionality: none
     latent_conditionality: add
     decoder_conditionality: none
-    label_encoder: concat
+    label_encoder: film
+
+nts_concat:
+  schedules_path: "../foundata/output/nts/activities.csv"
+  attributes_path: "../foundata/output/nts/binned_attributes.csv"
+  labels_encoder:
+    name: "table"
+    weighting: unit
+    joint_weighting: inverse_first
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      # sex: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+      # vehicles: nominal
+      # access_egress_distance: nominal
+  model_params:
+    name: "CVAEContLSTMCP"
+    hidden_n: 4
+    hidden_size: 256
+    labels_hidden_size: 64
+    label_hidden_size: 8
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    hidden_conditionality: add
+    encoder_conditionality: none
+    latent_conditionality: add
+    decoder_conditionality: none
+    label_encoder: film
 
 world_concat:
-  schedules_path: "tmp/foundation/experiment_b/world_activities.csv"
-  attributes_path: "tmp/foundation/experiment_b/world_attributes.csv"
+  schedules_path: "../foundata/output/world/activities.csv"
+  attributes_path: "../foundata/output/world/binned_attributes.csv"
   labels_encoder:
     name: "table"
     weighting: unit
-    joint_weighting: inverse
+    joint_weighting: inverse_first
     labels:
+      source: nominal
+      year: nominal
       age: nominal
-      sex: nominal
+      # sex: nominal
       employment: nominal
       hh_income: nominal
       hh_zone: nominal
       day: nominal
-      vehicles: nominal
-      access_egress_distance: nominal
+      # vehicles: nominal
+      # access_egress_distance: nominal
   model_params:
     name: "CVAEContLSTMCP"
     hidden_n: 4
     hidden_size: 256
     labels_hidden_size: 64
+    label_hidden_size: 8
     latent_dim: 6
     dropout: 0
     teacher_forcing_ratio: 0.5
@@ -163,7 +183,7 @@ world_concat:
     encoder_conditionality: none
     latent_conditionality: add
     decoder_conditionality: none
-    label_encoder: concat
+    label_encoder: film
 
 
 

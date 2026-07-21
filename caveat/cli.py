@@ -15,7 +15,6 @@ from caveat.runners import (
     eval_command,
     ngen_command,
     nrun_command,
-    report_command,
     run_command,
 )
 
@@ -235,25 +234,6 @@ def ngen(
         ngen_command(
             config, n=n, stats=stats, infer=not no_infer, verbose=verbose
         )
-
-
-@cli.command()
-@click.argument("observed_path", type=click.Path(exists=True))
-@click.argument("logs_dir", type=click.Path(exists=True))
-@click.option("--name", type=str, default="synthetic_schedules.csv")
-@click.option("--verbose", is_flag=True)
-@click.option("--head", type=int, default=10)
-@click.option("--batch", "-b", is_flag=True)
-def report(
-    observed_path: click.Path,
-    logs_dir: click.Path,
-    name: str,
-    verbose: bool,
-    head: int,
-    batch: bool,
-):
-    """Report on the given observed population and logs directory."""
-    report_command(observed_path, logs_dir, name, verbose, head, batch)
 
 
 @cli.command()
