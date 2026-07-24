@@ -129,7 +129,7 @@ class Base(Experiment):
         losses = kl_per_dim.sum(dim=-1)
         if joint_weights is not None:
             losses = losses * joint_weights
-        return losses  # mean over batch
+        return losses.mean()  # mean over batch
 
     def encode(self, input: Tensor, labels: Optional[Tensor]) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.

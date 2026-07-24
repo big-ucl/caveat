@@ -2,16 +2,71 @@ from pathlib import Path
 
 import pandas as pd
 
-YEAR = 2024
-YEARS = [2021, 2022, 2023, 2024]
-REQUIRED = []
-
-root = Path("tmp/foundation")
-out = root / "experiment_b"
+YEAR_FILTERS = {
+    "24": [2024],
+    "23-24": [2024, 2023],
+    "20-24": [2024, 2023, 2022, 2021, 2020],
+    "10-24": [
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013,
+        2012,
+        2011,
+        2010,
+    ],
+    "00-24": [
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013,
+        2012,
+        2011,
+        2010,
+        2009,
+        2008,
+        2007,
+        2006,
+        2005,
+        2004,
+        2003,
+        2002,
+        2001,
+        2000,
+    ],
+}
+FILTERS = {
+    "london": ["ltds"],
+    "uk": ["ltds", "nts"],
+    "europe": ["ltds", "nts", "odin"],
+    "west": ["ltds", "nts", "odin", "nhts", "cmap"],
+    "global": ["ltds", "nts", "odin", "nhts", "cmap", "ktdb"],
+}
+in_root = Path("~/Projects/foundata/output/world").expanduser()
+write_root = Path("tmp/foundation")
+out = write_root / "experiment"
 out.mkdir(parents=True, exist_ok=True)
 
-all_attributes = pd.read_csv(root / "binned_attributes.csv", low_memory=False)
-all_activities = pd.read_csv(root / "activities.csv", low_memory=False)
+all_attributes = pd.read_csv(
+    in_root / "binned_attributes.csv", low_memory=False
+)
+all_activities = pd.read_csv(in_root / "activities.csv", low_memory=False)
 
 n_people = all_attributes.shape[0]
 n_activities = all_activities.shape[0]
@@ -19,60 +74,30 @@ n_activities = all_activities.shape[0]
 print(f"Total number of people: {n_people}")
 print(f"Total number of activities: {n_activities}")
 
-print(f"Filter for {REQUIRED} not unknwon")
-for required in REQUIRED:
-    all_attributes = all_attributes[all_attributes[required] != "unknown"]
-pids = all_attributes["pid"].unique()
-all_activities = all_activities[all_activities["pid"].isin(pids)]
+all_attributes.to_csv(out / "all_attributes.csv", index=False)
+all_activities.to_csv(out / "all_activities.csv", index=False)
 
-print(f"Filter for {YEARS}")
-all_attributes = all_attributes[all_attributes["year"].isin(YEARS)]
-pids = all_attributes["pid"].unique()
-all_activities = all_activities[all_activities["pid"].isin(pids)]
+for years_name, years in YEAR_FILTERS.items():
+    _attributes = all_attributes[all_attributes["year"].isin(years)]
+    pids = _attributes["pid"].unique()
+    _activities = all_activities[all_activities["pid"].isin(pids)]
 
-n_people = all_attributes.shape[0]
-n_activities = all_activities.shape[0]
+    for source_name, sources in FILTERS.items():
+        print(f"\n-> Filtered for {years_name} {source_name}:")
 
-print(f"Total number of people: {n_people}")
-print(f"Total number of activities: {n_activities}")
+        attributes = _attributes[_attributes["source"].isin(sources)]
+        pids = attributes["pid"].unique()
+        activities = _activities[_activities["pid"].isin(pids)]
 
-# baseline; just NTS YEAR
+        attributes.to_csv(
+            out / f"{years_name}_{source_name}_attributes.csv", index=False
+        )
+        activities.to_csv(
+            out / f"{years_name}_{source_name}_activities.csv", index=False
+        )
 
-nts_attributes_2024 = all_attributes[
-    (all_attributes["year"] == YEAR) & (all_attributes["source"] == "nts")
-]
-pids = nts_attributes_2024["pid"].unique()
-nts_activities_2024 = all_activities[all_activities["pid"].isin(pids)]
+        n_atts = attributes.shape[0]
+        n_acts = activities.shape[0]
 
-n_people = nts_attributes_2024.shape[0]
-n_activities = nts_activities_2024.shape[0]
-
-print(f"NTS 2024 number of people: {n_people}")
-print(f"NTS 2024 number of activities: {n_activities}")
-
-nts_attributes_2024.to_csv(out / "nts_attributes_2024.csv", index=False)
-nts_activities_2024.to_csv(out / "nts_activities_2024.csv", index=False)
-
-for name, selection in {
-    "uk": ["ltds"],
-    "uk+aus": ["ltds", "vista", "qhts"],
-    "west": ["ltds", "nhts", "vista", "qhts", "cmap"],
-    "world": ["ltds", "nhts", "vista", "qhts", "cmap", "ktdb"],
-}.items():
-    print(f"\n-> Filter for {name} (sources: {selection})")
-    attributes = all_attributes[all_attributes["source"].isin(selection)]
-    pids = attributes["pid"].unique()
-    activities = all_activities[all_activities["pid"].isin(pids)]
-
-    # concat nts 2024 to the attributes and activities
-    attributes = pd.concat([attributes, nts_attributes_2024], ignore_index=True)
-    activities = pd.concat([activities, nts_activities_2024], ignore_index=True)
-
-    attributes.to_csv(out / f"{name}_attributes.csv", index=False)
-    activities.to_csv(out / f"{name}_activities.csv", index=False)
-
-    n_atts_year = attributes.shape[0]
-    n_activities_year = activities.shape[0]
-
-    print(f"Number of attributes in {name}: {n_atts_year}")
-    print(f"Number of activities in {name}: {n_activities_year}")
+        print(f"Number of attributes in {years_name} {source_name}: {n_atts}")
+        print(f"Number of activities in {years_name} {source_name}: {n_acts}")

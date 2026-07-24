@@ -7,6 +7,8 @@ attributes_path: "~/Data/foundata/out/nts/2023/attributes_binned.csv"
 
 evaluation_params:
   split_on: [age, sex, employment, hh_income, hh_zone, day, vehicles, access_egress_distance]
+  schedules_path: "~/Projects/foundata/output/nts_2023/activities.csv"
+  attributes_path: "~/Projects/foundata/output/nts_2023/binned_attributes.csv"
   
 labels_encoder:
   name: "tokens"
@@ -43,7 +45,7 @@ trainer_params:
   min_epochs: 100
   patience: 50
   max_epochs: 300
-
+  
 model_params:
   name: "CVAEContLSTMCP"
   hidden_n: 4

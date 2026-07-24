@@ -87,6 +87,12 @@ class CVAEContLSTMCP(Base):
                 hidden_size=self.labels_hidden_size,
                 label_hidden_size=config.get("label_hidden_size", 8),
             )
+        elif label_encoder_type == "per_label_film":
+            return PerLabelFiLMEncoder(
+                label_embed_sizes=self.label_embed_sizes,
+                hidden_size=self.labels_hidden_size,
+                label_hidden_size=config.get("label_hidden_size", 8),
+            )
         else:
             raise ValueError(
                 f"Unknown label encoder type: {label_encoder_type}, should be 'concat', 'add', or 'film'"
@@ -204,6 +210,18 @@ class CVAEContLSTMCP(Base):
                 dropout=self.dropout,
                 sos=self.sos,
             )
+        elif decoder_conditionality in {"input", "inputs"}:
+            print("Decoder conditionality is 'inputs concat'")
+            return InputConcatConditionalDecoder(
+                input_size=self.encodings,
+                hidden_size=self.hidden_size,
+                output_size=self.encodings + 1,
+                num_layers=self.hidden_n,
+                max_length=self.length,
+                labels_size=self.labels_hidden_size,
+                dropout=self.dropout,
+                sos=self.sos,
+            )
         elif decoder_conditionality in {"add", "inputs_add"}:
             print("Decoder conditionality is 'inputs'")
             return InputsAddConditionalDecoder(
@@ -284,7 +302,7 @@ class CVAEContLSTMCP(Base):
         losses = kl_per_dim.sum(dim=-1)
         if joint_weights is not None:
             losses = losses * joint_weights
-        return losses  # mean over batch
+        return losses.mean()  # mean over batch
 
     def au_diagnostic(self, mu: List[Tensor]) -> Tensor:
         """Conditional AU: is the encoder adding anything beyond the prior?
@@ -392,14 +410,14 @@ class AddLabelEncoder(nn.Module):
         super().__init__()
         embeds = []
         for s in label_embed_sizes:
-            if s == 1:
-                embeds.append(
-                    nn.Sequential(UnSqueeze(), nn.Linear(1, hidden_size))
-                )
-            else:
-                embeds.append(
-                    nn.Sequential(CastToLong(), nn.Embedding(s, hidden_size))
-                )
+            # if s == 1:
+            #     embeds.append(
+            #         nn.Sequential(UnSqueeze(), nn.Linear(1, hidden_size))
+            #     )
+            # else:
+            embeds.append(
+                nn.Sequential(CastToLong(), nn.Embedding(s, hidden_size))
+            )
         self.embeds = nn.ModuleList(embeds)
         self.ff = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
@@ -423,16 +441,14 @@ class ConcatLabelEncoder(nn.Module):
         super().__init__()
         embeds = []
         for s in label_embed_sizes:
-            if s == 1:
-                embeds.append(
-                    nn.Sequential(UnSqueeze(), nn.Linear(1, label_hidden_size))
-                )
-            else:
-                embeds.append(
-                    nn.Sequential(
-                        CastToLong(), nn.Embedding(s, label_hidden_size)
-                    )
-                )
+            # if s == 1:
+            #     embeds.append(
+            #         nn.Sequential(UnSqueeze(), nn.Linear(1, label_hidden_size))
+            #     )
+            # else:
+            embeds.append(
+                nn.Sequential(CastToLong(), nn.Embedding(s, label_hidden_size))
+            )
         self.embeds = nn.ModuleList(embeds)
         self.ff = nn.Sequential(
             nn.Linear(label_hidden_size * len(label_embed_sizes), hidden_size),
@@ -460,14 +476,14 @@ class FiLMSourceEncoder(nn.Module):
 
         # --- source embedding (index 0) ---
         source_size = label_embed_sizes[0]
-        if source_size == 1:
-            self.source_embed = nn.Sequential(
-                UnSqueeze(), nn.Linear(1, label_hidden_size)
-            )
-        else:
-            self.source_embed = nn.Sequential(
-                CastToLong(), nn.Embedding(source_size, label_hidden_size)
-            )
+        # if source_size == 1:
+        #     self.source_embed = nn.Sequential(
+        #         UnSqueeze(), nn.Linear(1, label_hidden_size)
+        #     )
+        # else:
+        self.source_embed = nn.Sequential(
+            CastToLong(), nn.Embedding(source_size, label_hidden_size)
+        )
 
         # FiLM generator: source embedding -> (gamma, beta), each of size hidden_size
         self.film_generator = nn.Sequential(
@@ -480,16 +496,14 @@ class FiLMSourceEncoder(nn.Module):
         other_sizes = label_embed_sizes[1:]
         embeds = []
         for s in other_sizes:
-            if s == 1:
-                embeds.append(
-                    nn.Sequential(UnSqueeze(), nn.Linear(1, label_hidden_size))
-                )
-            else:
-                embeds.append(
-                    nn.Sequential(
-                        CastToLong(), nn.Embedding(s, label_hidden_size)
-                    )
-                )
+            # if s == 1:
+            #     embeds.append(
+            #         nn.Sequential(UnSqueeze(), nn.Linear(1, label_hidden_size))
+            #     )
+            # else:
+            embeds.append(
+                nn.Sequential(CastToLong(), nn.Embedding(s, label_hidden_size))
+            )
         self.embeds = nn.ModuleList(embeds)
 
         # fuse remaining labels up to hidden_size, then FiLM is applied on top
@@ -515,6 +529,87 @@ class FiLMSourceEncoder(nn.Module):
 
         h = self.act(h)
         return self.fuse_out(h)
+
+
+class PerLabelFiLMEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size, label_hidden_size=8):
+        """Label Encoder using mixed embeddings, with per-label FiLM interaction.
+
+        The first label (assumed to be `source`) is embedded separately and
+        used to generate a SEPARATE set of FiLM parameters (gamma_i, beta_i)
+        for each of the other labels individually -- rather than one shared
+        FiLM transform applied after fusing all other labels together. This
+        lets source modulate each label's contribution differently, matching
+        cases where a label's effect on the outcome is source-dependent
+        (per ANOVA interaction diagnostics) rather than uniformly shifted.
+
+        A label embedding size of one signifies a continuous variable.
+        """
+        super().__init__()
+
+        # --- source embedding (index 0) ---
+        source_size = label_embed_sizes[0]
+        if source_size == 1:
+            self.source_embed = nn.Sequential(
+                UnSqueeze(), nn.Linear(1, label_hidden_size)
+            )
+        else:
+            self.source_embed = nn.Sequential(
+                CastToLong(), nn.Embedding(source_size, label_hidden_size)
+            )
+
+        # --- remaining label embeddings ---
+        other_sizes = label_embed_sizes[1:]
+        self.n_other_labels = len(other_sizes)
+
+        embeds = []
+        for s in other_sizes:
+            # if s == 1:
+            #     embeds.append(
+            #         nn.Sequential(UnSqueeze(), nn.Linear(1, label_hidden_size))
+            #     )
+            # else:
+            embeds.append(
+                nn.Sequential(CastToLong(), nn.Embedding(s, label_hidden_size))
+            )
+        self.embeds = nn.ModuleList(embeds)
+
+        # One FiLM generator PER other label: source_embed -> (gamma_i, beta_i)
+        # each of size label_hidden_size (matches that label's embedding dim,
+        # so modulation happens before fusion, per-label).
+        self.film_generators = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(label_hidden_size, label_hidden_size),
+                    nn.LeakyReLU(),
+                    nn.Linear(label_hidden_size, label_hidden_size * 2),
+                )
+                for _ in range(self.n_other_labels)
+            ]
+        )
+
+        # fusion over the (now source-modulated) other-label embeddings
+        self.ff = nn.Sequential(
+            nn.Linear(label_hidden_size * self.n_other_labels, hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, hidden_size),
+        )
+
+    def forward(self, x):
+        source_embed = self.source_embed(x[:, 0])
+
+        modulated = []
+        for i, embed in enumerate(self.embeds):
+            e_i = embed(x[:, i + 1])
+            gamma_i, beta_i = self.film_generators[i](source_embed).chunk(
+                2, dim=-1
+            )
+            # (1 + gamma) form: near-identity modulation at init (gamma≈0)
+            h_i = (1 + gamma_i) * e_i + beta_i
+            modulated.append(h_i)
+
+        fused = torch.concat(modulated, dim=-1)
+        return self.ff(fused)
 
 
 class CastToLong(nn.Module):
@@ -1125,6 +1220,127 @@ class InputsConcatConditionalDecoder(nn.Module):
         # embedded = torch.cat((embedded, labels), dim=-1)
         output, hidden = self.lstm(embedded, hidden)
         output = torch.cat((output, labels), dim=-1)
+        prediction = self.output_ff(output)
+        # [N, 1, encodings+1]
+        return prediction, hidden
+
+    def pack(self, x):
+        # [N, 1, encodings+1]
+        acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
+        _, topi = acts.topk(1)
+        act = (
+            topi.squeeze(-1).detach().unsqueeze(-1)
+        )  # detach from history as input
+        duration = self.duration_activation(duration)
+        outputs = torch.cat((act, duration), dim=-1)
+        # [N, 1, 2]
+        return outputs
+
+
+class InputConcatConditionalDecoder(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        output_size: int,
+        num_layers: int,
+        max_length: int,
+        labels_size: int,
+        dropout: float = 0,
+        sos=0,
+        conditional_hidden_size: Optional[int] = None,
+    ):
+        """LSTM Decoder with teacher forcing and label injection at step input via concatenation.
+
+        Args:
+            input_size (int): lstm input size.
+            hidden_size (int): lstm hidden size.
+            num_layers (int): number of lstm layers.
+            max_length (int): max length of sequences.
+            dropout (float): dropout probability. Defaults to 0.
+        """
+        super().__init__()
+        self.output_size = output_size
+        self.max_length = max_length
+        self.sos = sos
+
+        if conditional_hidden_size is None:
+            conditional_hidden_size = hidden_size
+        else:
+            conditional_hidden_size = conditional_hidden_size
+
+        self.embedding = CustomDurationEmbeddingConcat(
+            input_size, hidden_size, dropout=dropout
+        )
+        self.labels_ff = nn.Sequential(
+            nn.Linear(labels_size, conditional_hidden_size),
+            # nn.LeakyReLU(),
+            # nn.Dropout(dropout),
+        )
+
+        # LSTM input is now embedding + label representation, concatenated
+        # at every step, rather than hidden_size alone.
+        self.lstm = nn.LSTM(
+            hidden_size + conditional_hidden_size,
+            hidden_size,
+            num_layers,
+            batch_first=True,
+            bidirectional=False,
+        )
+        # output_ff now reads only from LSTM output (labels no longer
+        # concatenated post-hoc), so input dim reverts to hidden_size.
+        self.output_ff = nn.Sequential(
+            nn.Linear(hidden_size, output_size),
+            # nn.LeakyReLU(),
+            # nn.Dropout(dropout),
+        )
+        # activations
+        self.activity_prob_activation = nn.Softmax(dim=-1)
+        self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
+        self.duration_activation = nn.Sigmoid()
+
+    def forward(self, batch_size, hidden, labels, target=None, **kwargs):
+        hidden, cell = hidden
+        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        decoder_input[:, :, 0] = self.sos  # set as SOS
+        hidden = hidden.contiguous()
+        cell = cell.contiguous()
+        decoder_hidden = (hidden, cell)
+        outputs = []
+
+        hidden_labels = self.labels_ff(labels).unsqueeze(1)
+
+        for i in range(self.max_length):
+            decoder_output, decoder_hidden = self.forward_step(
+                decoder_input, decoder_hidden, hidden_labels
+            )
+            outputs.append(decoder_output.squeeze())
+
+            if target is not None:
+                # teacher forcing for next step
+                decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
+            else:
+                # no teacher forcing use decoder output
+                decoder_input = self.pack(decoder_output)
+
+        outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
+
+        acts_logits, durations = torch.split(
+            outputs, [self.output_size - 1, 1], dim=-1
+        )
+        acts_log_probs = self.activity_logprob_activation(acts_logits)
+        durations = torch.log(self.duration_activation(durations))
+        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
+
+        return log_prob_outputs
+
+    def forward_step(self, x, hidden, labels):
+        # [N, 1, 2]
+        embedded = self.embedding(x)
+        embedded = torch.cat(
+            (embedded, labels), dim=-1
+        )  # inject labels into input
+        output, hidden = self.lstm(embedded, hidden)
         prediction = self.output_ff(output)
         # [N, 1, encodings+1]
         return prediction, hidden

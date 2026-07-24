@@ -3,15 +3,14 @@ global:
 
   logging_params:
     log_dir: "logs/foundations"
-    name: "B_alt"
+    name: "B"
   
-  synthetic_attributes_path: "tmp/foundation/experiment_b/nts_attributes_2024.csv"
+  synthetic_attributes_path: "tmp/foundation/experiment/24_london_attributes.csv"
   
   evaluation_params:
-    # split_on: [day, employment, avg_speed, age, hh_income]
-    split_on: [day, hh_zone, avg_speed, age]
-    schedules_path: "tmp/foundation/experiment_b/nts_activities_2024.csv"
-    attributes_path: "tmp/foundation/experiment_b/nts_attributes_2024.csv"
+    split_on: [source, year, age, employment, hh_income, hh_zone, day]
+    schedules_path: "tmp/foundation/experiment/24_london_activities.csv"
+    attributes_path: "tmp/foundation/experiment/24_london_attributes.csv"
 
   encoder_params:
     name: "continuous"
@@ -31,15 +30,12 @@ global:
     test_split: 0.1
 
   trainer_params:
-    min_epochs: 5
-    min_steps: 1000
+    min_epochs: 20
     max_epochs: 100
-    max_steps: 20000
-    max_time: "00:00:10:00"
-    patience: 25
+    patience: 10
 
   model_params:
-    name: "CVAEContLSTM"
+    name: "CVAEContLSTMCP"
     hidden_n: 4
     hidden_size: 256
     labels_hidden_size: 64
@@ -49,110 +45,91 @@ global:
     hidden_conditionality: add
     encoder_conditionality: none
     latent_conditionality: add
-    decoder_conditionality: none
+    decoder_conditionality: inputs
 
   experiment_params:
     LR: 0.001
-    weight_decay: 0.02
-    scheduler_gamma: 0.975
+    weight_decay: 0.01
+    scheduler_gamma: 0.98
     kld_weight: 0.01
     duration_loss_weight: 200
 
-baseline:
-  schedules_path: "tmp/foundation/experiment_b/nts_activities_2024.csv"
-  attributes_path: "tmp/foundation/experiment_b/nts_attributes_2024.csv"
+24_baseline:
+  schedules_path: "tmp/foundation/experiment/24_london_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_london_attributes.csv"
   labels_encoder:
     name: "tokens"
     weighting: unit
     joint_weighting: inverse
     labels:
-      # sex: nominal
-      day: nominal
-      # hh_zone: nominal
-      # access_egress_distance: nominal
-      avg_speed: nominal
-      age: nominal
-      # hh_income: nominal
-      # source: nominal
+      source: nominal
       year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
 
-uk:
-  schedules_path: "tmp/foundation/experiment_b/uk_activities.csv"
-  attributes_path: "tmp/foundation/experiment_b/uk_attributes.csv"
+24_uk:
+  schedules_path: "tmp/foundation/experiment/24_uk_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_uk_attributes.csv"
   labels_encoder:
     name: "tokens"
     weighting: unit
     joint_weighting: inverse
     labels:
-      # sex: nominal
-      day: nominal
-      # hh_zone: nominal
-      # access_egress_distance: nominal
-      avg_speed: nominal
-      age: nominal
-      # hh_income: nominal
-      # source: nominal
+      source: nominal
       year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
 
-uk+aus:
-  schedules_path: "tmp/foundation/experiment_b/uk+aus_activities.csv"
-  attributes_path: "tmp/foundation/experiment_b/uk+aus_attributes.csv"
+24_europe:
+  schedules_path: "tmp/foundation/experiment/24_europe_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_europe_attributes.csv"
   labels_encoder:
     name: "tokens"
     weighting: unit
     joint_weighting: inverse
     labels:
-      # sex: nominal
-      day: nominal
-      # hh_zone: nominal
-      # access_egress_distance: nominal
-      avg_speed: nominal
-      age: nominal
-      # hh_income: nominal
-      # source: nominal
+      source: nominal
       year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
 
-west:
-  schedules_path: "tmp/foundation/experiment_b/west_activities.csv"
-  attributes_path: "tmp/foundation/experiment_b/west_attributes.csv"
+24_west:
+  schedules_path: "tmp/foundation/experiment/24_west_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_west_attributes.csv"
   labels_encoder:
     name: "tokens"
     weighting: unit
     joint_weighting: inverse
     labels:
-      # sex: nominal
-      day: nominal
-      # hh_zone: nominal
-      # access_egress_distance: nominal
-      avg_speed: nominal
-      age: nominal
-      # hh_income: nominal
-      # source: nominal
+      source: nominal
       year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
 
-world:
-  schedules_path: "tmp/foundation/experiment_b/world_activities.csv"
-  attributes_path: "tmp/foundation/experiment_b/world_attributes.csv"
+24_global:
+  schedules_path: "tmp/foundation/experiment/24_global_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_global_attributes.csv"
   labels_encoder:
     name: "tokens"
     weighting: unit
     joint_weighting: inverse
     labels:
-      # sex: nominal
-      day: nominal
-      # hh_zone: nominal
-      # access_egress_distance: nominal
-      avg_speed: nominal
-      age: nominal
-      # hh_income: nominal
-      # source: nominal
-      # source: nominal
+      source: nominal
       year: nominal
-
-      # day: nominal
-      # # employment: nominal
-      # avg_speed: nominal
-      # age: nominal
-      # # hh_income: nominal
-      # source: nominal
-      # year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal

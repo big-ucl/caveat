@@ -455,3 +455,110 @@ def plot_e(
     )
 
     return fig
+
+
+def plot_f(
+    schedules, attributes, target_schedules, target_attributes, figsize=(8, 8)
+):
+    employment_order = ["employed", "student", "retired", "unemployed"]
+    employments = ["employed", "student", "retired", "unemployed"]
+
+    age_order = ["≤17", "17-36", "36-51", "51-65", ">65"]
+    ages = ["≤17", "17-36", "36-51", "51-65", ">65"]
+    income_order = [
+        "≤18811",
+        "18811-30935",
+        "30935-45739",
+        "45739-78565",
+        ">78565",
+    ]
+    income = ["Lowest", "Low", "Mid", "High", "Highest"]
+
+    order_map = {
+        "employment": (employment_order, employments),
+        "hh_income": (income_order, income),
+        "age": (age_order, ages),
+    }
+
+    colours = [
+        "black",
+        "cornflowerblue",
+        "green",
+        "red",
+        "hotpink",
+        "orange",
+        "lightblue",
+        "brown",
+        "grey",
+        "purple",
+        "lightgreen",
+    ]
+    styles = ["-", ":", ":", ":", ":", ":", "-.", ":", ":"]
+
+    # what each subplot represents: (row, col) → (metric_fn, group, ylabel, xlabel, activity)
+    plots = [
+        (count_acts, "employment", "Working Frequency", None, "work"),
+        (count_acts, "hh_income", None, None, "work"),
+        (count_acts, "age", None, None, "work"),
+        (count_acts, "employment", "Shopping Frequency", None, "shop"),
+        (count_acts, "hh_income", None, None, "shop"),
+        (count_acts, "age", None, None, "shop"),
+        (duration, "employment", "Working Duration", None, "work"),
+        (duration, "hh_income", None, None, "work"),
+        (duration, "age", None, None, "work"),
+        (
+            duration,
+            "employment",
+            "Shopping Duration",
+            "Employment Status",
+            "shop",
+        ),
+        (duration, "hh_income", None, "Household Income", "shop"),
+        (duration, "age", None, "Age group", "shop"),
+    ]
+
+    fig, axs = plt.subplots(4, 3, figsize=figsize, sharex="col", sharey="row")
+
+    # iterate 15 subplots
+    for ax, (fn, group, ylabel, xlabel, act) in zip(axs.flat, plots):
+        metric_fn = (lambda s: fn(s, act)) if act else fn
+        df = _compute_metric(
+            schedules,
+            attributes,
+            target_schedules,
+            target_attributes,
+            group,
+            metric_fn,
+        )
+
+        order, labels = order_map[group]
+        df.loc[order].plot(ax=ax, color=colours, style=styles, lw=2)
+        ax.legend().remove()
+
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        if xlabel:
+            ax.set_xlabel(xlabel)
+            if group == "hh_zone":
+                ax.set_xticks(range(len(labels)), labels, rotation=90)
+            if group == "hh_income":
+                ax.set_xticks(range(len(labels)), labels, rotation=90)
+            if group == "age":
+                ax.set_xticks(range(len(labels)), labels, rotation=90)
+
+    fig.align_ylabels(axs[:, 0])
+    fig.align_xlabels(axs[-1, :])
+    fig.tight_layout()
+
+    # global legend
+    handles, labels = axs.flat[-1].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="lower center",
+        frameon=False,
+        fontsize=10,
+        bbox_to_anchor=(1.15, 0.5),
+    )
+
+    return fig

@@ -51,6 +51,10 @@ class TableEncoder(BaseLabelEncoder):
         encoded = cat(encoded, dim=-1).float()
         weights = self.label_weighter(encoded)
         joint_weights = self.joint_weighter(encoded)
+        print(
+            f"Joint label weights: min: {joint_weights.min().item():.4f}, max: {joint_weights.max().item():.4f}"
+        )
+
         return encoded, (weights, joint_weights)
 
     def encode(self, data: pd.DataFrame) -> Tensor:
@@ -75,6 +79,9 @@ class TableEncoder(BaseLabelEncoder):
         encoded = cat(encoded, dim=-1).float()
         weights = self.label_weighter(encoded)
         joint_weights = self.joint_weighter(encoded)
+        print(
+            f"Joint label weights: min: {joint_weights.min().item():.4f}, max: {joint_weights.max().item():.4f}"
+        )
         return encoded, (weights, joint_weights)
 
     def decode(self, data: List[Tensor]) -> pd.DataFrame:
