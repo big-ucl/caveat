@@ -112,7 +112,7 @@ def run_command(
             synthetic_population = input_schedules.pid.nunique()
 
         # generate synthetic schedules
-        synthetic_schedules, _, _ = generate(
+        synthetic_schedules, generated_attributes, _ = generate(
             trainer=trainer,
             input_labels=synthetic_population,
             schedule_encoder=schedule_encoder,
@@ -125,7 +125,7 @@ def run_command(
         # evaluate synthetic schedules
         evaluate_synthetics(
             synthetic_schedules={name: synthetic_schedules},
-            synthetic_labels={name: synthetic_attributes},
+            synthetic_labels={name: generated_attributes},
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
             write_path=Path(logger.log_dir),
@@ -233,11 +233,8 @@ def batch_command(
             else:
                 synthetic_population = input_schedules.pid.nunique()
 
-            # record synthetic attributes for evaluation
-            synthetic_attributes_all[name] = synthetic_attributes
-
             # generate synthetic schedules
-            synthetic_schedules[name] = generate(
+            generated_schedules, generated_attributes, _ = generate(
                 trainer=trainer,
                 input_labels=synthetic_population,
                 schedule_encoder=schedule_encoder,
@@ -245,7 +242,11 @@ def batch_command(
                 config=combined_config,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
-            )[0]
+            )
+            synthetic_schedules[name] = generated_schedules
+
+            # record synthetic attributes for evaluation
+            synthetic_attributes_all[name] = generated_attributes
     if gen:
         # evaluate synthetic schedules
         evaluate_synthetics(
@@ -344,9 +345,7 @@ def nrun_command(
             else:
                 synthetic_population = input_schedules.pid.nunique()
 
-            all_synthetic_attributes[run_name] = synthetic_attributes
-
-            synthetic_schedules[run_name] = generate(
+            generated_schedules, generated_attributes, _ = generate(
                 trainer=trainer,
                 input_labels=synthetic_population,
                 schedule_encoder=schedule_encoder,
@@ -354,7 +353,9 @@ def nrun_command(
                 config=config,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
-            )[0]
+            )
+            synthetic_schedules[run_name] = generated_schedules
+            all_synthetic_attributes[run_name] = generated_attributes
 
     if gen:
         evaluate_synthetics(
@@ -424,7 +425,7 @@ def ngen_command(
 
     # prepare synthetic attributes
     if synthetic_attributes is not None:
-        synthetic_population = attribute_encoder.encode(synthetic_attributes)
+        synthetic_population, _ = attribute_encoder.encode(synthetic_attributes)
     else:
         synthetic_population = input_schedules.pid.nunique()
 
@@ -443,7 +444,7 @@ def ngen_command(
                 seed=seed,
             )
 
-        synthetic_schedules[f"nsample{i}"] = generate(
+        generated_schedules, generated_attributes, _ = generate(
             trainer=trainer,
             input_labels=synthetic_population,
             schedule_encoder=schedule_encoder,
@@ -451,8 +452,9 @@ def ngen_command(
             config=config,
             write_dir=Path(logger.log_dir),
             seed=seed,
-        )[0]
-        all_synthetic_attributes[f"nsample{i}"] = synthetic_attributes
+        )
+        synthetic_schedules[f"nsample{i}"] = generated_schedules
+        all_synthetic_attributes[f"nsample{i}"] = generated_attributes
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
