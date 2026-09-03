@@ -156,71 +156,78 @@ class ContinuousEncoder(BaseEncoder):
 
         return torch.from_numpy(encoded)
 
-    def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
+    def decode(
+        self, schedules: Tensor, argmax=True, chunk_size: int | None = None
+    ) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
 
         enumeration of seq is used for pid.
-
-        Args:
-            schedules (Tensor): _description_
-
-        Returns:
-            pd.DataFrame: _description_
         """
-        if argmax:
-            schedules, durations = torch.split(
-                schedules, [self.encodings, 1], dim=-1
-            )
-            schedules = schedules.argmax(dim=-1).numpy()
-        else:
-            schedules, durations = torch.split(schedules, [1, 1], dim=-1)
+        with torch.no_grad():
+            if argmax:
+                acts, durations = torch.split(
+                    schedules, [self.encodings, 1], dim=-1
+                )
+                acts = acts.argmax(dim=-1)
+            else:
+                acts, durations = torch.split(schedules, [1, 1], dim=-1)
+                acts = acts.squeeze(-1)
+            durations = durations.squeeze(-1)
+
+            # single detach + move to cpu, no lingering graph, no GPU tensor held around
+            acts = acts.detach().to("cpu", non_blocking=False).numpy()
+            durations = durations.detach().to("cpu", non_blocking=False).numpy()
+
+        del schedules  # drop reference to the (potentially large) input tensor ASAP
+
+        N = acts.shape[0]
+        step = (
+            chunk_size or N
+        )  # process everything at once unless a chunk_size is given
 
         decoded = []
-
-        for pid in range(len(schedules)):
-            act_start = 0
-            for act_idx, duration in zip(schedules[pid], durations[pid]):
-                if int(act_idx) == self.sos:
-                    continue
-                if int(act_idx) == self.eos:
-                    if act_start == 0:
-                        print(f"Failed to decode pid: {pid}")
-                        decoded.append(
-                            [pid, "home", 0, 0]
-                        )  # todo: hack for empty plan
-                    break
-                # denormalise incrementally preserves duration
-                duration = int(duration * self.norm_duration)
-                decoded.append(
-                    [
-                        pid,
-                        self.index_to_acts[int(act_idx)],
-                        act_start,
-                        act_start + duration,
-                    ]
-                )
-                act_start += duration
+        for start in range(0, N, step):
+            end = min(start + step, N)
+            for pid in range(start, end):
+                act_start = 0
+                for act_idx, duration in zip(acts[pid], durations[pid]):
+                    act_idx = int(act_idx)
+                    if act_idx == self.sos:
+                        continue
+                    if act_idx == self.eos:
+                        if act_start == 0:
+                            print(
+                                f"Failed to decode pid: {pid} returning empty plan"
+                            )
+                            decoded.append(
+                                (pid, "home", 0, 0)
+                            )  # todo: hack for empty plan
+                        break
+                    dur = int(duration * self.norm_duration)
+                    decoded.append(
+                        (
+                            pid,
+                            self.index_to_acts[act_idx],
+                            act_start,
+                            act_start + dur,
+                        )
+                    )
+                    act_start += dur
 
         df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
         df["duration"] = df.end - df.start
 
         if self.fix_durations == "none":
             return df
-
         if self.fix_durations == "stretch":
-            # ensure durations sum to norm duration
             df = norm_durations(df, self.norm_duration)
-            # ensure last end time is norm duration
             df = fix_end_durations(df, self.norm_duration)
             df["duration"] = df.end - df.start
             return df
-
         if self.fix_durations == "crop":
-            # remove any activities that end after the norm duration
             df = df[df.end <= self.norm_duration]
-            # ensure last end time is norm duration
             df = fix_end_durations(df, self.norm_duration)
             df["duration"] = df.end - df.start
             return df

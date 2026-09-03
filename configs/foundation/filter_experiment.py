@@ -56,9 +56,9 @@ FILTERS = {
     "uk": ["ltds", "nts"],
     "europe": ["ltds", "nts", "odin"],
     "west": ["ltds", "nts", "odin", "nhts", "cmap"],
-    "global": ["ltds", "nts", "odin", "nhts", "cmap", "ktdb"],
+    "global": ["ltds", "nts", "odin", "nhts", "cmap", "vista", "qhts", "ktdb"],
 }
-in_root = Path("~/Projects/foundata/output/world").expanduser()
+in_root = Path("~/Projects/foundata/output").expanduser()
 write_root = Path("tmp/foundation")
 out = write_root / "experiment"
 out.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,460 @@
+global:
+  seed: 12345
+
+  logging_params:
+    log_dir: "logs/foundations"
+    name: "experiment"
+  
+  synthetic_attributes_path: "tmp/foundation/experiment/24_london_attributes.csv"
+  
+  evaluation_params:
+    split_on: [source, year, age, employment, hh_income, hh_zone, day]
+    schedules_path: "tmp/foundation/experiment/24_uk_activities.csv"
+    attributes_path: "tmp/foundation/experiment/24_uk_attributes.csv"
+
+  encoder_params:
+    name: "continuous"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+    fix_durations: stretch
+    trim_eos: True
+    weighting: unit
+    joint_weighting: unit
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+    val_split: 0.1
+    test_split: 0.1
+
+  trainer_params:
+    min_epochs: 20
+    max_epochs: 100
+    patience: 10
+    anchor_scheduling:
+      enabled: True
+      label_only_epochs: 10
+      warmup_epochs: 10
+    
+  model_params:
+    name: "CVAEContLSTMCP"
+    hidden_n: 4
+    hidden_size: 256
+    labels_hidden_size: 64
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0.5
+    hidden_conditionality: add
+    encoder_conditionality: none
+    latent_conditionality: add
+    decoder_conditionality: none
+
+  experiment_params:
+    LR: 0.001
+    weight_decay: 0.01
+    scheduler_gamma: 0.98
+    kld_weight: 0.01
+    duration_loss_weight: 200
+
+# 24_london:
+#   schedules_path: "tmp/foundation/experiment/24_london_activities.csv"
+#   attributes_path: "tmp/foundation/experiment/24_london_attributes.csv"
+#   labels_encoder:
+#     name: "tokens"
+#     weighting: unit
+#     joint_weighting: inverse
+#     labels:
+#       source: nominal
+#       year: nominal
+#       age: nominal
+#       employment: nominal
+#       hh_income: nominal
+#       hh_zone: nominal
+#       day: nominal
+
+24_uk:
+  schedules_path: "tmp/foundation/experiment/24_uk_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_uk_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+24_europe:
+  schedules_path: "tmp/foundation/experiment/24_europe_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_europe_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+24_west:
+  schedules_path: "tmp/foundation/experiment/24_west_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_west_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+24_global:
+  schedules_path: "tmp/foundation/experiment/24_global_activities.csv"
+  attributes_path: "tmp/foundation/experiment/24_global_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+
+# 23-24_london:
+#   schedules_path: "tmp/foundation/experiment/23-24_london_activities.csv"
+#   attributes_path: "tmp/foundation/experiment/23-24_london_attributes.csv"
+#   labels_encoder:
+#     name: "tokens"
+#     weighting: unit
+#     joint_weighting: inverse
+#     labels:
+#       source: nominal
+#       year: nominal
+#       age: nominal
+#       employment: nominal
+#       hh_income: nominal
+#       hh_zone: nominal
+#       day: nominal
+
+23-24_uk:
+  schedules_path: "tmp/foundation/experiment/23-24_uk_activities.csv"
+  attributes_path: "tmp/foundation/experiment/23-24_uk_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+23-24_europe:
+  schedules_path: "tmp/foundation/experiment/23-24_europe_activities.csv"
+  attributes_path: "tmp/foundation/experiment/23-24_europe_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+23-24_west:
+  schedules_path: "tmp/foundation/experiment/23-24_west_activities.csv"
+  attributes_path: "tmp/foundation/experiment/23-24_west_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+23-24_global:
+  schedules_path: "tmp/foundation/experiment/23-24_global_activities.csv"
+  attributes_path: "tmp/foundation/experiment/23-24_global_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+# 20-24_london:
+#   schedules_path: "tmp/foundation/experiment/20-24_london_activities.csv"
+#   attributes_path: "tmp/foundation/experiment/20-24_london_attributes.csv"
+#   labels_encoder:
+#     name: "tokens"
+#     weighting: unit
+#     joint_weighting: inverse
+#     labels:
+#       source: nominal
+#       year: nominal
+#       age: nominal
+#       employment: nominal
+#       hh_income: nominal
+#       hh_zone: nominal
+#       day: nominal
+
+20-24_uk:
+  schedules_path: "tmp/foundation/experiment/20-24_uk_activities.csv"
+  attributes_path: "tmp/foundation/experiment/20-24_uk_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+20-24_europe:
+  schedules_path: "tmp/foundation/experiment/20-24_europe_activities.csv"
+  attributes_path: "tmp/foundation/experiment/20-24_europe_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+20-24_west:
+  schedules_path: "tmp/foundation/experiment/20-24_west_activities.csv"
+  attributes_path: "tmp/foundation/experiment/20-24_west_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+20-24_global:
+  schedules_path: "tmp/foundation/experiment/20-24_global_activities.csv"
+  attributes_path: "tmp/foundation/experiment/20-24_global_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+# 10-24_london:
+#   schedules_path: "tmp/foundation/experiment/10-24_london_activities.csv"
+#   attributes_path: "tmp/foundation/experiment/10-24_london_attributes.csv"
+#   labels_encoder:
+#     name: "tokens"
+#     weighting: unit
+#     joint_weighting: inverse
+#     labels:
+#       source: nominal
+#       year: nominal
+#       age: nominal
+#       employment: nominal
+#       hh_income: nominal
+#       hh_zone: nominal
+#       day: nominal
+
+10-24_uk:
+  schedules_path: "tmp/foundation/experiment/10-24_uk_activities.csv"
+  attributes_path: "tmp/foundation/experiment/10-24_uk_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+10-24_europe:
+  schedules_path: "tmp/foundation/experiment/10-24_europe_activities.csv"
+  attributes_path: "tmp/foundation/experiment/10-24_europe_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+10-24_west:
+  schedules_path: "tmp/foundation/experiment/10-24_west_activities.csv"
+  attributes_path: "tmp/foundation/experiment/10-24_west_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+10-24_global:
+  schedules_path: "tmp/foundation/experiment/10-24_global_activities.csv"
+  attributes_path: "tmp/foundation/experiment/10-24_global_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+# 00-24_london:
+#   schedules_path: "tmp/foundation/experiment/00-24_london_activities.csv"
+#   attributes_path: "tmp/foundation/experiment/00-24_london_attributes.csv"
+#   labels_encoder:
+#     name: "tokens"
+#     weighting: unit
+#     joint_weighting: inverse
+#     labels:
+#       source: nominal
+#       year: nominal
+#       age: nominal
+#       employment: nominal
+#       hh_income: nominal
+#       hh_zone: nominal
+#       day: nominal
+
+00-24_uk:
+  schedules_path: "tmp/foundation/experiment/00-24_uk_activities.csv"
+  attributes_path: "tmp/foundation/experiment/00-24_uk_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+00-24_europe:
+  schedules_path: "tmp/foundation/experiment/00-24_europe_activities.csv"
+  attributes_path: "tmp/foundation/experiment/00-24_europe_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+00-24_west:
+  schedules_path: "tmp/foundation/experiment/00-24_west_activities.csv"
+  attributes_path: "tmp/foundation/experiment/00-24_west_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+00-24_global:
+  schedules_path: "tmp/foundation/experiment/00-24_global_activities.csv"
+  attributes_path: "tmp/foundation/experiment/00-24_global_attributes.csv"
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal

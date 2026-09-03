@@ -65,6 +65,8 @@ def run_command(
         logger.log_dir, input_schedules, encoded_labels, label_weights, config
     )
 
+    del encoded_labels, label_weights
+
     # train
     trainer = train(
         name=name,
@@ -178,6 +180,8 @@ def batch_command(
             combined_config
         )
 
+        n = input_schedules.pid.nunique()
+
         # encode data
         attribute_encoder, encoded_labels, label_weights = encode_input_labels(
             logger.log_dir, input_attributes, combined_config
@@ -190,6 +194,8 @@ def batch_command(
             label_weights,
             combined_config,
         )
+
+        del input_schedules, input_attributes, encoded_labels, label_weights
 
         # train
         trainer = train(
@@ -231,7 +237,7 @@ def batch_command(
                 )
                 print(f"USING SYNTHETIC ATTRIBUTES FOR {name}")
             else:
-                synthetic_population = input_schedules.pid.nunique()
+                synthetic_population = n
 
             # generate synthetic schedules
             generated_schedules, generated_attributes, _ = generate(
@@ -252,8 +258,8 @@ def batch_command(
         evaluate_synthetics(
             synthetic_schedules=synthetic_schedules,
             synthetic_labels=synthetic_attributes_all,
-            default_eval_schedules=input_schedules,
-            default_eval_attributes=input_attributes,
+            default_eval_schedules=None,
+            default_eval_attributes=None,
             write_path=log_dir,
             eval_params=global_config.get("evaluation_params", {}),
             stats=stats,
@@ -290,6 +296,8 @@ def nrun_command(
     # load data
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
+    n = input_schedules.pid.nunique()
+
     # encode data
     attribute_encoder, encoded_labels, label_weights = encode_input_labels(
         log_dir, input_attributes, config
@@ -298,6 +306,8 @@ def nrun_command(
     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
         log_dir, input_schedules, encoded_labels, label_weights, config
     )
+
+    del input_schedules, input_attributes, encoded_labels, label_weights
 
     synthetic_schedules = {}
     all_synthetic_attributes = {}
@@ -343,7 +353,7 @@ def nrun_command(
                     synthetic_attributes
                 )
             else:
-                synthetic_population = input_schedules.pid.nunique()
+                synthetic_population = n
 
             generated_schedules, generated_attributes, _ = generate(
                 trainer=trainer,
@@ -361,8 +371,8 @@ def nrun_command(
         evaluate_synthetics(
             synthetic_schedules=synthetic_schedules,
             synthetic_labels=all_synthetic_attributes,
-            default_eval_schedules=input_schedules,
-            default_eval_attributes=input_attributes,
+            default_eval_schedules=None,
+            default_eval_attributes=None,
             write_path=log_dir,
             eval_params=config.get("evaluation_params", {}),
             stats=stats,
@@ -979,8 +989,8 @@ def generate_from_attributes(
 def evaluate_synthetics(
     synthetic_schedules: dict[str, DataFrame],
     synthetic_labels: dict[str, DataFrame],
-    default_eval_schedules: DataFrame,
-    default_eval_attributes: DataFrame,
+    default_eval_schedules: Optional[DataFrame],
+    default_eval_attributes: Optional[DataFrame],
     write_path: Path,
     eval_params: dict,
     stats: bool = True,
@@ -998,9 +1008,11 @@ def evaluate_synthetics(
         print(
             f"<!> Loaded {n} schedules for evaluation from {eval_schedules_path}"
         )
-    else:
+    elif default_eval_schedules is not None:
         eval_schedules = default_eval_schedules
         print("Evaluating synthetic schedules against target schedules")
+    else:
+        raise ValueError("No evaluation schedules provided")
 
     split_on = eval_params.get("split_on", [])
 
@@ -1014,8 +1026,12 @@ def evaluate_synthetics(
             print(
                 f"<!> Loaded {len(eval_attributes)} attributes for evaluation from {eval_attributes_path}"
             )
-        else:
+        elif default_eval_attributes is not None:
             eval_attributes = default_eval_attributes
+        else:
+            raise ValueError(
+                "No evaluation attributes provided for conditional evaluation"
+            )
 
         evaluator = Evaluator(
             target=eval_schedules,
@@ -1121,7 +1137,7 @@ def load_model(ckpt_path: Path, config: dict) -> LightningModule:
 
 
 def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
-    trainer_config = config.get("trainer_params", {})
+    trainer_config = config.get("trainer_params", {}).copy()
     patience = trainer_config.pop("patience", None)
     collapse_monitoring_config = trainer_config.pop("collapse_monitoring", {})
     loss_scheduling_config = trainer_config.pop("loss_scheduling", {})
@@ -1150,18 +1166,33 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
         )
 
     if collapse_monitoring_config.get("enabled", False):
+        print(
+            f">>> Collapse monitoring enabled with config: {collapse_monitoring_config}"
+        )
         callbacks.append(CollapseMonitor(collapse_monitoring_config))
 
     if loss_scheduling_config.get("enabled", False):
+        print(
+            f">>> Loss scheduling enabled with config: {loss_scheduling_config}"
+        )
         callbacks.append(LinearLossScheduler(loss_scheduling_config))
 
     if beta_scheduling_config.get("enabled", False):
+        print(
+            f">>> Beta scheduling enabled with config: {beta_scheduling_config}"
+        )
         callbacks.append(CyclicalBetaAnnealer(beta_scheduling_config))
 
-    if anchor_scheduling_config.pop("enabled", False):
+    if anchor_scheduling_config.get("enabled", False):
+        print(
+            f">>> Anchor scheduling enabled with config: {anchor_scheduling_config}"
+        )
         callbacks.append(EpsilonAnchorScheduler(anchor_scheduling_config))
 
     if prior_separation_config.get("enabled", False):
+        print(
+            f">>> Prior separation monitoring enabled with config: {prior_separation_config}"
+        )
         callbacks.append(PriorSeparationMonitor(prior_separation_config))
 
     return Trainer(logger=logger, callbacks=callbacks, **trainer_config)

@@ -16,21 +16,33 @@ class EpsilonAnchorScheduler(Callback):
 
     def __init__(self, config: dict):
         super().__init__()
+        label_only_epochs: int = config.get("label_only_epochs", 0)
         warmup_epochs: int = config.get("warmup_epochs", 20)
         start_alpha: float = config.get("start_alpha", 0.0)
         end_alpha: float = config.get("end_alpha", 1.0)
         print(
-            f"[EpsilonAnchorScheduler] warmup_epochs={warmup_epochs}, "
+            f"[EpsilonAnchorScheduler] label_only_epochs={label_only_epochs}, "
+            f"warmup_epochs={warmup_epochs}, "
             f"start_alpha={start_alpha}, end_alpha={end_alpha}"
         )
+        self.label_only_epochs = label_only_epochs
         self.warmup_epochs = warmup_epochs
         self.start_alpha = start_alpha
         self.end_alpha = end_alpha
 
     def _compute_alpha(self, current_epoch: int) -> float:
-        if self.warmup_epochs <= 0:
+        total_ramp = self.label_only_epochs + self.warmup_epochs
+        if total_ramp <= 0:
             return self.end_alpha
-        progress = min(max(current_epoch / self.warmup_epochs, 0.0), 1.0)
+        if current_epoch < self.label_only_epochs:
+            return self.start_alpha
+        progress = min(
+            max(
+                (current_epoch - self.label_only_epochs) / self.warmup_epochs,
+                0.0,
+            ),
+            1.0,
+        )
         return self.start_alpha + (self.end_alpha - self.start_alpha) * progress
 
     def on_train_epoch_start(self, trainer, pl_module):

@@ -402,6 +402,17 @@ class PriorNet(nn.Module):
         return self.mu(hidden), self.logvar(hidden)
 
 
+class NormalizedEmbedding(nn.Module):
+    def __init__(self, num_embeddings, embedding_dim):
+        super().__init__()
+        self.embed = nn.Embedding(num_embeddings, embedding_dim)
+        nn.init.orthogonal_(self.embed.weight)
+        self.norm = nn.LayerNorm(embedding_dim)
+
+    def forward(self, x):
+        return self.norm(self.embed(x))
+
+
 class AddLabelEncoder(nn.Module):
     def __init__(self, label_embed_sizes, hidden_size):
         """Label Encoder using token embedding.
@@ -416,7 +427,7 @@ class AddLabelEncoder(nn.Module):
             #     )
             # else:
             embeds.append(
-                nn.Sequential(CastToLong(), nn.Embedding(s, hidden_size))
+                nn.Sequential(CastToLong(), NormalizedEmbedding(s, hidden_size))
             )
         self.embeds = nn.ModuleList(embeds)
         self.ff = nn.Sequential(
@@ -447,7 +458,9 @@ class ConcatLabelEncoder(nn.Module):
             #     )
             # else:
             embeds.append(
-                nn.Sequential(CastToLong(), nn.Embedding(s, label_hidden_size))
+                nn.Sequential(
+                    CastToLong(), NormalizedEmbedding(s, label_hidden_size)
+                )
             )
         self.embeds = nn.ModuleList(embeds)
         self.ff = nn.Sequential(
@@ -482,7 +495,7 @@ class FiLMSourceEncoder(nn.Module):
         #     )
         # else:
         self.source_embed = nn.Sequential(
-            CastToLong(), nn.Embedding(source_size, label_hidden_size)
+            CastToLong(), NormalizedEmbedding(source_size, label_hidden_size)
         )
 
         # FiLM generator: source embedding -> (gamma, beta), each of size hidden_size
@@ -502,7 +515,9 @@ class FiLMSourceEncoder(nn.Module):
             #     )
             # else:
             embeds.append(
-                nn.Sequential(CastToLong(), nn.Embedding(s, label_hidden_size))
+                nn.Sequential(
+                    CastToLong(), NormalizedEmbedding(s, label_hidden_size)
+                )
             )
         self.embeds = nn.ModuleList(embeds)
 
@@ -555,7 +570,8 @@ class PerLabelFiLMEncoder(nn.Module):
             )
         else:
             self.source_embed = nn.Sequential(
-                CastToLong(), nn.Embedding(source_size, label_hidden_size)
+                CastToLong(),
+                NormalizedEmbedding(source_size, label_hidden_size),
             )
 
         # --- remaining label embeddings ---
@@ -1314,7 +1330,7 @@ class InputConcatConditionalDecoder(nn.Module):
             decoder_output, decoder_hidden = self.forward_step(
                 decoder_input, decoder_hidden, hidden_labels
             )
-            outputs.append(decoder_output.squeeze())
+            outputs.append(decoder_output.squeeze(1))
 
             if target is not None:
                 # teacher forcing for next step

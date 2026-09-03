@@ -190,7 +190,12 @@ def batch(
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
         batch_command(
-            config, stats=stats, verbose=verbose, test=test, gen=not no_gen
+            config,
+            stats=stats,
+            verbose=verbose,
+            test=test,
+            infer=not no_infer,
+            gen=not no_gen,
         )
 
 
@@ -215,7 +220,13 @@ def nrun(
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
         nrun_command(
-            config, n=n, stats=stats, test=test, gen=not no_gen, verbose=verbose
+            config,
+            n=n,
+            stats=stats,
+            test=test,
+            infer=not no_infer,
+            gen=not no_gen,
+            verbose=verbose,
         )
 
 

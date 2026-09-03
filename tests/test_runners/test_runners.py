@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -13,12 +13,9 @@ ATTRIBUTES_PATH = FIXTURES / "test_attributes.csv"
 # ---------------------------------------------------------------------------
 
 
-@patch("caveat.runners.compare_splits")
-@patch("caveat.runners.compare")
+@patch("caveat.runners.Evaluator")
 @patch("caveat.runners.data")
-def test_evaluate_synthetics_basic(
-    mock_data, mock_compare, mock_compare_splits, tmp_path
-):
+def test_evaluate_synthetics_basic(mock_data, mock_evaluator_cls, tmp_path):
     """No split_on: calls compare() and not compare_splits()."""
     from caveat.runners import evaluate_synthetics
 
@@ -27,7 +24,8 @@ def test_evaluate_synthetics_basic(
     synthetic_labels = {"model_a": None}
     eval_params = {}
 
-    mock_compare.return_value = MagicMock()
+    mock_evaluator = mock_evaluator_cls.return_value
+    mock_result = mock_evaluator.compare.return_value
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
@@ -38,50 +36,69 @@ def test_evaluate_synthetics_basic(
         eval_params=eval_params,
     )
 
-    mock_compare.assert_called_once()
-    mock_compare_splits.assert_not_called()
-    mock_compare.return_value.save.assert_called_once()
+    # Evaluator instantiated without split_on/target_attributes
+    mock_evaluator_cls.assert_called_once_with(target=schedules, progress=False)
+
+    # compare called without `attributes`
+    mock_evaluator.compare.assert_called_once_with(
+        synthetic=synthetic_schedules, verbose=False
+    )
+
+    mock_result.save.assert_called_once_with(tmp_path / "eval")
 
 
-@patch("caveat.runners.compare_splits")
-@patch("caveat.runners.compare")
+@patch("caveat.runners.Evaluator")
 @patch("caveat.runners.data")
 def test_evaluate_synthetics_with_split_on(
-    mock_data, mock_compare, mock_compare_splits, tmp_path
+    mock_data, mock_eval_class, tmp_path
 ):
-    """split_on set: calls compare_splits() and not compare()."""
+    """split_on set: Evaluator gets target_attributes/split_on,
+    compare() gets attributes=synthetic_labels."""
     from caveat.runners import evaluate_synthetics
 
     schedules = pd.read_csv(SCHEDULES_PATH)
     synthetic_schedules = {"model_a": schedules.copy()}
     synthetic_labels = {"model_a": None}
+    # split_on requires attributes to be available for eval_schedules
+    eval_attributes = pd.DataFrame(
+        {"pid": schedules["pid"].unique(), "gender": "f"}
+    )
     eval_params = {"split_on": ["gender"]}
 
-    mock_compare_splits.return_value = MagicMock()
+    mock_evaluator = mock_eval_class.return_value
+    mock_result = mock_evaluator.compare.return_value
+    mock_result.rank_models.return_value = {"model_a": 0.5}
+    mock_result.best_model = "model_a"
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
         synthetic_labels=synthetic_labels,
         default_eval_schedules=schedules,
-        default_eval_attributes=None,
+        default_eval_attributes=eval_attributes,
         write_path=tmp_path,
         eval_params=eval_params,
     )
 
-    mock_compare_splits.assert_called_once()
-    call_kwargs = mock_compare_splits.call_args.kwargs
-    assert call_kwargs["observed"] is schedules
-    assert call_kwargs["split_on"] == ["gender"]
+    mock_eval_class.assert_called_once_with(
+        target=schedules,
+        target_attributes=eval_attributes,
+        split_on=["gender"],
+        progress=False,
+    )
 
-    mock_compare.assert_not_called()
-    mock_compare_splits.return_value.save.assert_called_once()
+    mock_evaluator.compare.assert_called_once_with(
+        synthetic=synthetic_schedules,
+        attributes=synthetic_labels,
+        verbose=False,
+    )
+
+    mock_result.save.assert_called_once_with(tmp_path / "eval")
 
 
-@patch("caveat.runners.compare_splits")
-@patch("caveat.runners.compare")
 @patch("caveat.runners.data")
+@patch("caveat.runners.Evaluator")
 def test_evaluate_synthetics_custom_schedules_path(
-    mock_data, mock_compare, mock_compare_splits, tmp_path
+    mock_eval_class, mock_data, tmp_path
 ):
     """eval_params has schedules_path: custom schedules are loaded instead of default."""
     from caveat.runners import evaluate_synthetics
@@ -94,7 +111,10 @@ def test_evaluate_synthetics_custom_schedules_path(
     synthetic_labels = {"model_a": None}
     eval_params = {"schedules_path": str(SCHEDULES_PATH)}
 
-    mock_compare.return_value = MagicMock()
+    mock_evaluator = mock_eval_class.return_value
+    mock_result = mock_evaluator.compare.return_value
+    mock_result.rank_models.return_value = {"model_a": 0.5}
+    mock_result.best_model = "model_a"
 
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
@@ -109,8 +129,15 @@ def test_evaluate_synthetics_custom_schedules_path(
         str(SCHEDULES_PATH)
     )
 
-    call_kwargs = mock_compare.call_args.kwargs
-    assert call_kwargs["observed"] is custom_schedules
+    # the custom (loaded) schedules should flow into Evaluator as `target`,
+    # not the default_schedules
+    mock_eval_class.assert_called_once_with(
+        target=custom_schedules, progress=False
+    )
+
+    mock_evaluator.compare.assert_called_once_with(
+        synthetic=synthetic_schedules, verbose=False
+    )
 
 
 # ---------------------------------------------------------------------------
