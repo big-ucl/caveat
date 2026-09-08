@@ -2,7 +2,23 @@ from pathlib import Path
 
 import pandas as pd
 
-YEAR_FILTER = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017]
+YEAR_FILTER = [
+    2024,
+    2023,
+    2022,
+    2021,
+    2020,
+    2019,
+    2018,
+    2017,
+    2016,
+    2015,
+    2014,
+    2013,
+    2012,
+    2011,
+    2010,
+]
 FILTERS = {
     "london": ["ltds"],
     "uk": ["nts"],
@@ -23,12 +39,12 @@ all_attributes = pd.read_csv(
 )
 all_activities = pd.read_csv(in_root / "activities.csv", low_memory=False)
 
-n_people = all_attributes.shape[0]
-n_activities = all_activities.shape[0]
-
 all_attributes = all_attributes[all_attributes["year"].isin(YEAR_FILTER)]
 pids = all_attributes["pid"].unique()
 all_activities = all_activities[all_activities["pid"].isin(pids)]
+
+n_people = all_attributes.shape[0]
+n_activities = all_activities.shape[0]
 
 print(f"Total number of people: {n_people}")
 print(f"Total number of activities: {n_activities}")

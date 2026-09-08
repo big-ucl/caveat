@@ -3,9 +3,9 @@ global:
 
   logging_params:
     log_dir: "logs/foundations"
-    name: "experiment"
+    name: "experiment_uk"
   
-  synthetic_attributes_path: "tmp/foundation/experiment/24_london_attributes.csv"
+  synthetic_attributes_path: "tmp/foundation/experiment/24_uk_attributes.csv"
   
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
