@@ -1,5 +1,8 @@
 global:
+  
   seed: 42
+  schedules_path: "tmp/foundation/world/training_activities.csv"
+  attributes_path: "tmp/foundation/world/training_attributes.csv"
 
   logging_params:
     log_dir: "logs/foundations"
@@ -36,9 +39,9 @@ global:
     test_split: 0.1
 
   trainer_params:
-    min_epochs: 50
+    min_epochs: 30
     max_epochs: 200
-    patience: 20
+    patience: 10
     anchor_scheduling:
       enabled: True
       label_only_epochs: 10
@@ -49,9 +52,9 @@ global:
     hidden_n: 5
     hidden_size: 512
     labels_hidden_size: 128
-    latent_dim: 10
-    dropout: 0
-    teacher_forcing_ratio: 0.5
+    latent_dim: 5
+    dropout: 0.2
+    teacher_forcing_ratio: 0
     hidden_conditionality: add
     encoder_conditionality: none
     latent_conditionality: add
@@ -137,8 +140,6 @@ global:
 #     attributes_path: "tmp/foundation/world/us_attributes.csv"
 
 london:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/london_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
@@ -146,8 +147,6 @@ london:
     attributes_path: "tmp/foundation/world/london_attributes.csv"
     
 uk:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/uk_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
@@ -155,8 +154,6 @@ uk:
     attributes_path: "tmp/foundation/world/uk_attributes.csv"
     
 dutch:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/dutch_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
@@ -164,8 +161,6 @@ dutch:
     attributes_path: "tmp/foundation/world/dutch_attributes.csv"
     
 chicago:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/chicago_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
@@ -173,8 +168,6 @@ chicago:
     attributes_path: "tmp/foundation/world/chicago_attributes.csv"
 
 us:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/us_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
@@ -182,8 +175,6 @@ us:
     attributes_path: "tmp/foundation/world/us_attributes.csv"
 
 victoria:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/victoria_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
@@ -191,8 +182,6 @@ victoria:
     attributes_path: "tmp/foundation/world/victoria_attributes.csv"
 
 kr:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/kr_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]
@@ -200,8 +189,6 @@ kr:
     attributes_path: "tmp/foundation/world/kr_attributes.csv"
 
 queensland:
-  schedules_path: "tmp/foundation/world/training_activities.csv"
-  attributes_path: "tmp/foundation/world/training_attributes.csv"
   synthetic_attributes_path: "tmp/foundation/world/queensland_attributes.csv"
   evaluation_params:
     split_on: [source, year, age, employment, hh_income, hh_zone, day]

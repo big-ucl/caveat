@@ -12,7 +12,9 @@ from caveat.mmrunners import mmrun_command
 from caveat.runners import (
     batch_command,
     batch_eval_command,
+    batch_gen_command,
     eval_command,
+    gen_command,
     ngen_command,
     nrun_command,
     run_command,
@@ -24,6 +26,53 @@ from caveat.runners import (
 def cli():
     """Console script for caveat."""
     pass
+
+
+@cli.command(name="batch_gen")
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--verbose", "-v", is_flag=True)
+@click.option("--test", "-t", is_flag=True)
+@click.option("--no-infer", "-ni", is_flag=True)
+def batch_gen(
+    config_path: click.Path, verbose: bool, test: bool, no_infer: bool
+):
+    """Train a model and then generate synthetic data for a batch."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        batch_gen_command(
+            config, verbose=verbose, test=test, infer=not no_infer
+        )
+
+
+@cli.command(name="gen")
+@click.argument("config_path", type=click.Path(exists=True))
+@click.argument("log_dir", type=click.Path(exists=False))
+@click.argument("attributes_path", type=click.Path(exists=True))
+@click.argument("schedule_encoder_path", type=click.Path(exists=True))
+@click.argument("attributes_encoder_path", type=click.Path(exists=True))
+@click.argument("checkpoint_path", type=click.Path(exists=True))
+@click.option("--verbose", "-v", is_flag=True)
+def gen(
+    config_path: click.Path,
+    log_dir: click.Path,
+    attributes_path: click.Path,
+    schedule_encoder_path: click.Path,
+    attributes_encoder_path: click.Path,
+    checkpoint_path: click.Path,
+    verbose: bool,
+):
+    """Generate synthetic data from an existing model."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        gen_command(
+            config,
+            log_dir=Path(log_dir),
+            attributes_path=Path(attributes_path),
+            schedule_encoder_path=Path(schedule_encoder_path),
+            attributes_encoder_path=Path(attributes_encoder_path),
+            checkpoint_path=Path(checkpoint_path),
+            verbose=verbose,
+        )
 
 
 @cli.command(name="run")

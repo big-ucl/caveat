@@ -22,9 +22,257 @@ from caveat.callbacks import (
     LinearLossScheduler,
     PriorSeparationMonitor,
 )
+from caveat.data.loaders import validate_attributes
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.label_encoding.base import BaseLabelEncoder
+
+
+def gen_command(
+    config: dict,
+    log_dir: Path,
+    attributes_path: Path,
+    schedule_encoder_path: Path,
+    attributes_encoder_path: Path,
+    checkpoint_path: Path,
+    verbose: bool = False,
+) -> None:
+    """
+    Generate synthetic data from an existing model config and checkpoints.
+
+    Args:
+        config (dict): A dictionary containing the configuration parameters.
+        log_dir (Path): The output dir for the generated data.
+        attributes_path (Path): The path to the attributes file.
+        schedule_encoder_path (Path): The path to the schedule encoder.
+        attributes_encoder_path (Path): The path to the attributes encoder.
+        checkpoint_path (Path): The path to the model checkpoint.
+        verbose (bool, optional): Whether to display verbose output. Defaults to False.
+    """
+    log_dir.mkdir(parents=True, exist_ok=True)
+    name = log_dir.name
+
+    print(f"\n======= Generating synthetic data for {name} =======")
+
+    # load synthetic data
+    synthetic_attributes = pd.read_csv(attributes_path, low_memory=False)
+    print(f"LOADING SYNTHETIC ATTRIBUTES FROM {attributes_path}")
+    if synthetic_attributes.empty:
+        raise UserWarning(
+            f"No synthetic attributes found in {attributes_path}."
+        )
+    validate_attributes(synthetic_attributes, config, synthetic=True)
+    if verbose:
+        print(
+            f"Loaded {len(synthetic_attributes)} synthetic attributes from {config['synthetic_attributes_path']}"
+        )
+
+    synthetic_attributes.to_csv(
+        log_dir / "synthetic_attributes.csv", index=False
+    )
+
+    # Find and load existing encoders (pickled)
+    with open(schedule_encoder_path, "rb") as f:
+        schedule_encoder = pickle.load(f)
+
+    with open(attributes_encoder_path, "rb") as f:
+        attribute_encoder = pickle.load(f)
+
+    # prepare synthetic attributes
+    if synthetic_attributes is not None:
+        attributes, _ = attribute_encoder.encode(synthetic_attributes)
+    else:
+        raise ValueError("Synthetic attributes are not provided.")
+
+    # load model from checkpoint
+    model_name = config.get("model_params", {}).get("name", None)
+    if model_name is None:
+        raise ValueError(
+            "Model name is not specified in the configuration. Please provide a model name."
+        )
+    model = load_model(checkpoint_path, config)
+    latent_size = config.get("model_params", {}).get("latent_dim", None)
+    if latent_size is None:
+        raise ValueError(
+            "Latent size is not specified in the configuration. Please provide a latent size."
+        )
+    batch_size = config.get("loader_params", {}).get("train_batch_size", 1024)
+
+    dataloaders = data.build_latent_conditional_dataloader(
+        attributes, latent_size, batch_size
+    )
+    time = datetime.datetime.now()
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    print(
+        f">>> Generating synthetic schedules for {len(attributes)} persons..."
+    )
+    predictions = []
+    with torch.no_grad():
+        for batch in dataloaders:
+            batch = (batch[0].to(device), batch[1].to(device))
+            _, x, _ = model.predict_step(batch)
+            predictions.append(x)
+
+    schedules = torch.concat(predictions, dim=0)
+
+    duration = datetime.datetime.now() - time
+    print(
+        f">>> Generation took {duration.seconds + duration.microseconds / 1e6} seconds"
+    )
+    with open(log_dir / "timer.csv", "a") as fp:
+        fp.write(
+            f"generate,{duration.seconds + duration.microseconds / 1e6},seconds\n"
+        )
+
+    print(">>> Decoding synthetic schedules...")
+    schedules = schedule_encoder.decode(schedules.cpu())
+
+    print("Validating synthetic schedules...")
+    data.validate_schedules(schedules)
+    print("Writing synthetic schedules to CSV...")
+    schedules.to_csv(log_dir / "synthetic_schedules.csv", index=False)
+    print(
+        f">>> Wrote {len(schedules)} synthetic schedules to {log_dir / 'synthetic_schedules.csv'}"
+    )
+
+
+def batch_gen_command(
+    batch_config: dict,
+    verbose: bool = False,
+    test: bool = False,
+    infer: bool = True,
+    gen: bool = True,
+) -> None:
+    """
+    Trains a model and runs a batch of generation based on the provided configuration.
+
+    Args:
+        batch_config (dict[dict]): A dictionary containing the configuration for each training job.
+
+    Returns:
+        None
+    """
+    global_config = batch_config.pop("global")
+    logger_params = global_config.get("logging_params", {})
+    name = str(
+        logger_params.get(
+            "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        )
+    )
+    log_dir = Path(logger_params.get("log_dir", "logs"), name)
+
+    synthetic_schedules = {}
+    synthetic_attributes_all = {}
+
+    name = str(name)
+    logger = initiate_logger(log_dir, name)
+    seed = global_config.get("seed", seeder())
+
+    # load data
+    input_schedules, input_attributes, _ = load_data(global_config)
+    n = input_schedules.pid.nunique()
+
+    # encode data
+    attribute_encoder, encoded_labels, label_weights = encode_input_labels(
+        logger.log_dir, input_attributes, global_config
+    )
+
+    schedule_encoder, encoded_schedules, data_loader = encode_schedules(
+        logger.log_dir,
+        input_schedules,
+        encoded_labels,
+        label_weights,
+        global_config,
+    )
+
+    del input_schedules, input_attributes, encoded_labels, label_weights
+
+    # train
+    trainer = train(
+        name=name,
+        data_loader=data_loader,
+        encoded_schedules=encoded_schedules,
+        label_encoder=attribute_encoder,
+        config=global_config,
+        test=test,
+        gen=gen,
+        logger=logger,
+        seed=seed,
+    )
+    if test:
+        # test the model
+        run_test(
+            trainer=trainer,
+            schedule_encoder=schedule_encoder,
+            attribute_encoder=attribute_encoder,
+            write_dir=Path(logger.log_dir),
+            seed=seed,
+        )
+    if infer:
+        test_infer_path = Path(f"{logger.log_dir}/test_inference")
+        test_infer_path.mkdir(exist_ok=True, parents=True)
+
+        test_inference(
+            trainer=trainer,
+            schedule_encoder=schedule_encoder,
+            attribute_encoder=attribute_encoder,
+            write_dir=test_infer_path,
+            seed=seed,
+        )
+
+    gen_log_dir = Path(logger.log_dir) / "generation"
+    gen_log_dir.mkdir(exist_ok=True, parents=True)
+
+    synthetic_schedules = {}
+    synthetic_attributes_all = {}
+
+    for name, config in batch_config.items():
+        name = str(name)
+        logger = initiate_logger(gen_log_dir, name)
+
+        # build config for this run
+        combined_config = global_config.copy()
+        combined_config.update(config)
+
+        # load data
+        _, _, synthetic_attributes = load_data(combined_config)
+
+        # prepare synthetic attributes
+        if synthetic_attributes is not None:
+            synthetic_population, _ = attribute_encoder.encode(
+                synthetic_attributes
+            )
+            print(f"USING SYNTHETIC ATTRIBUTES FOR {name}")
+        else:
+            synthetic_population = n
+
+        # generate synthetic schedules
+        generated_schedules, generated_attributes, _ = generate(
+            trainer=trainer,
+            input_labels=synthetic_population,
+            schedule_encoder=schedule_encoder,
+            attribute_encoder=attribute_encoder,
+            config=combined_config,
+            write_dir=Path(logger.log_dir),
+            seed=seed,
+        )
+        synthetic_schedules[name] = generated_schedules
+
+        # record synthetic attributes for evaluation
+        synthetic_attributes_all[name] = generated_attributes
+
+    # evaluate synthetic schedules
+    evaluate_synthetics(
+        synthetic_schedules=synthetic_schedules,
+        synthetic_labels=synthetic_attributes_all,
+        default_eval_schedules=None,
+        default_eval_attributes=None,
+        write_path=gen_log_dir,
+        eval_params=global_config.get("evaluation_params", {}),
+        verbose=verbose,
+    )
 
 
 def run_command(

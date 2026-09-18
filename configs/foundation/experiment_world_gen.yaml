@@ -1,0 +1,64 @@
+seed: 42
+
+logging_params:
+  log_dir: "logs/foundations"
+  name: "big_world"
+
+encoder_params:
+  name: "continuous"
+  max_length: 16
+  norm_duration: 1440
+  jitter: 0
+  fix_durations: stretch
+  trim_eos: True
+  weighting: unit
+  joint_weighting: unit
+
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: inverse
+  labels:
+    source: nominal
+    year: nominal
+    age: nominal
+    employment: nominal
+    hh_income: nominal
+    hh_zone: nominal
+    day: nominal
+
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+
+trainer_params:
+  min_epochs: 50
+  max_epochs: 200
+  patience: 20
+  anchor_scheduling:
+    enabled: True
+    label_only_epochs: 10
+    warmup_epochs: 10
+
+model_params:
+  name: "CVAEContLSTMCP"
+  hidden_n: 5
+  hidden_size: 512
+  labels_hidden_size: 128
+  latent_dim: 10
+  dropout: 0
+  teacher_forcing_ratio: 0.5
+  hidden_conditionality: add
+  encoder_conditionality: none
+  latent_conditionality: add
+  decoder_conditionality: none
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.01
+  scheduler_gamma: 0.98
+  kld_weight: 0.01
+  duration_loss_weight: 200

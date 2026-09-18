@@ -1,0 +1,102 @@
+global:
+  
+  seed: 42
+
+  logging_params:
+    log_dir: "logs/foundations"
+    name: "extrapolate"
+
+  encoder_params:
+    name: "continuous"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+    fix_durations: stretch
+    trim_eos: True
+    weighting: unit
+    joint_weighting: unit
+
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      # source: nominal
+      year: nominal
+      age: nominal
+      employment: nominal
+      hh_income: nominal
+      hh_zone: nominal
+      day: nominal
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+    val_split: 0.1
+    test_split: 0.1
+
+  trainer_params:
+    min_epochs: 30
+    max_epochs: 100
+    patience: 10
+    anchor_scheduling:
+      enabled: True
+      label_only_epochs: 10
+      warmup_epochs: 10
+
+  model_params:
+    name: "CVAEContLSTMCP"
+    hidden_n: 4
+    hidden_size: 256
+    labels_hidden_size: 64
+    latent_dim: 6
+    dropout: 0
+    teacher_forcing_ratio: 0
+    hidden_conditionality: add
+    encoder_conditionality: none
+    latent_conditionality: add
+    decoder_conditionality: none
+
+  experiment_params:
+    LR: 0.001
+    weight_decay: 0.01
+    scheduler_gamma: 0.98
+    kld_weight: 0.01
+    duration_loss_weight: 200
+
+base:
+  schedules_path: "tmp/foundation/extrapolate/base_activities.csv"
+  attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+  synthetic_attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+  evaluation_params:
+    split_on: [source, year, age, employment, hh_income, hh_zone, day]
+    schedules_path: "tmp/foundation/extrapolate/base_activities.csv"
+    attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+
+australia:
+  schedules_path: "tmp/foundation/extrapolate/australia_activities.csv"
+  attributes_path: "tmp/foundation/extrapolate/australia_attributes.csv"
+  synthetic_attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+  evaluation_params:
+    split_on: [source, year, age, employment, hh_income, hh_zone, day]
+    schedules_path: "tmp/foundation/extrapolate/base_activities.csv"
+    attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+
+world:
+  schedules_path: "tmp/foundation/extrapolate/western_activities.csv"
+  attributes_path: "tmp/foundation/extrapolate/western_attributes.csv"
+  synthetic_attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+  evaluation_params:
+    split_on: [source, year, age, employment, hh_income, hh_zone, day]
+    schedules_path: "tmp/foundation/extrapolate/base_activities.csv"
+    attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+    
+naive:
+  schedules_path: "tmp/foundation/extrapolate/australia_activities.csv"
+  attributes_path: "tmp/foundation/extrapolate/australia_attributes.csv"
+  synthetic_attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
+  evaluation_params:
+    split_on: [source, year, age, employment, hh_income, hh_zone, day]
+    schedules_path: "tmp/foundation/extrapolate/base_activities.csv"
+    attributes_path: "tmp/foundation/extrapolate/base_attributes.csv"
