@@ -2,7 +2,7 @@ from abc import ABC
 from typing import Optional
 
 from pandas import DataFrame
-from torch import Tensor
+from torch import Tensor, ones
 from torch.nn.functional import pad
 from torch.utils.data import Dataset
 
@@ -85,6 +85,51 @@ class BaseDataset(Dataset):
             joint_weights = self.joint_weights[idx]
         else:
             joint_weights = Tensor([1])
+
+        return (
+            (sample, (weights, seq_weights)),
+            (sample, (weights, seq_weights)),
+            (labels, (label_weights, joint_weights)),
+        )
+
+    def to(self, device):
+        """Move every tensor attribute once (skipping Nones). In place; returns self."""
+        _TENSOR_ATTRS = (
+            "schedules",
+            "act_weights",
+            "seq_weights",
+            "labels",
+            "label_weights",
+            "joint_weights",
+            "encoding_weights",
+        )
+        for name in _TENSOR_ATTRS:
+            t = getattr(self, name)
+            if t is not None:
+                setattr(self, name, t.to(device))
+        return self
+
+    def get_batch(self, idx):
+        """Batched equivalent of __getitem__ for a LongTensor of indices."""
+        B = len(idx)
+        device = self.schedules.device
+
+        sample = self.schedules[idx]  # [B, L, 2]
+        if self.augment:
+            sample = self.augment(sample)  # must handle [B, L, 2], see below
+
+        weights = (
+            self.act_weights[idx] if self.act_weights is not None else None
+        )
+
+        def pick(t):
+            # absent items were Tensor([1]) per sample, which collated to [B, 1]
+            return t[idx] if t is not None else ones(B, 1, device=device)
+
+        seq_weights = pick(self.seq_weights)
+        labels = pick(self.labels)
+        label_weights = pick(self.label_weights)
+        joint_weights = pick(self.joint_weights)
 
         return (
             (sample, (weights, seq_weights)),

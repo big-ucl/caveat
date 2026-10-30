@@ -10,6 +10,7 @@ from caveat.encoding.continuous import (
     ContinuousEncoderStaggered,
 )
 from caveat.encoding.discrete import DiscreteEncoder, DiscreteEncoderPadded
+from caveat.encoding.events import EventEncoder
 from caveat.encoding.seq2score import Seq2ScoreEncoder
 from caveat.encoding.seq2seq import Seq2SeqEncoder
 
@@ -22,4 +23,5 @@ library = {
     "sequence_staggered": ContinuousEncoderStaggered,
     "seq2seq": Seq2SeqEncoder,
     "seq2score": Seq2ScoreEncoder,
+    "events": EventEncoder,
 }

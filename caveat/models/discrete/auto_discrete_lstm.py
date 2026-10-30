@@ -25,6 +25,22 @@ class AutoDiscLSTM(Base):
         bidirectional = config.get("bidirectional", False)
         top_sampler = config.get("top_sampler", False)
 
+        # self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
+        if bidirectional:
+            flat_size_encode = self.hidden_n * self.hidden_size * 2 * 2
+            self.adjusted_layers = self.hidden_n * 2
+            self.unflatten_shape = (2 * 2 * self.hidden_n, self.hidden_size)
+        else:
+            flat_size_encode = self.hidden_n * self.hidden_size * 2
+            self.adjusted_layers = self.hidden_n
+            self.unflatten_shape = (2 * self.hidden_n, self.hidden_size)
+
+        self.label_encoder = LabelEncoder(
+            label_embed_sizes=self.label_embed_sizes,
+            hidden_size=self.hidden_size,
+            output_size=flat_size_encode,
+        )
+
         self.decoder = Decoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
@@ -36,16 +52,6 @@ class AutoDiscLSTM(Base):
             top_sampler=top_sampler,
             bidirectional=bidirectional,
         )
-        # self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        if bidirectional:
-            flat_size_encode = self.hidden_n * self.hidden_size * 2 * 2
-            self.adjusted_layers = self.hidden_n * 2
-            self.unflatten_shape = (2 * 2 * self.hidden_n, self.hidden_size)
-        else:
-            flat_size_encode = self.hidden_n * self.hidden_size * 2
-            self.adjusted_layers = self.hidden_n
-            self.unflatten_shape = (2 * self.hidden_n, self.hidden_size)
-        self.fc_hidden = nn.Linear(self.labels_size, flat_size_encode)
 
     def forward(
         self,
@@ -67,7 +73,7 @@ class AutoDiscLSTM(Base):
         # loss
         loss = recon_act_nlll
 
-        return {"loss": loss, "recon_act_nlll_loss": recon_act_nlll}
+        return {"loss": loss, "recon_loss": recon_act_nlll}
 
     def encode(self, input: Tensor):
         return None
@@ -83,7 +89,7 @@ class AutoDiscLSTM(Base):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        h = self.fc_hidden(labels)
+        h = self.label_encoder(labels)
 
         # initialize hidden state
         hidden = h.unflatten(1, self.unflatten_shape).permute(
@@ -94,15 +100,14 @@ class AutoDiscLSTM(Base):
         )  # ([hidden, N, layers, [hidden, N, layers]])
         batch_size = z.shape[0]
 
-        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
-            # use teacher forcing
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=target
-            )
-        else:
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=None
-            )
+        log_probs = self.decoder(
+            batch_size=batch_size,
+            hidden=hidden,
+            target=target,
+            teacher_forcing_ratio=(
+                self.teacher_forcing_ratio if target is not None else 0.0
+            ),
+        )
 
         return log_probs
 
@@ -112,6 +117,69 @@ class AutoDiscLSTM(Base):
         z = z.to(device)
         labels = labels.to(device)
         return exp(self.decode(z=z, labels=labels, kwargs=kwargs))
+
+
+class LabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size, output_size):
+        """Optimised Label Encoder using a single combined embedding layer.
+        Eliminates the Python for-loop and multiple GPU kernel calls.
+        """
+        super().__init__()
+
+        # 1. Calculate offsets for each label type
+        # If label sizes are, offsets will be [0, 3, 7]
+        offsets = [0]
+        for s in label_embed_sizes[:-1]:
+            offsets.append(offsets[-1] + s)
+
+        # Register as a buffer so it moves to GPU/CPU automatically with the module
+        self.register_buffer("offsets", torch.tensor(offsets, dtype=torch.long))
+
+        # 2. Create one single combined embedding matrix
+        total_vocab_size = sum(label_embed_sizes)
+        self.combined_embed = nn.Sequential(
+            CastToLong(), NormalizedEmbedding(total_vocab_size, hidden_size)
+        )
+
+        # 3. Final feed-forward network remains the same
+        self.ff = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, output_size),
+        )
+
+    def forward(self, x):
+        # x shape: [Batch_Size, Num_Labels]
+
+        # Apply the precomputed offsets to shift the indices of each column
+        # self.offsets (shape: [Num_Labels]) broadcasts across the batch dimension
+        shifted_x = x + self.offsets
+
+        # Perform exactly ONE embedding lookup
+        # Output shape: [Batch_Size, Num_Labels, Hidden_Size]
+        embedded = self.combined_embed(shifted_x)
+
+        # Sum across the labels dimension (dim=1)
+        # Output shape: [Batch_Size, Hidden_Size]
+        x_summed = embedded.sum(dim=1)
+
+        return self.ff(x_summed)
+
+
+class CastToLong(nn.Module):
+    def forward(self, x):
+        return x.long()
+
+
+class NormalizedEmbedding(nn.Module):
+    def __init__(self, num_embeddings, embedding_dim):
+        super().__init__()
+        self.embed = nn.Embedding(num_embeddings, embedding_dim)
+        nn.init.orthogonal_(self.embed.weight)
+        self.norm = nn.LayerNorm(embedding_dim)
+
+    def forward(self, x):
+        return self.norm(self.embed(x))
 
 
 class Decoder(nn.Module):
@@ -124,7 +192,7 @@ class Decoder(nn.Module):
         max_length,
         dropout: float = 0.0,
         sos: int = 0,
-        top_sampler: bool = False,
+        top_sampler: bool = True,
         bidirectional: bool = False,
     ):
         """LSTM Decoder with teacher forcing.
@@ -171,13 +239,19 @@ class Decoder(nn.Module):
             print("Using multinomial sampling")
             self.sample = self.multinomial
 
-    def forward(self, batch_size, hidden, target=None, **kwargs):
+    def forward(
+        self,
+        batch_size,
+        hidden,
+        target=None,
+        teacher_forcing_ratio=0.0,
+        **kwargs,
+    ):
         hidden, cell = hidden
-        decoder_input = torch.zeros(batch_size, 1, device=hidden.device).long()
-        decoder_input[:, 0] = self.sos  # set as SOS
-        hidden = hidden.contiguous()
-        cell = cell.contiguous()
-        decoder_hidden = (hidden, cell)
+        decoder_input = torch.full(
+            (batch_size, 1), self.sos, dtype=torch.long, device=hidden.device
+        )
+        decoder_hidden = (hidden.contiguous(), cell.contiguous())
         outputs = []
 
         for i in range(self.max_length):
@@ -186,17 +260,21 @@ class Decoder(nn.Module):
             )
             outputs.append(decoder_output)
 
-            if target is not None:
-                # teacher forcing for next step
-                decoder_input = target[:, i : i + 1]  # (slice maintains dim)
+            if target is not None and teacher_forcing_ratio > 0:
+                sampled = self.sample(decoder_output)  # [N, 1]
+                # per-sample decision: [N, 1] bool
+                use_teacher = (
+                    torch.rand(batch_size, 1, device=hidden.device)
+                    < teacher_forcing_ratio
+                )
+                decoder_input = torch.where(
+                    use_teacher, target[:, i : i + 1], sampled
+                )
             else:
-                # no teacher forcing use decoder output
                 decoder_input = self.sample(decoder_output)
 
-        acts_logits = torch.cat(outputs, dim=1)  # [N, L, C]
-        acts_log_probs = self.activity_logprob_activation(acts_logits)
-
-        return acts_log_probs
+        acts_logits = torch.cat(outputs, dim=1)
+        return self.activity_logprob_activation(acts_logits)
 
     def forward_step(self, x, hidden):
         embedded = self.embedding(x)

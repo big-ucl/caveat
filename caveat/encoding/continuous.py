@@ -97,9 +97,15 @@ class ContinuousEncoder(BaseEncoder):
         label_weights: Optional[Tuple[Tensor, Tensor]],
     ) -> dataset:
         # prepare schedules dataframe
-        schedules = schedules.copy()
-        schedules.duration = schedules.duration / self.norm_duration
-        schedules.act = schedules.act.map(self.acts_to_index).astype(int)
+        schedules = pd.DataFrame(
+            {
+                "pid": schedules.pid.to_numpy(),
+                "act": schedules.act.map(self.acts_to_index)
+                .astype(np.int64)
+                .to_numpy(),
+                "duration": schedules.duration.to_numpy() / self.norm_duration,
+            }
+        )
 
         # encode
         encoded_schedules = self._encode_sequences(schedules, self.max_length)
@@ -133,7 +139,7 @@ class ContinuousEncoder(BaseEncoder):
             joint_weights=joint_weights,
         )
 
-    def _encode_sequences(
+    def _slow_encode_sequences(
         self, data: pd.DataFrame, max_length: int
     ) -> Tuple[Tensor, Tensor]:
         persons = data.pid.nunique()
@@ -156,7 +162,7 @@ class ContinuousEncoder(BaseEncoder):
 
         return torch.from_numpy(encoded)
 
-    def decode(
+    def slow_decode(
         self, schedules: Tensor, argmax=True, chunk_size: int | None = None
     ) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
@@ -234,6 +240,131 @@ class ContinuousEncoder(BaseEncoder):
 
         raise ValueError(f"Unknown fix_durations option: {self.fix_durations}")
 
+    def decode(
+        self, schedules: Tensor, argmax=True, chunk_size: int | None = None
+    ) -> pd.DataFrame:
+        """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
+
+        pid | act | start | end
+
+        enumeration of seq is used for pid.
+        """
+        with torch.no_grad():
+            if argmax:
+                acts, durations = torch.split(
+                    schedules, [self.encodings, 1], dim=-1
+                )
+                acts = acts.argmax(dim=-1)
+            else:
+                acts, durations = torch.split(schedules, [1, 1], dim=-1)
+                acts = acts.squeeze(-1)
+            durations = durations.squeeze(-1)
+
+            acts = acts.detach().to("cpu", non_blocking=False).numpy()
+            durations = durations.detach().to("cpu", non_blocking=False).numpy()
+
+        del schedules
+
+        # index -> name lookup (indices are contiguous 0..encodings-1)
+        names = np.empty(self.encodings, dtype=object)
+        for i, a in self.index_to_acts.items():
+            names[i] = a
+
+        N = acts.shape[0]
+        step = chunk_size or N  # chunking now only bounds temporary memory
+
+        frames = [
+            self._decode_chunk(
+                acts[s : s + step], durations[s : s + step], s, names
+            )
+            for s in range(0, N, step)
+        ]
+        df = pd.concat(frames, ignore_index=True)
+        df["duration"] = df.end - df.start
+
+        if self.fix_durations == "none":
+            return df
+        if self.fix_durations == "stretch":
+            df = norm_durations(df, self.norm_duration)
+            df = fix_end_durations(df, self.norm_duration)
+            df["duration"] = df.end - df.start
+            return df
+        if self.fix_durations == "crop":
+            df = df[df.end <= self.norm_duration]
+            df = fix_end_durations(df, self.norm_duration)
+            df["duration"] = df.end - df.start
+            return df
+
+        raise ValueError(f"Unknown fix_durations option: {self.fix_durations}")
+
+    def _decode_chunk(
+        self,
+        acts: np.ndarray,
+        durations: np.ndarray,
+        offset: int,
+        names: np.ndarray,
+    ) -> pd.DataFrame:
+        acts = acts.astype(np.int64)  # truncates like int() if argmax=False
+
+        is_eos = acts == self.eos
+        eos_seen = np.cumsum(is_eos, axis=1)  # 1 at and after the first EOS
+        valid = (eos_seen == 0) & (acts != self.sos)  # real activities only
+
+        dur = np.where(
+            valid, (durations * self.norm_duration).astype(np.int64), 0
+        )
+        ends = np.cumsum(dur, axis=1)
+        starts = ends - dur
+
+        # empty plan hack: hit an EOS having accumulated no time
+        empty = is_eos.any(axis=1) & (dur.sum(axis=1) == 0)
+        if empty.any():
+            print(
+                f"Failed to decode {int(empty.sum())} plans in chunk, returning empty plan"
+            )
+        home = is_eos & (eos_seen == 1) & empty[:, None]
+
+        rows, cols = np.nonzero(valid | home)  # row-major: pid then slot
+        act_names = names[acts[rows, cols]]
+        act_names[home[rows, cols]] = "home"
+
+        return pd.DataFrame(
+            {
+                "pid": rows + offset,
+                "act": act_names,
+                "start": starts[rows, cols],
+                "end": ends[rows, cols],
+            }
+        )
+
+    def _encode_sequences(self, data: pd.DataFrame, max_length: int) -> Tensor:
+        encoding_width = 2  # cat act encoding plus duration
+
+        # groupby sorts by pid, so a stable sort reproduces the same person order
+        data = data.sort_values("pid", kind="stable")
+        pid_codes, uniques = pd.factorize(data.pid.to_numpy(), sort=True)
+        n = len(uniques)
+
+        acts = data.act.to_numpy()
+        durs = data.duration.to_numpy(dtype=np.float32)
+
+        # 1-based position of each activity within its person (slot 0 is SOS)
+        counts = np.bincount(pid_codes, minlength=n)
+        starts = np.cumsum(counts) - counts
+        pos = np.arange(len(data)) - starts[pid_codes] + 1
+
+        encoded = np.zeros((n, max_length, encoding_width), dtype=np.float32)
+        encoded[:, 0, 0] = self.sos
+        encoded[:, 1:, 0] = self.eos  # EOS marker and padding, duration stays 0
+
+        # truncate to max_length - 1 activities, same as the loop
+        keep = pos < max_length
+        rows, cols = pid_codes[keep], pos[keep]
+        encoded[rows, cols, 0] = acts[keep]
+        encoded[rows, cols, 1] = durs[keep]
+
+        return torch.from_numpy(encoded)
+
 
 class ContinuousEncoderStaggered(ContinuousEncoder):
     dataset = StaggeredDataset
@@ -281,10 +412,13 @@ def fix_end_durations(data: pd.DataFrame, end_duration: int) -> pd.DataFrame:
 
 
 def norm_durations(data: pd.DataFrame, target_duration: int) -> pd.DataFrame:
-    def norm_plan_durations(plan: pd.DataFrame):
+    print(f"Normalising plan durations to {target_duration} minutes")
+    zero_duration_counter = 0
+
+    def norm_plan_durations(plan: pd.DataFrame, zero_duration_counter):
         plan_duration = plan.duration.sum()
         if plan_duration == 0:
-            print("Zero duration plan found, cannot normalise")
+            zero_duration_counter += 1
             return plan
         if plan_duration != target_duration:
             r = target_duration / plan_duration
@@ -295,6 +429,13 @@ def norm_durations(data: pd.DataFrame, target_duration: int) -> pd.DataFrame:
         return plan.reset_index(drop=True)
 
     data = (
-        data.groupby(data.pid).apply(norm_plan_durations).reset_index(drop=True)
+        data.groupby(data.pid)
+        .apply(lambda x: norm_plan_durations(x, zero_duration_counter))
+        .reset_index(drop=True)
     )
+
+    print(
+        f"Normalised {len(data.pid.unique())} plans, {zero_duration_counter} had zero duration and were not normalised"
+    )
+
     return data

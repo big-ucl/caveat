@@ -1,6 +1,30 @@
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
+
+
+def load_table(path: Union[str, Path], **kwargs) -> pd.DataFrame:
+    """
+    Loads a parquet or CSV file into a pandas DataFrame.
+
+    Args:
+        path (Union[str, Path]): The path to the file.
+
+    Returns:
+        DataFrame: The loaded DataFrame.
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+    if path.suffix == ".parquet":
+        if "low_memory" in kwargs:
+            del kwargs["low_memory"]
+        df = pd.read_parquet(path, **kwargs)
+    else:
+        df = pd.read_csv(path, **kwargs)
+    print(f">>> Loaded {len(df)} rows from {path}")
+    return df
 
 
 def load_and_validate_schedules(data_path: Path) -> pd.DataFrame:
@@ -16,7 +40,7 @@ def load_and_validate_schedules(data_path: Path) -> pd.DataFrame:
     Raises:
         UserWarning: If no data is found in the specified file.
     """
-    data = pd.read_csv(data_path, low_memory=False)
+    data = load_table(data_path, low_memory=False)
     if data.empty:
         raise UserWarning(f"No data found in {data_path}.")
     validate_schedules(data)
@@ -72,7 +96,7 @@ def load_and_validate_attributes(
     # load attributes data
     if config.get("attributes_path"):
         data_path = Path(config["attributes_path"])
-        attributes = pd.read_csv(data_path, low_memory=False)
+        attributes = load_table(data_path, low_memory=False)
         if attributes.empty:
             raise UserWarning(f"No attributes found in {data_path}.")
 
@@ -123,7 +147,7 @@ def load_and_validate_attributes(
     if attributes is not None:
         if config.get("synthetic_attributes_path"):
             data_path = Path(config["synthetic_attributes_path"])
-            synthetic_attributes = pd.read_csv(data_path, low_memory=False)
+            synthetic_attributes = load_table(data_path, low_memory=False)
             print(f"LOADING SYNTHETIC ATTRIBUTES FROM {data_path}")
             if synthetic_attributes.empty:
                 raise UserWarning(

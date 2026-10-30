@@ -1,0 +1,62 @@
+seed: 1234
+
+logging_params:
+  log_dir: "logs/actvae2"
+  name: "are"
+
+schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.parquet"
+attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
+
+evaluation_params:
+  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities, hh_children]
+  split_order: 2
+  
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: inverse
+  labels:
+    age: nominal
+    sex: nominal
+    employment: nominal
+    hh_income: nominal
+    hh_zone: nominal
+    day: nominal
+    veh_per_adult: nominal
+    wt_travel_time_to_cities: nominal
+    hh_children: nominal
+
+loader_params:
+  train_batch_size: 1024
+  val_batch_size:  1024
+  num_workers: 8
+  val_split: 0.1
+
+trainer_params:
+  min_epochs: 50
+  max_epochs: 300
+  patience: 50
+
+encoder_params:
+  name: "events"
+  event_weighting: inverse_seq
+  weight_power: 1
+  min_count: 1
+  argmax: False
+
+experiment_params:
+  LR: 0.0001
+  weight_decay: 0.1
+  scheduler_gamma: 0.975
+
+model_params:
+  name: "AutoDiscEventTransformer"
+  top_sampler: False
+  hidden_n: 2
+  hidden_size: 64
+  n_heads: 4
+  ff_mult: 1
+  dropout: 0
+  label_dropout: 0.3
+  soft_window: 1
+

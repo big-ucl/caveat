@@ -28,6 +28,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
         for i, (k, v) in enumerate(self.config.copy().items()):
             if k not in data.columns:
                 raise UserWarning(f"Conditional '{k}' not found in attributes")
+            input_type = data[k].dtype.name
             if isinstance(v, dict):  # Pre-defined encoding
                 if v.get("ordinal"):
                     raise UserWarning(
@@ -41,6 +42,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     self.config[k].update({"location": i})
                     if "dtype" not in self.config[k]:
                         self.config[k]["type"] = "string"
+                        self.config[k]["input_type"] = input_type
                     self.label_kwargs["label_embed_sizes"].append(
                         data[k].nunique()
                     )
@@ -55,6 +57,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     "nominal": nominal_encodings,
                     "location": i,
                     "type": "string",
+                    "input_type": input_type,
                 }
                 self.label_kwargs["label_embed_sizes"].append(
                     len(nominal_encodings)
@@ -96,12 +99,12 @@ class TokenAttributeEncoder(BaseLabelEncoder):
     def decode(self, data: List[Tensor]) -> pd.DataFrame:
         decoded = {"pid": list(range(data.shape[0]))}
         for k, v in self.config.items():
-            location, column_type = (v["location"], v["type"])
+            location, output_type = (v["location"], v["input_type"])
             if v.get("nominal") is not None:
                 encoding = {i: name for name, i in v["nominal"].items()}
                 tokens = data[:, location].tolist()
                 decoded[k] = pd.Series([encoding[i] for i in tokens]).astype(
-                    column_type
+                    output_type
                 )
             else:
                 raise UserWarning(
@@ -113,12 +116,12 @@ class TokenAttributeEncoder(BaseLabelEncoder):
     def argmax_decode(self, data: List[Tensor]) -> pd.DataFrame:
         decoded = {"pid": list(range(data[0].shape[0]))}
         for k, v in self.config.items():
-            location, column_type = (v["location"], v["type"])
+            location, output_type = (v["location"], v["input_type"])
             if v.get("nominal") is not None:
                 encoding = {i: name for name, i in v["nominal"].items()}
                 tokens = data[location].argmax(dim=-1).tolist()
                 decoded[k] = pd.Series([encoding[i] for i in tokens]).astype(
-                    column_type
+                    output_type
                 )
             else:
                 raise UserWarning(
@@ -130,7 +133,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
     def sample_decode(self, data: List[Tensor]) -> pd.DataFrame:
         decoded = {"pid": list(range(data[0].shape[0]))}
         for k, v in self.config.items():
-            location, column_type = (v["location"], v["type"])
+            location, output_type = (v["location"], v["input_type"])
             if v.get("nominal") is not None:
                 encoding = {i: name for name, i in v["nominal"].items()}
                 tokens = (
@@ -139,7 +142,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     .tolist()
                 )
                 decoded[k] = pd.Series([encoding[i] for i in tokens]).astype(
-                    column_type
+                    output_type
                 )
             else:
                 raise UserWarning(

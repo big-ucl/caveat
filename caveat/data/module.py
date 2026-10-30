@@ -1,9 +1,35 @@
-from typing import Optional, Union
+from typing import Optional
 
 import torch
 from pytorch_lightning import LightningDataModule
 from torch.distributions import OneHotCategorical
 from torch.utils.data import DataLoader, Dataset
+
+
+class BatchLoader:
+    """Iterates pre-built tensors by index. No workers, no collate, no transfers."""
+
+    def __init__(self, dataset, indices, batch_size, shuffle, drop_last=False):
+        self.dataset = dataset
+        self.indices = indices  # LongTensor on the same device as the data
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.drop_last = drop_last
+
+    def __len__(self):
+        n = len(self.indices)
+        return (
+            n // self.batch_size if self.drop_last else -(-n // self.batch_size)
+        )
+
+    def __iter__(self):
+        idx = self.indices
+        if self.shuffle:
+            idx = idx[torch.randperm(len(idx), device=idx.device)]
+        for i in range(len(self)):
+            yield self.dataset.get_batch(
+                idx[i * self.batch_size : (i + 1) * self.batch_size]
+            )
 
 
 class DataModule(LightningDataModule):
@@ -12,88 +38,55 @@ class DataModule(LightningDataModule):
         data: Dataset,
         val_split: float = 0.1,
         test_split: Optional[float] = None,
-        train_batch_size: int = 128,
-        val_batch_size: int = 128,
-        test_batch_size: int = 128,
-        num_workers: int = 1,
-        pin_memory: bool = False,
-        **kwargs,
+        train_batch_size: int = 1024,
+        val_batch_size: int = 1024,
+        test_batch_size: int = 1024,
+        device: str = "cuda",
+        drop_last: bool = True,
+        seed: int = 0,
+        **kwargs,  # swallows num_workers / pin_memory from existing configs
     ):
-        """Torch DataModule.
-
-        Args:
-            data (Dataset): Data
-            val_split (float, optional): _description_. Defaults to 0.1.
-            test_split (Optional[float], optional): _description_. Defaults to None.
-            train_batch_size (int, optional): _description_. Defaults to 128.
-            val_batch_size (int, optional): _description_. Defaults to 128.
-            test_batch_size (int, optional): _description_. Defaults to 128.
-            num_workers (int, optional): _description_. Defaults to 0.
-            pin_memory (bool, optional): _description_. Defaults to False.
-        """
         super().__init__()
-
         self.data = data
         self.val_split = val_split
         self.test_split = test_split
         self.train_batch_size = train_batch_size
         self.val_batch_size = val_batch_size
         self.test_batch_size = test_batch_size
-        self.num_workers = num_workers
-        self.pin_memory = pin_memory
+        self.device = device
+        self.drop_last = drop_last
         self.mapping = None
+        self.seed = seed
 
     def setup(self, stage: Optional[str] = None) -> None:
-        if self.test_split is None:
-            (
-                self.train_dataset,
-                self.val_dataset,
-            ) = torch.utils.data.random_split(
-                self.data, [1 - self.val_split, self.val_split]
-            )
-            self.test_dataset = self.val_dataset
-        else:
-            (
-                self.train_dataset,
-                self.val_dataset,
-                self.test_dataset,
-            ) = torch.utils.data.random_split(
-                self.data,
-                [
-                    1 - self.val_split - self.test_split,
-                    self.val_split,
-                    self.test_split,
-                ],
-            )
+        self.data.to(self.device)  # move every tensor once
+        n = len(self.data)
+        perm = torch.randperm(
+            n, generator=torch.Generator().manual_seed(self.seed)
+        ).to(self.device)
+        n_val = int(n * self.val_split)
+        n_test = int(n * self.test_split) if self.test_split else 0
+        self.val_idx = perm[:n_val]
+        self.test_idx = perm[n_val : n_val + n_test] if n_test else self.val_idx
+        self.train_idx = perm[n_val + n_test :]
 
-    def train_dataloader(self) -> DataLoader:
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.train_batch_size,
-            num_workers=self.num_workers,
+    def train_dataloader(self):
+        return BatchLoader(
+            self.data,
+            self.train_idx,
+            self.train_batch_size,
             shuffle=True,
-            pin_memory=self.pin_memory,
-            persistent_workers=True,
+            drop_last=self.drop_last,
         )
 
-    def val_dataloader(self) -> Union[DataLoader, list[DataLoader]]:
-        return DataLoader(
-            self.val_dataset,
-            batch_size=self.val_batch_size,
-            num_workers=self.num_workers,
-            shuffle=False,
-            pin_memory=self.pin_memory,
-            persistent_workers=True,
+    def val_dataloader(self):
+        return BatchLoader(
+            self.data, self.val_idx, self.val_batch_size, shuffle=False
         )
 
-    def test_dataloader(self) -> Union[DataLoader, list[DataLoader]]:
-        return DataLoader(
-            self.test_dataset,
-            batch_size=self.test_batch_size,
-            num_workers=self.num_workers,
-            shuffle=False,
-            pin_memory=self.pin_memory,
-            persistent_workers=True,
+    def test_dataloader(self):
+        return BatchLoader(
+            self.data, self.test_idx, self.test_batch_size, shuffle=False
         )
 
 

@@ -1,6 +1,6 @@
-# caveat nrun configs/actvae/conditional.yaml
-# caveat nrun configs/actvae/vae.yaml
-# caveat nrun configs/actvae/cpvae.yaml
+caveat nrun configs/actvae/conditional.yaml
+caveat nrun configs/actvae/vae.yaml
+caveat nrun configs/actvae/cpvae.yaml
 
 # caveat nrun configs/actvae/ablation/aaaa.yaml
 # caveat nrun configs/actvae/ablation/cncn.yaml

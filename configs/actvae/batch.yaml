@@ -2,9 +2,10 @@ global:
   logging_params:
     log_dir: "logs/actvae"
     name: "cp-batch"
+    
+  schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.parquet"
+  attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
 
-  schedules_path: "~/Data/foundata/out/nts/2023/activities.csv"
-  attributes_path: "~/Data/foundata/out/nts/2023/attributes_binned.csv"
 
   evaluation_params:
     split_on: [age, sex, employment, hh_income, hh_zone, day, vehicles, access_egress_distance]

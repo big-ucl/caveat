@@ -19,6 +19,10 @@ class DiscreteEncoder(BaseEncoder):
         self.step_size = step_size
         self.steps = duration // step_size
         self.jitter = kwargs.get("jitter", 0)
+        self.argmax = kwargs.get("argmax", False)
+        print(
+            f"Discrete Encoder initialised with: jitter={self.jitter}, argmax={self.argmax}"
+        )
         self.acts_to_index = None
 
         self.weighting = kwargs.get("weighting", "unit")
@@ -128,7 +132,7 @@ class DiscreteEncoder(BaseEncoder):
             joint_weights=joint_weights,
         )
 
-    def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
+    def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode discretised sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -142,8 +146,10 @@ class DiscreteEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: Decoded schedule DataFrame.
         """
-        if argmax:
+        if self.argmax:
             schedules = torch.argmax(schedules, dim=-1)
+        else:
+            schedules = torch.multinomial(schedules, num_samples=1).squeeze(-1)
         decoded = []
 
         for pid in range(len(schedules)):

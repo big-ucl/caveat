@@ -20,6 +20,7 @@ from .continuous.vae_lstm import VAEContLSTM
 from .continuous.vae_lstm_countdown import VAEContLSTMCountdown
 from .continuous.vqvae_lstm import VQVAEContLSTM
 from .discrete.auto_discrete_lstm import AutoDiscLSTM
+from .discrete.auto_discrete_transformer import AutoDiscTransformer
 from .discrete.cond_discrete_conv import CondDiscCNN2D
 from .discrete.cond_discrete_lstm import CondDiscLSTM
 from .discrete.vae_discrete_cnn1d import VAEDiscCNN1D
@@ -27,6 +28,7 @@ from .discrete.vae_discrete_cnn2d import VAEDiscCNN2D
 from .discrete.vae_discrete_fc import VAEDiscFC
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_xattention import VAEDiscXTrans
+from .events.auto_event_transformer import AutoDiscEventTransformer
 from .joint_vaes.jvae_continuous import JVAEContLSTM
 from .joint_vaes.jvae_continuous_rerouted import JVAEContLSTMRerouted
 from .schedule2label.feedforward import Schedule2LabelFeedForward
@@ -38,8 +40,10 @@ library = {
     "CondDiscCNN2D": CondDiscCNN2D,
     "CondContLSTM": CondContLSTM,
     "AutoDiscLSTM": AutoDiscLSTM,
+    "AutoDiscTransformer": AutoDiscTransformer,
     "AutoContLSTM": AutoContLSTM,
     "AutoContAtt": AutoContAtt,
+    "AutoDiscEventTransformer": AutoDiscEventTransformer,
     "VAEDiscCNN2D": VAEDiscCNN2D,
     "VAEDiscCNN1D": VAEDiscCNN1D,
     "VAEDiscFC": VAEDiscFC,

@@ -1,0 +1,84 @@
+seed: 42
+
+schedules_path: "../foundata/output/activity_schedules.parquet"
+attributes_path: "../foundata/output/binned_attributes.parquet"
+synthetic_attributes_path: "../foundata/output/100k/binned_attributes.parquet"
+
+logging_params:
+  log_dir: "logs/foundata85"
+  name: "world"
+
+encoder_params:
+  name: "continuous"
+  max_length: 16
+  norm_duration: 1440
+  jitter: 0
+  fix_durations: stretch
+  trim_eos: True
+  weighting: unit
+  joint_weighting: unit
+
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: inverse
+  labels:
+    continent: nominal
+    year: nominal
+    age: nominal
+    employment: nominal
+    hh_income: nominal
+    hh_zone: nominal
+    day: nominal
+    wt_ghsl_built_volume: nominal
+    wt_ntl_harmonized: nominal
+    wt_tp_sum: nominal
+    wt_t2m_mean: nominal
+    wt_skt_max: nominal
+    wt_gini: nominal
+    wt_hdi: nominal
+    wt_population_density: nominal
+    wt_gdp_per_capita: nominal
+    wt_travel_time_to_cities: nominal
+
+evaluation_params:
+  split_on: [continent, year, age, employment, hh_income, hh_zone, day]
+  schedules_path: "../foundata/output/100k/activity_schedules.parquet"
+  attributes_path: "../foundata/output/100k/binned_attributes.parquet"
+
+loader_params:
+  train_batch_size: 8192
+  val_batch_size:  8192
+  num_workers: 8
+  val_split: 0.01
+  # test_split: 0.1
+
+trainer_params:
+  min_epochs: 25
+  max_epochs: 200
+  patience: 20
+  detect_anomaly: True
+  anchor_scheduling:
+    enabled: False
+    label_only_epochs: 10
+    warmup_epochs: 10
+
+model_params:
+  name: "CVAEContLSTMCP"
+  hidden_n: 5
+  hidden_size: 512
+  labels_hidden_size: 128
+  latent_dim: 10
+  dropout: 0
+  teacher_forcing_ratio: 0.5
+  hidden_conditionality: add
+  encoder_conditionality: none
+  latent_conditionality: add
+  decoder_conditionality: none
+
+experiment_params:
+  LR: 0.0001
+  weight_decay: 0.01
+  scheduler_gamma: 0.98
+  kld_weight: 0.01
+  duration_loss_weight: 200

@@ -3,11 +3,11 @@ logging_params:
   log_dir: "logs/TRB"
   name: "cvae_countdown"
 
-schedules_path: "tmp/nts_schedules_2023.csv"
-attributes_path: "tmp/nts_attributes_2023.csv"
+schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.parquet"
+attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
 
 evaluation_params:
-  split_on: [gender, age_group, car_access, work_status, income]
+  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities, hh_children]
 
 labels_encoder:
   name: "tokens"

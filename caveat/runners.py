@@ -3,7 +3,6 @@ import pickle
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-import pandas as pd
 import torch
 from acteval._report import print_markdown
 from acteval.evaluate import Evaluator
@@ -22,10 +21,12 @@ from caveat.callbacks import (
     LinearLossScheduler,
     PriorSeparationMonitor,
 )
-from caveat.data.loaders import validate_attributes
+from caveat.data.loaders import load_table, validate_attributes
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.label_encoding.base import BaseLabelEncoder
+
+# torch.set_float32_matmul_precision("high")
 
 
 def gen_command(
@@ -55,7 +56,7 @@ def gen_command(
     print(f"\n======= Generating synthetic data for {name} =======")
 
     # load synthetic data
-    synthetic_attributes = pd.read_csv(attributes_path, low_memory=False)
+    synthetic_attributes = load_table(attributes_path, low_memory=False)
     print(f"LOADING SYNTHETIC ATTRIBUTES FROM {attributes_path}")
     if synthetic_attributes.empty:
         raise UserWarning(
@@ -790,7 +791,7 @@ def eval_command(
 
 
 def load_labels(path):
-    synthetic_attributes = pd.read_csv(path)
+    synthetic_attributes = load_table(path)
     print(f"> Loaded {len(synthetic_attributes)} synthetic labels from {path}")
     if synthetic_attributes.empty:
         raise UserWarning(f"No labels found in {path}.")
@@ -1091,7 +1092,7 @@ def test_inference(
     zs = torch.concat(zs)
     conditionals = torch.concat(conditionals)
 
-    input_schedules = schedule_encoder.decode(input_schedules, argmax=False)
+    input_schedules = schedule_encoder.decode(input_schedules)
     data.validate_schedules(input_schedules)
     input_schedules.to_csv(write_dir / "input_schedules.csv")
 
@@ -1266,6 +1267,9 @@ def evaluate_synthetics(
 
     if split_on:
         print(f"Conditional Evaluation using: {split_on}...")
+        split_order = eval_params.get("split_order", 1)
+        print(f"Split order: {split_order}")
+
         eval_attributes_path = eval_params.get("attributes_path", None)
         if eval_attributes_path:
             eval_attributes, _ = data.load_and_validate_attributes(
@@ -1285,6 +1289,7 @@ def evaluate_synthetics(
             target=eval_schedules,
             target_attributes=eval_attributes,
             split_on=split_on,
+            split_order=split_order,
             progress=verbose,
         )
         result = evaluator.compare(
@@ -1292,7 +1297,8 @@ def evaluate_synthetics(
             attributes=synthetic_labels,
             verbose=verbose,
         )
-        print_markdown(result.domains.by_attribute.distances)
+        print("\nGroup distances (lower is better):")
+        print_markdown(result.groups.combined.distances)
         print("\nDomain distances (lower is better):")
         print_markdown(result.domains.combined.distances)
         ranked = result.rank_models()
@@ -1375,6 +1381,7 @@ def build_model(
         **config.get("experiment_params", {}),
         **label_kwargs,
     )
+    model.compile()
     return model
 
 
@@ -1443,7 +1450,12 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
         )
         callbacks.append(PriorSeparationMonitor(prior_separation_config))
 
-    return Trainer(logger=logger, callbacks=callbacks, **trainer_config)
+    return Trainer(
+        # precision="bf16-mixed",
+        logger=logger,
+        callbacks=callbacks,
+        **trainer_config,
+    )
 
 
 def initiate_logger(save_dir: Union[Path, str], name: str) -> TensorBoardLogger:

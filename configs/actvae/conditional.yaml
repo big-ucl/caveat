@@ -1,11 +1,11 @@
 seed: 12345
 
 logging_params:
-  log_dir: "logs/actvae"
+  log_dir: "logs/actvae2"
   name: "conditional"
 
-schedules_path: "~/Data/foundata/out/nts/2023/activities.csv"
-attributes_path: "~/Data/foundata/out/nts/2023/attributes_binned.csv"
+schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.parquet"
+attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
 
 loader_params:
   train_batch_size: 1024
@@ -35,12 +35,14 @@ labels_encoder:
     hh_income: nominal
     hh_zone: nominal
     day: nominal
-    vehicles: nominal
+    veh_per_adult: nominal
     access_egress_distance: nominal
+    wt_travel_time_to_cities: nominal
+    hh_children: nominal
 
 evaluation_params:
-  split_on: [age, sex, employment, hh_income, hh_zone, day, vehicles, access_egress_distance]
-
+  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities, hh_children]
+  split_order: 2
 
 encoder_params:
   name: "continuous"
