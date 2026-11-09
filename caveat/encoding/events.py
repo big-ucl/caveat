@@ -5,14 +5,15 @@ import pandas as pd
 import torch
 from torch import Tensor
 
-from caveat.encoding.continuous import (
-    ContinuousEncoder,
-    fix_end_durations,
-    norm_durations,
+from caveat.encoding.base import BaseDataset, BaseEncoder
+from caveat.encoding.cont_weighting import (
+    act_weight_library,
+    seq_weight_library,
 )
+from caveat.encoding.continuous import fix_end_durations, norm_durations
 
 
-class EventEncoder(ContinuousEncoder):
+class EventEncoder(BaseEncoder):
     """Event encoder: each activity is one token (type, start_bin, end_bin).
 
     Follows the 'Deep Activity Model' representation. Times are discretised into
@@ -30,6 +31,8 @@ class EventEncoder(ContinuousEncoder):
     start=end=0 and are masked out of the time losses.
     """
 
+    dataset = BaseDataset
+
     def __init__(
         self,
         max_length: int = 12,
@@ -37,9 +40,34 @@ class EventEncoder(ContinuousEncoder):
         n_bins: int = 96,
         **kwargs,
     ):
-        super().__init__(
-            max_length=max_length, norm_duration=norm_duration, **kwargs
-        )
+        self.max_length = max_length
+        self.norm_duration = norm_duration
+        self.jitter = kwargs.get("jitter", 0)
+
+        fixes = ["none", "stretch", "crop"]
+        self.fix_durations = kwargs.get("fix_durations", "stretch")
+        if self.fix_durations not in fixes:
+            raise ValueError(
+                f"Unknown fix_durations option: {self.fix_durations}, should be one of: {fixes}"
+            )
+
+        self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
+        self.weighting = kwargs.get("weighting", "unit")
+        self.joint_weighting = kwargs.get("joint_weighting", "unit")
+        self.trim_eos = kwargs.get("trim_eos", True)
+
+        self.weighter = act_weight_library.get(self.weighting, None)
+        if self.weighter is None:
+            raise ValueError(
+                f"Unknown Continuous Encoder weighting: {self.weighting}, should be one of: {act_weight_library.keys()}"
+            )
+
+        self.joint_weighter = seq_weight_library.get(self.joint_weighting, None)
+        if self.joint_weighter is None:
+            raise ValueError(
+                f"Unknown Continuous Encoder weighting: {self.joint_weighting}, should be one of: {seq_weight_library.keys()}"
+            )
+
         # sequence weighting: None | "inverse_seq" (1/freq of the activity-type
         # sequence, times ignored), tempered by weight_power, optionally clipped
         self.event_weighting = kwargs.get("event_weighting", "none")
@@ -50,7 +78,19 @@ class EventEncoder(ContinuousEncoder):
         self.weight_power = kwargs.get("weight_power", 1.0)
         self.max_weight = kwargs.get("max_weight", None)
         self.min_count = kwargs.get("min_count", 1)
-        self.max_weight = kwargs.get("max_weight", None)
+
+        # decoding: "accumulate" (contiguous from end bins, running max) or
+        # "overlay" (paint each event at its own [start, end), later events
+        # overwrite earlier ones, no running max)
+        self.decode_mode = kwargs.get("decode_mode", "accumulate")
+        if self.decode_mode not in ("accumulate", "overlay"):
+            raise ValueError(
+                f"Unknown decode_mode: {self.decode_mode}, should be 'accumulate' or 'overlay'"
+            )
+        # overlay only: fill uncovered bins by extending the previous event
+        # (and the first event backwards to 0). False leaves gaps.
+        self.gap_fill = kwargs.get("gap_fill", True)
+
         self.n_bins = n_bins
         self.time_classes = (
             n_bins + 1
@@ -65,8 +105,41 @@ class EventEncoder(ContinuousEncoder):
             f"""Event Encoder:
         n_bins: {self.n_bins} (bin size {self.bin_size} min)
         time classes: {self.time_classes}
+        max_length: {self.max_length}
+        fix_durations: {self.fix_durations}
+        decode_mode: {self.decode_mode}
+        gap_fill: {self.gap_fill}
+        event_weighting: {self.event_weighting} (power {self.weight_power}, min count {self.min_count}, max weight {self.max_weight})
+        weighting: {self.weighting}, joint_weighting: {self.joint_weighting}
+        trim_eos: {self.trim_eos}
+        jitter: {self.jitter}
         """
         )
+
+    def setup_encoder(self, schedules: pd.DataFrame) -> None:
+        self.sos = 0
+        self.eos = 1
+
+        self.index_to_acts = {
+            int(i + 2): a for i, a in enumerate(schedules.act.unique())
+        }
+        self.index_to_acts[0] = "<SOS>"
+        self.index_to_acts[1] = "<EOS>"
+        self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
+
+        self.encodings = len(self.index_to_acts)
+
+    def encode(
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
+    ) -> BaseDataset:
+        if labels is not None:
+            assert schedules.pid.nunique() == labels.shape[0]
+        if self.encodings is None:
+            self.setup_encoder(schedules)
+        return self._encode(schedules, labels, label_weights)
 
     # ------------------------------------------------------------------ encode
     def _encode(
@@ -182,20 +255,32 @@ class EventEncoder(ContinuousEncoder):
                 last dim is [act classes | start classes | end classes]; otherwise
                 index tensor [N, L, 3] of (act, start_bin, end_bin).
 
-        Schedules are rebuilt to be contiguous from the predicted *end* bins
-        (start of event j = end of event j-1, ends forced non-decreasing); the start
-        head is auxiliary. The usual fix_durations option is then applied.
+        decode_mode="accumulate": schedules are rebuilt to be contiguous from the
+        predicted *end* bins (start of event j = end of event j-1, ends forced
+        non-decreasing); the start head is not used.
+
+        decode_mode="overlay": every event is placed at its own predicted
+        [start, end) and later events overwrite (crop) earlier ones. Events
+        with end <= start vanish. No running maximum, so one late end bin can
+        no longer push the following events later.
+
+        The usual fix_durations option is then applied.
         """
         K = self.time_classes
         with torch.no_grad():
             if argmax:
-                acts, _, ends = torch.split(
+                acts, starts, ends = torch.split(
                     schedules, [self.encodings, K, K], dim=-1
                 )
-                acts, ends = acts.argmax(dim=-1), ends.argmax(dim=-1)
+                acts, starts, ends = (
+                    acts.argmax(dim=-1),
+                    starts.argmax(dim=-1),
+                    ends.argmax(dim=-1),
+                )
             else:
-                acts, _, ends = schedules.unbind(dim=-1)
+                acts, starts, ends = schedules.unbind(dim=-1)
             acts = acts.detach().to("cpu").numpy()
+            starts = starts.detach().to("cpu").numpy()
             ends = ends.detach().to("cpu").numpy()
         del schedules
 
@@ -205,10 +290,24 @@ class EventEncoder(ContinuousEncoder):
 
         N = acts.shape[0]
         step = chunk_size or N
-        frames = [
-            self._decode_chunk(acts[s : s + step], ends[s : s + step], s, names)
-            for s in range(0, N, step)
-        ]
+        if self.decode_mode == "overlay":
+            frames = [
+                self._decode_chunk_overlay(
+                    acts[s : s + step],
+                    starts[s : s + step],
+                    ends[s : s + step],
+                    s,
+                    names,
+                )
+                for s in range(0, N, step)
+            ]
+        else:
+            frames = [
+                self._decode_chunk(
+                    acts[s : s + step], ends[s : s + step], s, names
+                )
+                for s in range(0, N, step)
+            ]
         df = pd.concat(frames, ignore_index=True)
         return self._fix(df)
 
@@ -262,6 +361,90 @@ class EventEncoder(ContinuousEncoder):
                 "end": np.where(home[rows, cols], 0, ends[rows, cols]),
             }
         )
+
+    def _decode_chunk_overlay(
+        self,
+        acts: np.ndarray,
+        start_bins: np.ndarray,
+        end_bins: np.ndarray,
+        offset: int,
+        names: np.ndarray,
+    ) -> pd.DataFrame:
+        """Paint events onto a [n, n_bins] timeline in order (later wins), then
+        run-length encode. Event *indices* are painted, not activity types, so
+        consecutive events of the same type stay separate."""
+        B = self.n_bins
+        acts = acts.astype(np.int64)
+        s = np.clip(start_bins.astype(np.int64), 0, B)
+        e = np.clip(end_bins.astype(np.int64), 0, B)
+        n, L = acts.shape
+
+        is_eos = acts == self.eos
+        valid = (np.cumsum(is_eos, axis=1) == 0) & (acts != self.sos)
+
+        bins = np.arange(B)[None, :]
+        timeline = np.full((n, B), -1, dtype=np.int64)
+        for j in range(L):  # event j covers bins s_j .. e_j - 1
+            paint = (
+                valid[:, j : j + 1]
+                & (bins >= s[:, j : j + 1])
+                & (bins < e[:, j : j + 1])
+            )
+            timeline = np.where(paint, j, timeline)
+
+        if self.gap_fill:
+            painted = timeline >= 0
+            fwd = np.maximum.accumulate(np.where(painted, bins, -1), axis=1)
+            bwd = np.minimum.accumulate(
+                np.where(painted, bins, B)[:, ::-1], axis=1
+            )[:, ::-1]
+            src = np.minimum(np.where(fwd >= 0, fwd, bwd), B - 1)
+            timeline = np.take_along_axis(timeline, src, axis=1)
+
+        # run-length encode: a segment starts where the event index changes
+        prev = np.concatenate(
+            [np.full((n, 1), -2, dtype=np.int64), timeline[:, :-1]], axis=1
+        )
+        nxt = np.concatenate(
+            [timeline[:, 1:], np.full((n, 1), -2, dtype=np.int64)], axis=1
+        )
+        seg_start = (timeline != prev) & (timeline >= 0)
+        seg_end = (timeline != nxt) & (timeline >= 0)
+        rows, first_bin = np.nonzero(seg_start)
+        rows_e, last_bin = np.nonzero(seg_end)
+        assert len(rows) == len(rows_e)
+
+        ev = timeline[rows, first_bin]
+        out = pd.DataFrame(
+            {
+                "pid": rows + offset,
+                "act": names[acts[rows, ev]],
+                "start": np.rint(first_bin * self.bin_size).astype(np.int64),
+                "end": np.rint((last_bin + 1) * self.bin_size).astype(np.int64),
+            }
+        )
+
+        # empty plan hack (as in accumulate mode): nothing painted
+        empty = np.nonzero(~(timeline >= 0).any(axis=1))[0]
+        if len(empty):
+            print(
+                f"Failed to decode {len(empty)} plans in chunk, returning empty plan"
+            )
+            out = pd.concat(
+                [
+                    out,
+                    pd.DataFrame(
+                        {
+                            "pid": empty + offset,
+                            "act": "home",
+                            "start": 0,
+                            "end": 0,
+                        }
+                    ),
+                ],
+                ignore_index=True,
+            ).sort_values(["pid", "start"], kind="stable", ignore_index=True)
+        return out
 
     def _fix(self, df: pd.DataFrame) -> pd.DataFrame:
         df["duration"] = df.end - df.start

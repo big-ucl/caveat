@@ -6,7 +6,7 @@ schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.
 attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
 
 evaluation_params:
-  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities, hh_children]
+  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities]
   split_order: 2
   
 labels_encoder:
@@ -22,7 +22,6 @@ labels_encoder:
     day: nominal
     veh_per_adult: nominal
     wt_travel_time_to_cities: nominal
-    hh_children: nominal
 
 encoder_params:
   name: "continuous"

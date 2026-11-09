@@ -9,7 +9,7 @@ from torch import Tensor, nn
 from caveat.models import Base
 
 
-class AutoDiscEventTransformer(Base):
+class AutoEventTransformer(Base):
     def __init__(self, *args, **kwargs):
         """Event-level transformer decoder (type, start, end per token),
         conditioned on labels via cross-attention. Use with EventEncoder.

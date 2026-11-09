@@ -8,7 +8,7 @@ schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.
 attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
 
 evaluation_params:
-  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities, hh_children]
+  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities]
   split_order: 2
   
 labels_encoder:
@@ -24,7 +24,6 @@ labels_encoder:
     day: nominal
     veh_per_adult: nominal
     wt_travel_time_to_cities: nominal
-    hh_children: nominal
 
 loader_params:
   train_batch_size: 1024
@@ -40,23 +39,31 @@ trainer_params:
 encoder_params:
   name: "events"
   event_weighting: inverse_seq
-  weight_power: 1
-  min_count: 1
+  weight_power: .5
+  min_count: 10
+  n_bins: 48
   argmax: False
+  decode_mode: overlay
+  gap_fill: True
 
 experiment_params:
   LR: 0.0001
   weight_decay: 0.1
   scheduler_gamma: 0.975
+  grad_clip: 1.0
 
 model_params:
-  name: "AutoDiscEventTransformer"
+  name: "AutoEventLSTM"
   top_sampler: False
-  hidden_n: 2
-  hidden_size: 64
-  n_heads: 4
-  ff_mult: 1
+  hidden_n: 4
+  hidden_size: 256
+  labels_hidden_size: 64
+  # n_heads: 2
+  # ff_mult: 2
   dropout: 0
-  label_dropout: 0.3
-  soft_window: 1
+  label_dropout: 0
+  soft_window: 11
+  soft_weight: 0.3
+  loss_weights: [1.0, 1.0, 1.0, 1.0, 1.0]
+  n_bins: 48
 

@@ -28,7 +28,8 @@ from .discrete.vae_discrete_cnn2d import VAEDiscCNN2D
 from .discrete.vae_discrete_fc import VAEDiscFC
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_xattention import VAEDiscXTrans
-from .events.auto_event_transformer import AutoDiscEventTransformer
+from .events.auto_event_lstm import AutoEventLSTM
+from .events.auto_event_transformer import AutoEventTransformer
 from .joint_vaes.jvae_continuous import JVAEContLSTM
 from .joint_vaes.jvae_continuous_rerouted import JVAEContLSTMRerouted
 from .schedule2label.feedforward import Schedule2LabelFeedForward
@@ -43,7 +44,8 @@ library = {
     "AutoDiscTransformer": AutoDiscTransformer,
     "AutoContLSTM": AutoContLSTM,
     "AutoContAtt": AutoContAtt,
-    "AutoDiscEventTransformer": AutoDiscEventTransformer,
+    "AutoEventTransformer": AutoEventTransformer,
+    "AutoEventLSTM": AutoEventLSTM,
     "VAEDiscCNN2D": VAEDiscCNN2D,
     "VAEDiscCNN1D": VAEDiscCNN1D,
     "VAEDiscFC": VAEDiscFC,
