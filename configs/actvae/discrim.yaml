@@ -33,6 +33,7 @@ labels_encoder:
     income: ordinal
 
 evaluation_params:
+
   split_on: [gender, age_group, car_access, work_status, income]
 
 encoder_params:

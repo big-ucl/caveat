@@ -1,13 +1,14 @@
+seed: 12345
 logging_params:
-  log_dir: "logs/actvae2"
-  name: "cpvae"
+  log_dir: "logs/actvae"
+  name: "extrapolation"
 
-schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.parquet"
-attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
+schedules_path: "tmp/training_schedules.csv"
+attributes_path: "tmp/training_attributes.csv"
+synthetic_attributes_path: "tmp/test_attributes.csv"
 
 evaluation_params:
-  split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities, hh_children]
-  split_order: 2
+  split_on: [age, sex, employment, hh_income, hh_zone, day, vehicles, access_egress_distance]
   
 labels_encoder:
   name: "tokens"
@@ -20,9 +21,8 @@ labels_encoder:
     hh_income: nominal
     hh_zone: nominal
     day: nominal
-    veh_per_adult: nominal
-    wt_travel_time_to_cities: nominal
-    hh_children: nominal
+    vehicles: nominal
+    access_egress_distance: nominal
 
 encoder_params:
   name: "continuous"
@@ -39,6 +39,7 @@ loader_params:
   val_batch_size:  1024
   num_workers: 8
   val_split: 0.1
+  test_split: 0.1
 
 trainer_params:
   min_epochs: 50
@@ -48,14 +49,20 @@ trainer_params:
     enabled: False
   collapse_monitoring:
     enabled: False
+  anchor_scheduling:
+    enabled: True
+    label_only_epochs: 5
+    warmup_epochs: 5
+    start_alpha: 0.0
+    end_alpha: 1.0
 
 model_params:
   name: "CVAEContLSTMCP"
   hidden_n: 4
   hidden_size: 256
-  labels_hidden_size: 64
+  labels_hidden_size: 32
   latent_dim: 4
-  dropout: 0.0
+  dropout: 0.1
   teacher_forcing_ratio: 0.5
   hidden_conditionality: add
   encoder_conditionality: none
@@ -66,5 +73,8 @@ experiment_params:
   LR: 0.001
   weight_decay: 0.01
   scheduler_gamma: 0.98
-  kld_weight: 0.01
-  duration_loss_weight: 200
+  kld_weight: 0.02
+  duration_loss_weight: 100
+
+
+

@@ -8,6 +8,8 @@ schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.
 attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
 
 evaluation_params:
+  schedules_path: "/home/fred/Projects/foundata/output/nts2023/activity_schedules.parquet"
+  attributes_path: "/home/fred/Projects/foundata/output/nts2023/binned_attributes.parquet"
   split_on: [age, sex, employment, hh_income, hh_zone, day, veh_per_adult, wt_travel_time_to_cities]
   split_order: 2
   
@@ -57,7 +59,7 @@ model_params:
   top_sampler: False
   hidden_n: 4
   hidden_size: 256
-  labels_hidden_size: 64
+  labels_hidden_size: 32
   # n_heads: 2
   # ff_mult: 2
   dropout: 0
